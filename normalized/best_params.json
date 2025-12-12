@@ -1,0 +1,17 @@
+{
+  "koltsevayaRadiusScale": 7,
+  "mccRadiusScale": 6,
+  "bklRadiusScale": 7.5,
+  "innerMaxRatio": 0.55,
+  "innerBorderRatio": 0.95,
+  "innerExplosionFactor": 7,
+  "minDistance": 65,
+  "criticalDistance": 25,
+  "extremeDistance": 10,
+  "smoothingIterations1": 8,
+  "optimizationIterations": 30,
+  "smoothingIterations2": 10,
+  "targetWidth": 2200,
+  "targetHeight": 1700,
+  "padding": 150
+}

@@ -1,0 +1,162 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 228, 241, 0.96), rgba(255, 228, 241, 0.4)),
+    radial-gradient(circle at 100% 100%, rgba(219, 234, 254, 0.96), rgba(219, 234, 254, 0.4)),
+    radial-gradient(circle at 15% 100%, rgba(254, 249, 195, 0.9), transparent 60%),
+    linear-gradient(
+      135deg,
+      var(--color-surface-lilac-50) 0%,
+      var(--color-surface-rose-200) 32%,
+      var(--color-surface-lilac-100) 68%,
+      var(--color-surface-cream-100) 100%
+    );
+}
+
+#root {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.7)),
+    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.96), rgba(229, 231, 235, 0.75));
+  color: var(--color-text-primary);
+}
+
+.app-root {
+  color: var(--color-text-primary);
+}
+
+/* Стеклянный «скелет» приложения: хедер, нижняя панель, карточки, баннеры */
+.app-header,
+.bottom-sheet {
+  background: var(--color-surface-glass-strong);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(var(--blur-glass-soft));
+  -webkit-backdrop-filter: blur(var(--blur-glass-soft));
+}
+
+.route-placeholder,
+.route-result,
+.route-step,
+.update-banner,
+.install-guide-card,
+.app-splash-card {
+  background: var(--color-surface-glass-strong);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Более компактные элементы */
+.route-step {
+  border-radius: var(--radius-md);
+}
+
+/* Текстовые уровни */
+.app-header-title,
+.summary-time,
+.bottom-route-chip-main,
+.install-guide-title {
+  color: var(--color-text-primary);
+}
+
+.app-header-subtitle,
+.summary-transfers,
+.step-meta,
+.install-guide-subtitle,
+.install-guide-note,
+.bottom-route-chip-sub {
+  color: var(--color-text-muted);
+}
+
+.error-text {
+  color: var(--color-danger);
+}
+
+/* Инпуты и кнопки формы (кроме нижней панели) */
+
+.editor-fab,
+.metro-map-zoom-button,
+.install-guide-close-button,
+.update-banner-button,
+.primary-button,
+.install-guide-close-button {
+  background: var(--color-surface-glass-strong);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.35);
+  color: var(--color-text-primary);
+}
+
+.editor-fab:hover,
+.metro-map-zoom-button:hover,
+.install-guide-close-button:hover,
+.update-banner-button:hover,
+.primary-button:hover {
+  background: linear-gradient(135deg, var(--color-surface-glass-strong), var(--color-accent-subtle));
+}
+
+.primary-button,
+.update-banner-button {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-warning));
+  color: var(--color-surface-rose-highlight);
+  border-color: transparent;
+}
+
+.primary-button:hover,
+.update-banner-button:hover {
+  filter: brightness(1.03);
+}
+
+/* Нижняя шторка маршрутов */
+.bottom-sheet {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+
+@media (min-width: 1024px) {
+  .bottom-sheet {
+    border-radius: var(--radius-lg);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .bottom-sheet {
+    border-bottom-left-radius: unset;
+    border-bottom-right-radius: unset;
+  }
+}
+
+/* Карта и зум-контролы */
+.metro-map-wrapper {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.96), rgba(229, 231, 235, 0.9));
+}
+
+/* Модалка установки PWA поверх лёгкого стеклянного диммера */
+.install-guide-backdrop {
+  background:
+    radial-gradient(circle at top, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.4));
+}
+
+/* Мелкие штрихи */
+.route-steps {
+  gap: 0.65rem;
+}
+
+.step-station-list {
+  gap: 0.22rem;
+}
+
+.route-result,
+.route-step {
+  box-shadow: none;
+}
