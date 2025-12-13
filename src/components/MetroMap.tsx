@@ -2524,6 +2524,11 @@ export function MetroMap({
 
     stopPanInertia()
 
+    if (wheelRafRef.current != null) {
+      cancelAnimationFrame(wheelRafRef.current)
+      wheelRafRef.current = null
+    }
+
     let lastTime: number | null = null
     const friction = 0.003
 
@@ -2534,7 +2539,7 @@ export function MetroMap({
         return
       }
 
-      const dt = now - lastTime
+      const dt = Math.min(now - lastTime, 32)
       lastTime = now
 
       const current = panVelocityRef.current
@@ -2557,7 +2562,7 @@ export function MetroMap({
         offsetX: viewportRef.current.offsetX + dx,
         offsetY: viewportRef.current.offsetY + dy,
       })
-      scheduleViewportCommit()
+      setViewport(viewportRef.current)
 
       const nextSpeed = Math.hypot(vxNext, vyNext)
       if (nextSpeed < minStopSpeed) {
