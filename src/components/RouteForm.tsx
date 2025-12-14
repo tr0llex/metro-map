@@ -8,14 +8,16 @@ interface RouteFormProps {
   toSuggestions: FullGraphStation[]
   fromSuggestionIndex: number
   toSuggestionIndex: number
+  fromSelectedColor?: string
+  toSelectedColor?: string
   fromInputRef: RefObject<HTMLInputElement | null>
   toInputRef: RefObject<HTMLInputElement | null>
   onFromChange: (value: string) => void
   onToChange: (value: string) => void
   onFromKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
   onToKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
-  onSelectFromSuggestion: (title: string) => void
-  onSelectToSuggestion: (title: string) => void
+  onSelectFromSuggestion: (stationId: string) => void
+  onSelectToSuggestion: (stationId: string) => void
   onSwap: () => void
   onClearFrom: () => void
   onClearTo: () => void
@@ -28,6 +30,8 @@ export function RouteForm({
   toSuggestions,
   fromSuggestionIndex,
   toSuggestionIndex,
+  fromSelectedColor,
+  toSelectedColor,
   fromInputRef,
   toInputRef,
   onFromChange,
@@ -51,7 +55,7 @@ export function RouteForm({
                 <li
                   key={s.id}
                   className={`suggestion-item${isActive ? ' suggestion-item--active' : ''}`}
-                  onClick={() => onSelectFromSuggestion(s.title)}
+                  onClick={() => onSelectFromSuggestion(s.id)}
                 >
                   {s.title}
                 </li>
@@ -59,8 +63,15 @@ export function RouteForm({
             })}
           </ul>
         )}
+        {fromSelectedColor && (
+          <span
+            className="bottom-input-line-dot"
+            style={{ backgroundColor: fromSelectedColor }}
+            aria-hidden="true"
+          />
+        )}
         <input
-          className="bottom-input"
+          className={`bottom-input${fromSelectedColor ? ' bottom-input--with-line-dot' : ''}`}
           type="text"
           placeholder="Откуда"
           value={fromStation}
@@ -98,7 +109,7 @@ export function RouteForm({
                 <li
                   key={s.id}
                   className={`suggestion-item${isActive ? ' suggestion-item--active' : ''}`}
-                  onClick={() => onSelectToSuggestion(s.title)}
+                  onClick={() => onSelectToSuggestion(s.id)}
                 >
                   {s.title}
                 </li>
@@ -106,8 +117,15 @@ export function RouteForm({
             })}
           </ul>
         )}
+        {toSelectedColor && (
+          <span
+            className="bottom-input-line-dot"
+            style={{ backgroundColor: toSelectedColor }}
+            aria-hidden="true"
+          />
+        )}
         <input
-          className="bottom-input"
+          className={`bottom-input${toSelectedColor ? ' bottom-input--with-line-dot' : ''}`}
           type="text"
           placeholder="Куда"
           value={toStation}

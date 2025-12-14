@@ -1,23 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent, TouchEvent } from 'react'
 import './App.css'
 import './theme.css'
 import helloKittyIcon from './assets/kitty-metro-logo.svg'
-import { InstallGuideCard } from './components/InstallGuideCard'
-import { UpdateBanner } from './components/UpdateBanner'
-import { SplashScreen } from './components/SplashScreen'
-import { RouteForm } from './components/RouteForm'
-import { RouteDetailsSheet } from './components/RouteDetailsSheet'
-import type { DecoratedSegment } from './components/RouteDetailsSheet'
-import { RouteHeader } from './components/RouteHeader'
-import { HubEditorPanel } from './components/HubEditorPanel'
+import { InstallGuideCard } from './components/InstallGuideCard.tsx'
+import { UpdateBanner } from './components/UpdateBanner.tsx'
+import { SplashScreen } from './components/SplashScreen.tsx'
+import { RouteForm } from './components/RouteForm.tsx'
+import { RouteDetailsSheet } from './components/RouteDetailsSheet.tsx'
+import type { DecoratedSegment } from './components/RouteDetailsSheet.tsx'
+import { RouteHeader } from './components/RouteHeader.tsx'
+import { HubEditorPanel } from './components/HubEditorPanel.tsx'
 import {
   fullGraphLines,
   fullGraphStations,
   fullGraphEdges,
   fullGraphTransferHubs,
-} from './metro/fullGraph'
-import { findRouteAlternativesFullGraph } from './metro/routing'
+} from './metro/fullGraph.ts'
+import { findRouteAlternativesFullGraph } from './metro/routing.ts'
 import type {
   RouteResult,
   FullGraphExport,
@@ -25,8 +25,8 @@ import type {
   EdgeOverride,
   FullGraphStation,
   EditorOverrides,
-} from './metro/types'
-import { MetroMap } from './components/MetroMap'
+} from './metro/types.ts'
+import { MetroMap } from './components/MetroMap.tsx'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
 const EDITOR_ENABLED = import.meta.env.DEV
@@ -123,6 +123,7 @@ function App() {
   const [lastLayoutOverrides, setLastLayoutOverrides] = useState<
     Record<string, { x: number; y: number }>
   >({})
+  const [editorLayoutApplyToken, setEditorLayoutApplyToken] = useState(0)
   const pendingLayoutOverridesRef = useRef<
     Record<string, { x: number; y: number }> | null
   >(null)
@@ -131,7 +132,6 @@ function App() {
   const [isSplashMounted, setIsSplashMounted] = useState(true)
   const [fromSuggestionIndex, setFromSuggestionIndex] = useState(-1)
   const [toSuggestionIndex, setToSuggestionIndex] = useState(-1)
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const [inspectedStationId, setInspectedStationId] = useState<string | null>(null)
   const [inspectedLineId, setInspectedLineId] = useState<number | null>(null)
   const [stationOverrides, setStationOverrides] = useState<Record<string, StationOverride>>({})
@@ -147,6 +147,8 @@ function App() {
   const [hubAddStationInput, setHubAddStationInput] = useState('')
   const [hiddenStations, setHiddenStations] = useState<Record<string, true>>({})
   const [editorSelectedStationIds, setEditorSelectedStationIds] = useState<string[]>([])
+  const [editorToast, setEditorToast] = useState<string | null>(null)
+  const editorToastTimeoutRef = useRef<number | null>(null)
   const [favoriteRoutes, setFavoriteRoutes] = useState<SavedRoute[]>([])
   const [recentRoutes, setRecentRoutes] = useState<SavedRoute[]>([])
   const [isSmartSuggestionsOpen, setIsSmartSuggestionsOpen] = useState(false)
@@ -163,10 +165,23 @@ function App() {
   const sheetAnimFrameRef = useRef<number | null>(null)
   const sheetAnimTargetRef = useRef<number | null>(null)
   const sheetProgressRef = useRef(0)
+  const sheetSpringRafRef = useRef<number | null>(null)
+  const sheetSpringTargetRef = useRef<number | null>(null)
+  const sheetSpringVelocityRef = useRef(0)
+  const sheetSpringLastTimeRef = useRef<number | null>(null)
+  const sheetDragLastSampleTimeRef = useRef<number | null>(null)
+  const sheetDragLastSampleProgressRef = useRef<number | null>(null)
+  const sheetDragVelocityRef = useRef(0)
   const bottomSheetRef = useRef<HTMLDivElement | null>(null)
+  const sheetMinVisibleRef = useRef<HTMLDivElement | null>(null)
+  const routeDetailsRef = useRef<HTMLDivElement | null>(null)
+  const sheetMaxOffsetPxRef = useRef(0)
   const savedRouteCounterRef = useRef(1)
   const [hubRotateCommand, setHubRotateCommand] = useState<
     { hubId: string; direction: 'cw' | 'ccw'; token: number } | null
+  >(null)
+  const [editorFocusCommand, setEditorFocusCommand] = useState<
+    { stationId: string; token: number } | null
   >(null)
   const [editorHistory, setEditorHistory] = useState<EditorHistoryState>({ items: [], index: -1 })
   const [installGuidePlatform, setInstallGuidePlatform] = useState<
@@ -210,6 +225,45 @@ function App() {
   const edgeKey = useCallback((a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`), [])
 
   const hubRotateTokenRef = useRef(0)
+  const editorFocusTokenRef = useRef(0)
+
+  const showEditorToast = useCallback((message: string) => {
+    setEditorToast(message)
+    if (editorToastTimeoutRef.current != null) {
+      window.clearTimeout(editorToastTimeoutRef.current)
+    }
+    editorToastTimeoutRef.current = window.setTimeout(() => {
+      editorToastTimeoutRef.current = null
+      setEditorToast(null)
+    }, 2200)
+  }, [])
+
+  const copyTextToClipboard = useCallback(async (text: string): Promise<boolean> => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text)
+        return true
+      } catch {
+        // ignore
+      }
+    }
+
+    try {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.setAttribute('readonly', '')
+      el.style.position = 'fixed'
+      el.style.top = '0'
+      el.style.left = '-9999px'
+      document.body.appendChild(el)
+      el.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(el)
+      return ok
+    } catch {
+      return false
+    }
+  }, [])
 
   const makeEditorSnapshot = useCallback((): EditorSnapshot => {
     return {
@@ -236,7 +290,7 @@ function App() {
   ])
 
   const pushEditorHistory = useCallback(() => {
-    setEditorHistory((prev) => {
+    setEditorHistory((prev: EditorHistoryState) => {
       const snapshot = makeEditorSnapshot()
 
       if (prev.index >= 0) {
@@ -264,7 +318,9 @@ function App() {
     setManualStations(snapshot.manualStations)
     setManualEdges(snapshot.manualEdges)
     setHiddenStations(snapshot.hiddenStations)
+    pendingLayoutOverridesRef.current = null
     setLastLayoutOverrides(snapshot.lastLayoutOverrides)
+    setEditorLayoutApplyToken((prev: number) => prev + 1)
     setHubRotationOverrides(snapshot.hubRotationOverrides)
   }, [])
 
@@ -300,6 +356,11 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!effectiveEditMode) return
+    setEditorLayoutApplyToken((prev: number) => prev + 1)
+  }, [effectiveEditMode])
+
+  useEffect(() => {
     let timeoutId: number | null = null
 
     const flush = () => {
@@ -307,7 +368,7 @@ function App() {
       const pending = pendingLayoutOverridesRef.current
       if (!pending) return
       pendingLayoutOverridesRef.current = null
-      setLastLayoutOverrides((prev) => {
+      setLastLayoutOverrides((prev: Record<string, { x: number; y: number }>) => {
         const prevKeys = Object.keys(prev)
         const nextKeys = Object.keys(pending)
         if (prevKeys.length === nextKeys.length) {
@@ -475,7 +536,7 @@ function App() {
 
   const handleToggleEdgeTransfer = useCallback(
     (edge: FullGraphEdge) => {
-      setEdgeOverrides((prev) => {
+      setEdgeOverrides((prev: Record<string, EdgeOverride>) => {
         const key = edgeKey(edge.fromStationId, edge.toStationId)
         const baseIsTransfer = !!edge.isTransfer
         const baseSeconds = edge.medianTravelSeconds
@@ -642,10 +703,16 @@ function App() {
   const handleInspectStation = useCallback((stationId: string) => {
     setInspectedStationId(stationId)
   }, [])
+  const handleFocusStation = useCallback((stationId: string) => {
+    setEditorFocusCommand(() => {
+      editorFocusTokenRef.current += 1
+      return { stationId, token: editorFocusTokenRef.current }
+    })
+  }, [])
   const hiddenStationIdSet = useMemo(() => new Set(Object.keys(hiddenStations)), [hiddenStations])
 
   const handleToggleStationHidden = useCallback((stationId: string) => {
-    setHiddenStations((prev) => {
+    setHiddenStations((prev: Record<string, true>) => {
       if (prev[stationId]) {
         const next = { ...prev }
         delete next[stationId]
@@ -661,6 +728,17 @@ function App() {
     onRegisterError(error: unknown) {
       console.log('SW registration error', error)
     },
+  })
+  const [isUpdateDismissed, setIsUpdateDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    try {
+      return window.sessionStorage.getItem('kitty-metro-update-dismissed') === '1'
+    } catch {
+      return false
+    }
   })
   const fromInputRef = useRef<HTMLInputElement | null>(null)
   const toInputRef = useRef<HTMLInputElement | null>(null)
@@ -680,13 +758,173 @@ function App() {
       // 0 — шторка полностью свернута (у нижнего края), 1 — полностью раскрыта.
       // Двигаем её по translateY в пределах небольшого диапазона, чтобы сохранить
       // связь с пальцем, но не делать гигантский сдвиг.
-      const maxOffsetPx = 260
+      const maxOffsetPx = sheetMaxOffsetPxRef.current
       const translateY = (1 - clamped) * maxOffsetPx
 
       el.style.transform = `translateY(${translateY}px)`
-      el.style.opacity = clamped > 0 ? '1' : '0'
     },
     [isDesktop],
+  )
+
+  const recomputeSheetMaxOffsetPx = useCallback(() => {
+    if (typeof window === 'undefined') return
+    if (isDesktop) return
+    const sheetEl = bottomSheetRef.current
+    const minEl = sheetMinVisibleRef.current
+    if (!sheetEl || !minEl) return
+
+    const minHeight = minEl.offsetHeight
+
+    let detailsHeight = 0
+    let detailsMarginTop = 0
+    const detailsEl = routeDetailsRef.current
+    if (detailsEl) {
+      detailsHeight = detailsEl.scrollHeight
+      const mt = window.getComputedStyle(detailsEl).marginTop
+      const mtPx = Number.parseFloat(mt)
+      if (Number.isFinite(mtPx)) {
+        detailsMarginTop = mtPx
+      }
+    }
+
+    const vv = window.visualViewport
+    const viewportHeight = vv?.height ?? window.innerHeight
+    const rootFontSizeStr = window.getComputedStyle(document.documentElement).fontSize
+    const rootFontSize = Number.parseFloat(rootFontSizeStr)
+    const remPx = Number.isFinite(rootFontSize) ? rootFontSize : 16
+    const maxHeightPx = Math.max(0, viewportHeight - remPx * 1.75)
+
+    const desiredOpenHeight = minHeight + detailsMarginTop + detailsHeight
+    const openHeight = Math.min(desiredOpenHeight, maxHeightPx)
+    sheetMaxOffsetPxRef.current = Math.max(0, openHeight - minHeight)
+
+    sheetEl.style.height = `${openHeight}px`
+
+    updateSheetTransformDom(sheetProgressRef.current)
+  }, [isDesktop, updateSheetTransformDom])
+
+  useLayoutEffect(() => {
+    recomputeSheetMaxOffsetPx()
+  }, [
+    recomputeSheetMaxOffsetPx,
+    isDesktop,
+    isSmartSuggestionsOpen,
+    favoriteRoutes.length,
+    recentRoutes.length,
+    nearbyStatus,
+    nearbyStations.length,
+    errorMessage,
+    routeAlternatives.length,
+    activeRouteIndex,
+    isRouteSheetOpen,
+  ])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (isDesktop) return
+
+    const sheetEl = bottomSheetRef.current
+    const minEl = sheetMinVisibleRef.current
+    const detailsEl = routeDetailsRef.current
+    if (!sheetEl || !minEl) return
+
+    let raf = 0
+    const schedule = () => {
+      if (raf) return
+      raf = window.requestAnimationFrame(() => {
+        raf = 0
+        recomputeSheetMaxOffsetPx()
+      })
+    }
+
+    const onResize = () => schedule()
+    window.addEventListener('resize', onResize)
+
+    let ro: ResizeObserver | null = null
+    if (typeof window.ResizeObserver === 'function') {
+      ro = new window.ResizeObserver(() => schedule())
+      ro.observe(sheetEl)
+      ro.observe(minEl)
+      if (detailsEl) {
+        ro.observe(detailsEl)
+      }
+    }
+
+    return () => {
+      window.removeEventListener('resize', onResize)
+      if (raf) {
+        window.cancelAnimationFrame(raf)
+      }
+      if (ro) {
+        ro.disconnect()
+      }
+    }
+  }, [isDesktop, recomputeSheetMaxOffsetPx])
+
+  const stopSheetSpring = useCallback(() => {
+    if (typeof window === 'undefined') return
+    if (sheetSpringRafRef.current != null) {
+      window.cancelAnimationFrame(sheetSpringRafRef.current)
+      sheetSpringRafRef.current = null
+    }
+    sheetSpringLastTimeRef.current = null
+  }, [])
+
+  const startSheetSpring = useCallback(
+    (targetProgress: number, initialVelocity?: number) => {
+      if (typeof window === 'undefined') return
+      if (isDesktop) return
+
+      const clampedTarget = Math.max(0, Math.min(1, targetProgress))
+      sheetSpringTargetRef.current = clampedTarget
+      if (typeof initialVelocity === 'number' && Number.isFinite(initialVelocity)) {
+        sheetSpringVelocityRef.current = initialVelocity
+      }
+
+      if (sheetSpringRafRef.current != null) {
+        return
+      }
+
+      const step = (timestamp: number) => {
+        sheetSpringRafRef.current = null
+        const target = sheetSpringTargetRef.current
+        if (target == null) {
+          sheetSpringLastTimeRef.current = null
+          return
+        }
+
+        const lastTime = sheetSpringLastTimeRef.current
+        const dtMs = lastTime == null ? 16 : Math.min(32, Math.max(8, timestamp - lastTime))
+        sheetSpringLastTimeRef.current = timestamp
+        const dt = dtMs / 1000
+
+        const x = sheetProgressRef.current
+        const v0 = sheetSpringVelocityRef.current
+
+        const k = 420
+        const c = 70
+
+        const a = k * (target - x) - c * v0
+        const v1 = v0 + a * dt
+        const x1 = x + v1 * dt
+
+        sheetSpringVelocityRef.current = v1
+        updateSheetTransformDom(x1)
+
+        const done = Math.abs(target - x1) < 0.002 && Math.abs(v1) < 0.02
+        if (done) {
+          updateSheetTransformDom(target)
+          sheetSpringVelocityRef.current = 0
+          sheetSpringLastTimeRef.current = null
+          return
+        }
+
+        sheetSpringRafRef.current = window.requestAnimationFrame(step)
+      }
+
+      sheetSpringRafRef.current = window.requestAnimationFrame(step)
+    },
+    [isDesktop, updateSheetTransformDom],
   )
 
   useEffect(() => {
@@ -705,12 +943,22 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!needRefresh) {
+    if (needRefresh) {
+      return
+    }
+    if (!isUpdateDismissed) {
       return
     }
 
-    updateServiceWorker(true)
-  }, [needRefresh, updateServiceWorker])
+    setIsUpdateDismissed(false)
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.removeItem('kitty-metro-update-dismissed')
+      } catch {
+        // ignore
+      }
+    }
+  }, [needRefresh, isUpdateDismissed])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -722,31 +970,6 @@ function App() {
     }, 2600)
 
     return () => window.clearTimeout(timeoutId)
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    const updateHeight = () => {
-      const vv = window.visualViewport
-      if (vv && typeof vv.height === 'number') {
-        setViewportHeight(vv.height)
-      } else {
-        setViewportHeight(window.innerHeight)
-      }
-    }
-
-    updateHeight()
-    window.addEventListener('resize', updateHeight)
-    const vv = window.visualViewport
-    vv?.addEventListener('resize', updateHeight)
-
-    return () => {
-      window.removeEventListener('resize', updateHeight)
-      vv?.removeEventListener('resize', updateHeight)
-    }
   }, [])
 
   useEffect(() => {
@@ -785,7 +1008,7 @@ function App() {
         }
       }
 
-      setMapVisibleInsets((prev) => ({ top, right, bottom: prev.bottom, left }))
+      setMapVisibleInsets((prev: typeof mapVisibleInsets) => ({ top, right, bottom: prev.bottom, left }))
     }
 
     updateInsets()
@@ -821,7 +1044,7 @@ function App() {
 
       if ((event.key === 'e' || event.key === 'E') && (event.ctrlKey || event.metaKey)) {
         event.preventDefault()
-        setEditMode((prev) => !prev)
+        setEditMode((prev: boolean) => !prev)
         return
       }
 
@@ -844,7 +1067,7 @@ function App() {
         (event.ctrlKey || event.metaKey)
       ) {
         event.preventDefault()
-        setCollisionDebug((prev) => !prev)
+        setCollisionDebug((prev: boolean) => !prev)
       }
     }
 
@@ -892,7 +1115,8 @@ function App() {
 
   const shouldShowInstallGuide =
     isSplashDone && isMapReady && isInstallGuideOpen && isInstallGuideDelayPassed
-  const showUpdateBanner = isSplashDone && isMapReady && !shouldShowInstallGuide && needRefresh
+  const showUpdateBanner =
+    isSplashDone && isMapReady && !shouldShowInstallGuide && needRefresh && !isUpdateDismissed
 
   const handleInstallGuideBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) {
@@ -906,14 +1130,32 @@ function App() {
     updateServiceWorker(true)
   }
 
+  const handleUpdateBannerLater = () => {
+    setIsUpdateDismissed(true)
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      window.sessionStorage.setItem('kitty-metro-update-dismissed', '1')
+    } catch {
+      return
+    }
+  }
+
   const setRouteSheetOpenState = (open: boolean) => {
     setIsRouteSheetOpen(open)
     if (!open) {
       setIsSmartSuggestionsOpen(false)
     }
     if (!isDesktop) {
-      const target = open ? 1 : 0
-      updateSheetTransformDom(target)
+      const hasRouteToAnimate = routeAlternatives.length > 0 && !errorMessage
+      if (hasRouteToAnimate) {
+        startSheetSpring(open ? 1 : 0, 0)
+      } else {
+        stopSheetSpring()
+        updateSheetTransformDom(1)
+      }
     }
   }
 
@@ -972,6 +1214,29 @@ function App() {
     }
     return map
   }, [])
+
+  const getStationColorHex = useCallback(
+    (station: FullGraphStation) => {
+      const lineId = station.lineNumericId
+      if (lineId == null) return undefined
+      return lineByNumericId.get(lineId)?.colorHex
+    },
+    [lineByNumericId],
+  )
+
+  const fromSelectedColor = useMemo(() => {
+    if (!fromStationId) return undefined
+    const st = stationById.get(fromStationId)
+    if (!st) return undefined
+    return getStationColorHex(st)
+  }, [fromStationId, stationById, getStationColorHex])
+
+  const toSelectedColor = useMemo(() => {
+    if (!toStationId) return undefined
+    const st = stationById.get(toStationId)
+    if (!st) return undefined
+    return getStationColorHex(st)
+  }, [toStationId, stationById, getStationColorHex])
 
   const inspectedStation = useMemo(() => {
     if (!inspectedStationId) return null
@@ -1515,33 +1780,163 @@ function App() {
     })
   }, [])
 
+  const handleResetStationEdits = useCallback(
+    (stationId: string) => {
+      setStationOverrides((prev) => {
+        if (!(stationId in prev)) return prev
+        const next = { ...prev }
+        delete next[stationId]
+        return next
+      })
+
+      setStationHubOverrides((prev) => {
+        if (!(stationId in prev)) return prev
+        const next = { ...prev }
+        delete next[stationId]
+        return next
+      })
+
+      setHiddenStations((prev) => {
+        if (!(stationId in prev)) return prev
+        const next = { ...prev }
+        delete next[stationId]
+        return next
+      })
+
+      const base = stationById.get(stationId)
+      const baseX = base && typeof base.layoutX === 'number' ? base.layoutX : undefined
+      const baseY = base && typeof base.layoutY === 'number' ? base.layoutY : undefined
+      if (baseX !== undefined && baseY !== undefined) {
+        pendingLayoutOverridesRef.current = null
+        setLastLayoutOverrides((prev: Record<string, { x: number; y: number }>) => {
+          const current = prev[stationId]
+          if (current && current.x === baseX && current.y === baseY) return prev
+          return { ...prev, [stationId]: { x: baseX, y: baseY } }
+        })
+        setEditorLayoutApplyToken((prev: number) => prev + 1)
+      }
+
+      showEditorToast('Изменения станции сброшены')
+    },
+    [stationById, showEditorToast],
+  )
+
+  const handleResetEdgeEdits = useCallback(
+    (edge: FullGraphEdge) => {
+      const key = edgeKey(edge.fromStationId, edge.toStationId)
+      const manualKey = `manual:${key}`
+
+      setEdgeOverrides((prev) => {
+        if (!(key in prev)) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+
+      setManualEdges((prev) => {
+        if (!(manualKey in prev)) return prev
+        const next = { ...prev }
+        delete next[manualKey]
+        return next
+      })
+
+      showEditorToast('Изменения ребра сброшены')
+    },
+    [edgeKey, showEditorToast],
+  )
+
+  const handleResetHubEdits = useCallback(
+    (hubId: string, hubStationIds: string[]) => {
+      setHubMinOverrides((prev) => {
+        if (!(hubId in prev)) return prev
+        const next = { ...prev }
+        delete next[hubId]
+        return next
+      })
+
+      setHubRotationOverrides((prev) => {
+        if (!(hubId in prev)) return prev
+        const next = { ...prev }
+        delete next[hubId]
+        return next
+      })
+
+      if (hubStationIds.length > 0) {
+        pendingLayoutOverridesRef.current = null
+        setLastLayoutOverrides((prev: Record<string, { x: number; y: number }>) => {
+          let changed = false
+          const next = { ...prev }
+          for (const sid of hubStationIds) {
+            const st = stationById.get(sid)
+            const baseX = st && typeof st.layoutX === 'number' ? st.layoutX : undefined
+            const baseY = st && typeof st.layoutY === 'number' ? st.layoutY : undefined
+            if (baseX === undefined || baseY === undefined) continue
+            const current = prev[sid]
+            if (!current || current.x !== baseX || current.y !== baseY) {
+              next[sid] = { x: baseX, y: baseY }
+              changed = true
+            }
+          }
+          return changed ? next : prev
+        })
+        setEditorLayoutApplyToken((prev: number) => prev + 1)
+      }
+
+      showEditorToast('Настройки хаба сброшены')
+    },
+    [stationById, showEditorToast],
+  )
+
+  const handleResetAllEditorEdits = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const ok = window.confirm(
+        'Сбросить все изменения редактора?\n\nЭто удалит ручные станции/рёбра и сбросит все оверрайды.',
+      )
+      if (!ok) return
+    }
+
+    setStationOverrides({})
+    setStationHubOverrides({})
+    setEdgeOverrides({})
+    setHubMinOverrides({})
+    setHubRotationOverrides({})
+    setManualStations({})
+    setManualEdges({})
+    setHiddenStations({})
+    pendingLayoutOverridesRef.current = null
+    setLastLayoutOverrides({})
+    setEditorLayoutApplyToken((prev: number) => prev + 1)
+    setInspectedStationId(null)
+    showEditorToast('Все изменения сброшены')
+  }, [showEditorToast])
+
   const clearRoutes = () => {
     setRouteAlternatives([])
     setActiveRouteIndex(0)
   }
 
-  const buildRoute = (fromName: string, toName: string) => {
+  const buildRouteByIds = (fromId: string, toId: string) => {
     setErrorMessage(null)
     clearRoutes()
     setRouteSheetOpenState(false)
 
-    const fromMatch = findExactStationByName(fromName)
-    const toMatch = findExactStationByName(toName)
+    const fromStationResolved = stationById.get(fromId)
+    const toStationResolved = stationById.get(toId)
 
-    if (!fromMatch || !toMatch) {
+    if (!fromStationResolved || !toStationResolved) {
       setErrorMessage('Не удалось найти одну из станций. Выбери её из списка подсказок.')
       return
     }
 
-    if (fromMatch.id === toMatch.id) {
+    if (fromId === toId) {
       setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
       return
     }
 
-    setFromStationId(fromMatch.id)
-    setToStationId(toMatch.id)
+    setFromStationId(fromId)
+    setToStationId(toId)
 
-    const routes = findRouteAlternativesFullGraph(fromMatch.id, toMatch.id, {
+    const routes = findRouteAlternativesFullGraph(fromId, toId, {
       maxAlternatives: 6,
       edgeOverrides,
       extraEdges: Object.values(manualEdges),
@@ -1551,18 +1946,18 @@ function App() {
       return
     }
 
-    const fromTitleEffective = stationTitleById.get(fromMatch.id) ?? fromMatch.title
-    const toTitleEffective = stationTitleById.get(toMatch.id) ?? toMatch.title
+    const fromTitleEffective = stationTitleById.get(fromId) ?? fromStationResolved.title
+    const toTitleEffective = stationTitleById.get(toId) ?? toStationResolved.title
 
     setRecentRoutes((prev) => {
       const filtered = prev.filter(
         (item) =>
-          !(item.fromStationId === fromMatch.id && item.toStationId === toMatch.id),
+          !(item.fromStationId === fromId && item.toStationId === toId),
       )
       const next: SavedRoute[] = [
         {
-          fromStationId: fromMatch.id,
-          toStationId: toMatch.id,
+          fromStationId: fromId,
+          toStationId: toId,
           fromTitle: fromTitleEffective,
           toTitle: toTitleEffective,
           lastUsedAt: savedRouteCounterRef.current++,
@@ -1864,21 +2259,21 @@ function App() {
     setFromStationId(saved.fromStationId)
     setToStationId(saved.toStationId)
     setErrorMessage(null)
-    buildRoute(saved.fromTitle, saved.toTitle)
+    buildRouteByIds(saved.fromStationId, saved.toStationId)
   }
 
   const handleApplyNearbyStationAsFrom = (station: FullGraphStation) => {
     const override = stationOverrides[station.id]
     const title = override?.title?.trim() || station.title
-    const toMatch = findExactStationByName(toStation)
+    const targetToId = toStationId
 
     setFromStation(title)
     setFromFixed(true)
     setFromStationId(station.id)
     setErrorMessage(null)
 
-    if (toMatch && toMatch.id !== station.id) {
-      buildRoute(title, toStation)
+    if (targetToId && targetToId !== station.id) {
+      buildRouteByIds(station.id, targetToId)
     } else {
       clearRoutes()
       setRouteSheetOpenState(false)
@@ -1987,21 +2382,26 @@ function App() {
     setToSuggestionIndex(-1)
   }
 
-  const handleSelectFromSuggestion = (name: string) => {
-    const match = findExactStationByName(name)
-    const toMatch = findExactStationByName(toStation)
-    if (match && toMatch && match.id === toMatch.id) {
+  const handleSelectFromSuggestion = (stationId: string) => {
+    const station = stationById.get(stationId)
+    if (!station) return
+
+    const toId = toStationId
+    if (toId && stationId === toId) {
       return
     }
 
+    const name = stationTitleById.get(stationId) ?? station.title
+
     setFromStation(name)
     setFromFixed(true)
-    setFromStationId(match?.id ?? null)
+    setFromStationId(stationId)
     setFromSuggestionIndex(-1)
+    setErrorMessage(null)
 
     // Если уже есть валидное "Куда" — сразу считаем маршрут
-    if (match && toMatch) {
-      buildRoute(name, toStation)
+    if (toId) {
+      buildRouteByIds(stationId, toId)
     }
   }
 
@@ -2009,10 +2409,20 @@ function App() {
     if (!routeResult || errorMessage) return
     if (isDesktop) return
     if (event.touches.length === 0) return
+    if (!isRouteSheetOpen) {
+      setIsRouteSheetOpen(true)
+    }
+    stopSheetSpring()
     const touch = event.touches[0]
     sheetTouchStartYRef.current = touch.clientY
     sheetTouchLastYRef.current = touch.clientY
     sheetDragStartProgressRef.current = sheetProgressRef.current
+
+    const now =
+      typeof event.timeStamp === 'number' && event.timeStamp > 0 ? event.timeStamp : performance.now()
+    sheetDragLastSampleTimeRef.current = now
+    sheetDragLastSampleProgressRef.current = sheetProgressRef.current
+    sheetDragVelocityRef.current = 0
   }
 
   const handleSheetTouchMove = (event: TouchEvent) => {
@@ -2021,8 +2431,8 @@ function App() {
     const touch = event.touches[0]
     sheetTouchLastYRef.current = touch.clientY
     const startY = sheetTouchStartYRef.current
-    const dragRange = viewportHeight ? viewportHeight * 0.4 : 280
-    if (!dragRange) return
+    const dragRange = sheetMaxOffsetPxRef.current
+    if (!dragRange || dragRange <= 0) return
     const startProgress =
       sheetDragStartProgressRef.current != null
         ? sheetDragStartProgressRef.current
@@ -2031,6 +2441,23 @@ function App() {
           : 0
     const deltaY = touch.clientY - startY
     const nextProgress = Math.max(0, Math.min(1, startProgress - deltaY / dragRange))
+
+    const now =
+      typeof event.timeStamp === 'number' && event.timeStamp > 0 ? event.timeStamp : performance.now()
+    const lastTime = sheetDragLastSampleTimeRef.current
+    const lastProgress = sheetDragLastSampleProgressRef.current
+    if (lastTime != null && lastProgress != null) {
+      const dtMs = now - lastTime
+      if (dtMs > 0 && dtMs < 200) {
+        const dt = dtMs / 1000
+        const rawV = (nextProgress - lastProgress) / dt
+        const clampedV = Math.max(-4, Math.min(4, rawV))
+        sheetDragVelocityRef.current = sheetDragVelocityRef.current * 0.7 + clampedV * 0.3
+      }
+    }
+    sheetDragLastSampleTimeRef.current = now
+    sheetDragLastSampleProgressRef.current = nextProgress
+
     sheetAnimTargetRef.current = nextProgress
     if (sheetAnimFrameRef.current == null) {
       sheetAnimFrameRef.current = window.requestAnimationFrame(() => {
@@ -2047,47 +2474,70 @@ function App() {
     const lastY = sheetTouchLastYRef.current
     sheetTouchStartYRef.current = null
     sheetTouchLastYRef.current = null
+    sheetDragStartProgressRef.current = null
 
     // Очищаем отложенный кадр анимации drag'а, чтобы не было лишних
     // setState уже после завершения жеста.
+    const pendingTarget = sheetAnimTargetRef.current
     if (sheetAnimFrameRef.current != null) {
       window.cancelAnimationFrame(sheetAnimFrameRef.current)
       sheetAnimFrameRef.current = null
     }
     sheetAnimTargetRef.current = null
 
+    let releasedProgress = sheetProgressRef.current
+    if (pendingTarget != null) {
+      releasedProgress = pendingTarget
+      updateSheetTransformDom(pendingTarget)
+    }
+
+    sheetDragLastSampleTimeRef.current = null
+    sheetDragLastSampleProgressRef.current = null
+
     if (startY == null || lastY == null) return
 
-    const delta = lastY - startY
-    const threshold = 40
+    const dragVelocity = sheetDragVelocityRef.current
+    sheetDragVelocityRef.current = 0
 
-    if (delta < -threshold) {
-      setRouteSheetOpenState(true)
-      return
+    const velocityThreshold = 1.2
+    const targetOpen =
+      dragVelocity > velocityThreshold
+        ? true
+        : dragVelocity < -velocityThreshold
+          ? false
+          : releasedProgress >= 0.5
+
+    setIsRouteSheetOpen(targetOpen)
+    if (!targetOpen) {
+      setIsSmartSuggestionsOpen(false)
     }
 
-    if (delta > threshold) {
-      setRouteSheetOpenState(false)
-      return
-    }
-
-    setRouteSheetOpenState(delta <= 0)
+    const targetProgress = targetOpen ? 1 : 0
+    let initialVelocity = dragVelocity
+    if (targetOpen && initialVelocity < 0) initialVelocity = 0
+    if (!targetOpen && initialVelocity > 0) initialVelocity = 0
+    startSheetSpring(targetProgress, initialVelocity * 0.35)
   }
 
-  const handleSelectToSuggestion = (name: string) => {
-    const match = findExactStationByName(name)
-    const fromMatch = findExactStationByName(fromStation)
-    if (match && fromMatch && match.id === fromMatch.id) {
+  const handleSelectToSuggestion = (stationId: string) => {
+    const station = stationById.get(stationId)
+    if (!station) return
+
+    const fromId = fromStationId
+    if (fromId && stationId === fromId) {
       return
     }
+
+    const name = stationTitleById.get(stationId) ?? station.title
 
     setToStation(name)
     setToFixed(true)
-    setToStationId(match?.id ?? null)
+    setToStationId(stationId)
     setToSuggestionIndex(-1)
+    setErrorMessage(null)
 
-    if (fromMatch && match) {
-      buildRoute(fromStation, name)
+    if (fromId) {
+      buildRouteByIds(fromId, stationId)
     }
   }
 
@@ -2106,15 +2556,21 @@ function App() {
     setFromStationId(nextFromId ?? null)
     setToStationId(nextToId ?? null)
 
-    const fromIsValid = !!findExactStationByName(nextFrom)
-    const toIsValid = !!findExactStationByName(nextTo)
+    const fromIsValid = nextFromId != null
+    const toIsValid = nextToId != null
     setFromFixed(fromIsValid)
     setToFixed(toIsValid)
 
     setErrorMessage(null)
 
     if (fromIsValid && toIsValid) {
-      buildRoute(nextFrom, nextTo)
+      if (nextFromId === nextToId) {
+        clearRoutes()
+        setRouteSheetOpenState(false)
+        setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
+        return
+      }
+      buildRouteByIds(nextFromId!, nextToId!)
     } else {
       clearRoutes()
       setRouteSheetOpenState(false)
@@ -2147,6 +2603,7 @@ function App() {
     event.preventDefault()
 
     let nextFromName = fromStation
+    let nextFromId = fromStationId
     if (!fromFixed && fromSuggestions.length > 0) {
       const index =
         fromSuggestionIndex >= 0 && fromSuggestionIndex < fromSuggestions.length
@@ -2157,27 +2614,27 @@ function App() {
       setFromStation(selected.title)
       setFromFixed(true)
       setFromStationId(selected.id)
+      nextFromId = selected.id
     }
 
-    const fromMatch = findExactStationByName(nextFromName)
-    const fromIsValid = !!fromMatch
-    if (fromIsValid) {
-      setFromStationId(fromMatch!.id)
-    } else {
-      setFromStationId(null)
-    }
-    const toMatch = findExactStationByName(toStation)
-    const toIsValid = !!toMatch
-    if (!toIsValid) {
-      setToStationId(null)
-    }
-
-    if (fromIsValid && toIsValid) {
-      buildRoute(nextFromName, toStation)
+    if (!nextFromId) {
+      setErrorMessage('Выбери станцию "Откуда" из списка подсказок.')
       return
     }
 
-    if (fromIsValid) {
+    const nextToId = toStationId
+    if (nextToId) {
+      if (nextFromId === nextToId) {
+        setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
+        clearRoutes()
+        setRouteSheetOpenState(false)
+        return
+      }
+      buildRouteByIds(nextFromId, nextToId)
+      return
+    }
+
+    if (nextFromName.trim()) {
       toInputRef.current?.focus()
     }
   }
@@ -2208,6 +2665,7 @@ function App() {
     event.preventDefault()
 
     let nextToName = toStation
+    let nextToId = toStationId
     if (!toFixed && toSuggestions.length > 0) {
       const index =
         toSuggestionIndex >= 0 && toSuggestionIndex < toSuggestions.length
@@ -2218,37 +2676,34 @@ function App() {
       setToStation(selected.title)
       setToFixed(true)
       setToStationId(selected.id)
+      nextToId = selected.id
     }
 
-    const fromMatch2 = findExactStationByName(fromStation)
-    const toMatch2 = findExactStationByName(nextToName)
-    const fromIsValid = !!fromMatch2
-    const toIsValid = !!toMatch2
-
-    if (fromIsValid) {
-      setFromStationId(fromMatch2!.id)
-    } else {
-      setFromStationId(null)
-    }
-    if (toIsValid) {
-      setToStationId(toMatch2!.id)
-    } else {
-      setToStationId(null)
-    }
-
-    if (fromIsValid && toIsValid) {
-      buildRoute(fromStation, nextToName)
+    if (!nextToId) {
+      setErrorMessage('Выбери станцию "Куда" из списка подсказок.')
       return
     }
 
-    if (toIsValid && !fromStation.trim()) {
+    const nextFromId = fromStationId
+    if (nextFromId) {
+      if (nextFromId === nextToId) {
+        setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
+        clearRoutes()
+        setRouteSheetOpenState(false)
+        return
+      }
+      buildRouteByIds(nextFromId, nextToId)
+      return
+    }
+
+    if (nextToName.trim() && !fromStation.trim()) {
       fromInputRef.current?.focus()
     }
   }
 
   const handleMapSelect = (id: string, name: string) => {
-    const hasFrom = !!fromStation.trim()
-    const hasTo = !!toStation.trim()
+    const hasFrom = !!fromStationId
+    const hasTo = !!toStationId
 
     // Первая выбранная станция — всегда "Откуда"
     if (!hasFrom) {
@@ -2263,8 +2718,7 @@ function App() {
 
     // Вторая — "Куда" и сразу строим маршрут
     if (!hasTo) {
-      const fromMatch = findExactStationByName(fromStation)
-      if (fromMatch && fromMatch.id === id) {
+      if (fromStationId && fromStationId === id) {
         clearRoutes()
         setRouteSheetOpenState(false)
         return
@@ -2273,7 +2727,9 @@ function App() {
       setToStation(name)
       setToFixed(true)
       setToStationId(id)
-      buildRoute(fromStation, name)
+      if (fromStationId) {
+        buildRouteByIds(fromStationId, id)
+      }
       return
     }
 
@@ -2289,13 +2745,13 @@ function App() {
     setRouteSheetOpenState(false)
   }
 
-  const currentSelectionMode: 'from' | 'to' =
-    !findExactStationByName(fromStation) || (!findExactStationByName(toStation) && fromFixed)
-      ? 'from'
-      : !findExactStationByName(toStation)
-          ? 'to'
-          : 'from'
+  const currentSelectionMode: 'from' | 'to' = !fromStationId
+    ? 'from'
+    : !toStationId
+      ? 'to'
+      : 'from'
   const isSplashActive = isSplashMounted
+  const isPrimaryUiReady = isSplashDone && isMapReady
 
   const trimmedFrom = fromStation.trim()
   const trimmedTo = toStation.trim()
@@ -2320,9 +2776,14 @@ function App() {
   }
 
   useEffect(() => {
-    if (!routeResult || isDesktop) return
+    if (isDesktop) return
+    if (!routeResult) {
+      stopSheetSpring()
+      updateSheetTransformDom(1)
+      return
+    }
     updateSheetTransformDom(sheetProgressRef.current)
-  }, [routeResult, isDesktop, updateSheetTransformDom])
+  }, [routeResult, isDesktop, stopSheetSpring, updateSheetTransformDom])
 
   return (
     <div className={`app-root${isSplashActive ? ' app-root--splash-active' : ''}`}>
@@ -2347,6 +2808,8 @@ function App() {
           routeLongTransferEdgeKeys={routeLongTransferEdgeKeys}
           editMode={effectiveEditMode}
           onLayoutChange={handleLayoutChange}
+          editorLayoutOverrides={lastLayoutOverrides}
+          editorLayoutApplyToken={editorLayoutApplyToken}
           collisionDebug={EDITOR_ENABLED && collisionDebug}
           onMapInteraction={() => {
             if (!isDesktop && routeResult && !errorMessage) {
@@ -2360,6 +2823,7 @@ function App() {
           stationTitleOverrides={stationTitleOverridesForMap}
           extraStations={Object.values(manualStations)}
           hubRotateCommand={hubRotateCommand}
+          editorFocusCommand={editorFocusCommand}
           onEditSelectionChange={setEditorSelectedStationIds}
           onInitialViewportReady={handleInitialViewportReady}
           routeSheetOpen={isRouteSheetOpen}
@@ -2367,7 +2831,7 @@ function App() {
       </div>
 
       <div className="app-overlay">
-        {!effectiveEditMode && !isSplashActive && (
+        {!effectiveEditMode && isPrimaryUiReady && (
           <>
             <RouteHeader
               logoSrc={helloKittyIcon}
@@ -2440,11 +2904,16 @@ function App() {
             onSetNewEdgeTarget={setNewEdgeTarget}
             onSetManualEdges={setManualEdges}
             onSetInspectedStationId={setInspectedStationId}
+            onFocusStation={handleFocusStation}
             onRotateHubGeometry={handleRotateHubGeometry}
+            onResetStationEdits={handleResetStationEdits}
+            onResetEdgeEdits={handleResetEdgeEdits}
+            onResetHubEdits={handleResetHubEdits}
+            onResetAllEdits={handleResetAllEditorEdits}
           />
         )}
 
-        {!effectiveEditMode && !isSplashActive && (
+        {!effectiveEditMode && isPrimaryUiReady && (
           <div
             ref={bottomSheetRef}
             className={`bottom-sheet${
@@ -2457,78 +2926,64 @@ function App() {
               onTouchMove={handleSheetTouchMove}
               onTouchEnd={handleSheetTouchEnd}
             >
-              {routeResult && !errorMessage && !isDesktop && (
-                <button
-                  type="button"
-                  className="bottom-sheet-handle"
-                  aria-label="Потянуть, чтобы раскрыть или свернуть детали маршрута"
-                />
-              )}
+              <div ref={sheetMinVisibleRef} className="bottom-sheet-min">
+                {routeResult && !errorMessage && !isDesktop && (
+                  <button
+                    type="button"
+                    className="bottom-sheet-handle"
+                    aria-label="Потянуть, чтобы раскрыть или свернуть детали маршрута"
+                  />
+                )}
 
-              {!isSmartSuggestionsOpen &&
-                (favoriteRoutes.length > 0 ||
-                  recentRoutes.length > 0 ||
-                  nearbyStatus !== 'error' ||
-                  nearbyStations.length > 0) && (
-                <div className="smart-suggestions-inline">
-                  {recentRoutes.length > 0 && (
-                    <button
-                      type="button"
-                      className="smart-suggestions-inline-chip"
-                      onClick={() => setIsSmartSuggestionsOpen(true)}
-                    >
-                      ⟳ Недавние
-                    </button>
-                  )}
-                  {(nearbyStatus !== 'error' || nearbyStations.length > 0) && (
-                    <button
-                      type="button"
-                      className="smart-suggestions-inline-chip"
-                      onClick={() => {
-                        setIsSmartSuggestionsOpen(true)
-                        if (nearbyStatus === 'idle' && nearbyStations.length === 0) {
-                          handleRequestNearbyStations()
-                        }
-                      }}
-                    >
-                      📍 Рядом
-                    </button>
-                  )}
-                  {favoriteRoutes.length > 0 && (
-                    <button
-                      type="button"
-                      className="smart-suggestions-inline-chip"
-                      onClick={() => setIsSmartSuggestionsOpen(true)}
-                    >
-                      ★ Избранные
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {isSmartSuggestionsOpen &&
-                (favoriteRoutes.length > 0 ||
-                  recentRoutes.length > 0 ||
-                  nearbyStatus !== 'error' ||
-                  nearbyStations.length > 0) && (
-                  <section className="smart-suggestions">
-                    {favoriteRoutes.length === 0 && (
-                      <div className="smart-suggestions-header">
-                        <button
-                          type="button"
-                          className="smart-suggestions-close"
-                          onClick={() => setIsSmartSuggestionsOpen(false)}
-                          aria-label="Скрыть быстрые маршруты"
-                        >
-                          ✕
-                        </button>
-                      </div>
+                {!isSmartSuggestionsOpen &&
+                  (favoriteRoutes.length > 0 ||
+                    recentRoutes.length > 0 ||
+                    nearbyStatus !== 'error' ||
+                    nearbyStations.length > 0) && (
+                  <div className="smart-suggestions-inline">
+                    {recentRoutes.length > 0 && (
+                      <button
+                        type="button"
+                        className="smart-suggestions-inline-chip"
+                        onClick={() => setIsSmartSuggestionsOpen(true)}
+                      >
+                        ⟳ Недавние
+                      </button>
                     )}
-
+                    {(nearbyStatus !== 'error' || nearbyStations.length > 0) && (
+                      <button
+                        type="button"
+                        className="smart-suggestions-inline-chip"
+                        onClick={() => {
+                          setIsSmartSuggestionsOpen(true)
+                          if (nearbyStatus === 'idle' && nearbyStations.length === 0) {
+                            handleRequestNearbyStations()
+                          }
+                        }}
+                      >
+                        📍 Рядом
+                      </button>
+                    )}
                     {favoriteRoutes.length > 0 && (
-                      <div className="smart-suggestions-section">
+                      <button
+                        type="button"
+                        className="smart-suggestions-inline-chip"
+                        onClick={() => setIsSmartSuggestionsOpen(true)}
+                      >
+                        ★ Избранные
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {isSmartSuggestionsOpen &&
+                  (favoriteRoutes.length > 0 ||
+                    recentRoutes.length > 0 ||
+                    nearbyStatus !== 'error' ||
+                    nearbyStations.length > 0) && (
+                    <section className="smart-suggestions">
+                      {favoriteRoutes.length === 0 && (
                         <div className="smart-suggestions-header">
-                          <div className="smart-suggestions-title">Избранные</div>
                           <button
                             type="button"
                             className="smart-suggestions-close"
@@ -2538,119 +2993,177 @@ function App() {
                             ✕
                           </button>
                         </div>
-                        <div className="smart-suggestions-row">
-                          {favoriteRoutes.map((route) => (
-                            <button
-                              key={`${route.fromStationId}-${route.toStationId}`}
-                              type="button"
-                              className="smart-suggestion-chip"
-                              onClick={() => handleApplySavedRoute(route)}
-                            >
-                              {route.fromTitle} → {route.toTitle}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {recentRoutes.length > 0 && (
+                      {favoriteRoutes.length > 0 && (
+                        <div className="smart-suggestions-section">
+                          <div className="smart-suggestions-header">
+                            <div className="smart-suggestions-title">Избранные</div>
+                            <button
+                              type="button"
+                              className="smart-suggestions-close"
+                              onClick={() => setIsSmartSuggestionsOpen(false)}
+                              aria-label="Скрыть быстрые маршруты"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <div className="smart-suggestions-row">
+                            {favoriteRoutes.map((route) => (
+                              <button
+                                key={`${route.fromStationId}-${route.toStationId}`}
+                                type="button"
+                                className="smart-suggestion-chip"
+                                onClick={() => handleApplySavedRoute(route)}
+                              >
+                                {route.fromTitle} → {route.toTitle}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {recentRoutes.length > 0 && (
+                        <div className="smart-suggestions-section">
+                          <div className="smart-suggestions-header">
+                            <div className="smart-suggestions-title">Недавние</div>
+                            <button
+                              type="button"
+                              className="smart-suggestions-clear"
+                              onClick={handleClearRecentRoutes}
+                            >
+                              Очистить
+                            </button>
+                          </div>
+                          <div className="smart-suggestions-row">
+                            {recentRoutes.map((route) => (
+                              <button
+                                key={`recent-${route.fromStationId}-${route.toStationId}-${route.lastUsedAt}`}
+                                type="button"
+                                className="smart-suggestion-chip smart-suggestion-chip--secondary"
+                                onClick={() => handleApplySavedRoute(route)}
+                              >
+                                {route.fromTitle} → {route.toTitle}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="smart-suggestions-section">
-                        <div className="smart-suggestions-header">
-                          <div className="smart-suggestions-title">Недавние</div>
+                        <div className="smart-suggestions-title">Рядом</div>
+                        {nearbyStatus === 'idle' && nearbyStations.length === 0 && (
                           <button
                             type="button"
-                            className="smart-suggestions-clear"
-                            onClick={handleClearRecentRoutes}
+                            className="smart-suggestion-chip smart-suggestion-chip--ghost"
+                            onClick={handleRequestNearbyStations}
                           >
-                            Очистить
+                            Показать станции рядом
                           </button>
-                        </div>
-                        <div className="smart-suggestions-row">
-                          {recentRoutes.map((route) => (
-                            <button
-                              key={`recent-${route.fromStationId}-${route.toStationId}-${route.lastUsedAt}`}
-                              type="button"
-                              className="smart-suggestion-chip smart-suggestion-chip--secondary"
-                              onClick={() => handleApplySavedRoute(route)}
-                            >
-                              {route.fromTitle} → {route.toTitle}
-                            </button>
-                          ))}
-                        </div>
+                        )}
+                        {nearbyStatus === 'loading' && (
+                          <div className="smart-suggestions-hint">
+                            Определяем ближайшие станции…
+                          </div>
+                        )}
+                        {nearbyStatus === 'error' && (
+                          <div className="smart-suggestions-error">
+                            {nearbyError || 'Не удалось определить местоположение.'}
+                          </div>
+                        )}
+                        {nearbyStatus !== 'loading' && nearbyStations.length > 0 && (
+                          <div className="smart-suggestions-row">
+                            {nearbyStations.map((station) => (
+                              <button
+                                key={station.id}
+                                type="button"
+                                className="smart-suggestion-chip smart-suggestion-chip--ghost"
+                                onClick={() => handleApplyNearbyStationAsFrom(station)}
+                              >
+                                {station.title}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </section>
+                  )}
 
-                    <div className="smart-suggestions-section">
-                      <div className="smart-suggestions-title">Рядом</div>
-                      {nearbyStatus === 'idle' && nearbyStations.length === 0 && (
-                        <button
-                          type="button"
-                          className="smart-suggestion-chip smart-suggestion-chip--ghost"
-                          onClick={handleRequestNearbyStations}
-                        >
-                          Показать станции рядом
-                        </button>
-                      )}
-                      {nearbyStatus === 'loading' && (
-                        <div className="smart-suggestions-hint">
-                          Определяем ближайшие станции…
-                        </div>
-                      )}
-                      {nearbyStatus === 'error' && (
-                        <div className="smart-suggestions-error">
-                          {nearbyError || 'Не удалось определить местоположение.'}
-                        </div>
-                      )}
-                      {nearbyStatus !== 'loading' && nearbyStations.length > 0 && (
-                        <div className="smart-suggestions-row">
-                          {nearbyStations.map((station) => (
-                            <button
-                              key={station.id}
-                              type="button"
-                              className="smart-suggestion-chip smart-suggestion-chip--ghost"
-                              onClick={() => handleApplyNearbyStationAsFrom(station)}
-                            >
-                              {station.title}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                {routeAlternatives.length > 0 && routeResult && !errorMessage && !isDesktop && (
+                  <div className="bottom-route-summary-wrapper">
+                    <div className="bottom-route-summary-scroll">
+                      {routeAlternatives.map((route, index) => {
+                        const isActive = index === activeRouteIndex
+                        const label = getRouteVariantLabel(index, routeAlternatives)
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            className={`bottom-route-chip route-choice-chip${
+                              isActive ? ' bottom-route-chip--active' : ''
+                            }`}
+                            tabIndex={0}
+                            onClick={() => {
+                              setActiveRouteIndex(index)
+                              setRouteSheetOpenState(true)
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                setActiveRouteIndex(index)
+                                setRouteSheetOpenState(true)
+                              }
+                            }}
+                            aria-label={`Выбрать маршрут: ${label}, ~${route.totalMinutes} мин, пересадок ${route.transfersCount}`}
+                          >
+                            <div className="bottom-route-chip-main">
+                              {label} • ⏱ {route.totalMinutes} мин
+                            </div>
+                            <div className="bottom-route-chip-sub">
+                              Пересадок: {route.transfersCount}
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
-                  </section>
+                  </div>
                 )}
 
-              <RouteForm
-                fromStation={fromStation}
-                toStation={toStation}
-                fromSuggestions={fromSuggestions}
-                toSuggestions={toSuggestions}
-                fromSuggestionIndex={fromSuggestionIndex}
-                toSuggestionIndex={toSuggestionIndex}
-                fromInputRef={fromInputRef}
-                toInputRef={toInputRef}
-                onFromChange={handleFromChange}
-                onToChange={handleToChange}
-                onFromKeyDown={handleFromKeyDown}
-                onToKeyDown={handleToKeyDown}
-                onSelectFromSuggestion={handleSelectFromSuggestion}
-                onSelectToSuggestion={handleSelectToSuggestion}
-                onSwap={handleSwapStations}
-                onClearFrom={() => handleFromChange('')}
-                onClearTo={() => handleToChange('')}
-              />
+                <RouteForm
+                  fromStation={fromStation}
+                  toStation={toStation}
+                  fromSuggestions={fromSuggestions}
+                  toSuggestions={toSuggestions}
+                  fromSuggestionIndex={fromSuggestionIndex}
+                  toSuggestionIndex={toSuggestionIndex}
+                  fromSelectedColor={fromSelectedColor}
+                  toSelectedColor={toSelectedColor}
+                  fromInputRef={fromInputRef}
+                  toInputRef={toInputRef}
+                  onFromChange={handleFromChange}
+                  onToChange={handleToChange}
+                  onFromKeyDown={handleFromKeyDown}
+                  onToKeyDown={handleToKeyDown}
+                  onSelectFromSuggestion={handleSelectFromSuggestion}
+                  onSelectToSuggestion={handleSelectToSuggestion}
+                  onSwap={handleSwapStations}
+                  onClearFrom={() => handleFromChange('')}
+                  onClearTo={() => handleToChange('')}
+                />
+              </div>
 
               <RouteDetailsSheet
                 routeResult={routeResult}
                 routeAlternatives={routeAlternatives}
                 activeRouteIndex={activeRouteIndex}
                 onChangeActiveRoute={setActiveRouteIndex}
-                onOpenRouteSheet={() => setRouteSheetOpenState(true)}
                 errorMessage={errorMessage}
                 isDesktop={isDesktop}
                 isRouteSheetOpen={isRouteSheetOpen}
                 decoratedSegments={decoratedSegments}
                 getRouteVariantLabel={getRouteVariantLabel}
                 arrivalTimeLabel={routeArrivalTimeLabel}
+                detailsRef={routeDetailsRef}
                 isFavoriteRoute={isActiveRouteFavorite}
                 onToggleFavoriteRoute={handleToggleFavoriteActiveRoute}
               />
@@ -2701,14 +3214,19 @@ function App() {
                   onClick={async () => {
                     try {
                       const json = JSON.stringify(lastLayoutOverrides, null, 2)
-                      if (navigator.clipboard && json) {
-                        await navigator.clipboard.writeText(json)
+                      const ok = json ? await copyTextToClipboard(json) : false
+                      if (ok) {
+                        showEditorToast('layout_overrides.json скопирован')
+                      } else {
+                        showEditorToast('Не удалось скопировать layout_overrides.json')
                       }
                     } catch {
+                      showEditorToast('Не удалось скопировать layout_overrides.json')
                       // ignore clipboard errors
                     }
                   }}
                   aria-label="Скопировать layout_overrides.json в буфер обмена"
+                  title="Скопировать layout_overrides.json"
                 >
                   xy
                 </button>
@@ -2914,14 +3432,19 @@ function App() {
                       }
 
                       const json = JSON.stringify(snapshot, null, 2)
-                      if (navigator.clipboard && json) {
-                        await navigator.clipboard.writeText(json)
+                      const ok = json ? await copyTextToClipboard(json) : false
+                      if (ok) {
+                        showEditorToast('fullGraph.json скопирован')
+                      } else {
+                        showEditorToast('Не удалось скопировать fullGraph.json')
                       }
                     } catch {
+                      showEditorToast('Не удалось скопировать fullGraph.json')
                       // ignore clipboard errors
                     }
                   }}
                   aria-label="Скопировать fullGraph.json в буфер обмена"
+                  title="Скопировать fullGraph.json"
                 >
                   ⧉
                 </button>
@@ -3150,14 +3673,19 @@ function App() {
                       }
 
                       const json = JSON.stringify(editorOverrides, null, 2)
-                      if (navigator.clipboard && json) {
-                        await navigator.clipboard.writeText(json)
+                      const ok = json ? await copyTextToClipboard(json) : false
+                      if (ok) {
+                        showEditorToast('editor_overrides.json скопирован')
+                      } else {
+                        showEditorToast('Не удалось скопировать editor_overrides.json')
                       }
                     } catch {
+                      showEditorToast('Не удалось скопировать editor_overrides.json')
                       // ignore clipboard errors
                     }
                   }}
                   aria-label="Скопировать editor_overrides.json в буфер обмена"
+                  title="Скопировать editor_overrides.json"
                 >
                   OVR
                 </button>
@@ -3166,7 +3694,15 @@ function App() {
           </>
         )}
 
-        {showUpdateBanner && <UpdateBanner onClick={handleUpdateBannerClick} />}
+        {EDITOR_ENABLED && editorToast && (
+          <div className="editor-toast" role="status" aria-live="polite">
+            {editorToast}
+          </div>
+        )}
+
+        {showUpdateBanner && (
+          <UpdateBanner onUpdate={handleUpdateBannerClick} onLater={handleUpdateBannerLater} />
+        )}
 
         {shouldShowInstallGuide && (
           <div className="install-guide-backdrop" onClick={handleInstallGuideBackdropClick}>

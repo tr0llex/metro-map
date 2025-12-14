@@ -29,7 +29,6 @@ interface RouteDetailsSheetProps {
   routeAlternatives: RouteResult[]
   activeRouteIndex: number
   onChangeActiveRoute: (index: number) => void
-  onOpenRouteSheet: () => void
   errorMessage: string | null
   isDesktop: boolean
   isRouteSheetOpen: boolean
@@ -47,7 +46,6 @@ export function RouteDetailsSheet({
   routeAlternatives,
   activeRouteIndex,
   onChangeActiveRoute,
-  onOpenRouteSheet,
   errorMessage,
   isDesktop,
   isRouteSheetOpen,
@@ -63,44 +61,6 @@ export function RouteDetailsSheet({
 
   return (
     <>
-      {hasAlternatives && !errorMessage && !isDesktop && (
-        <div className="bottom-route-summary-wrapper">
-          <div className="bottom-route-summary-scroll">
-            {routeAlternatives.map((route, index) => {
-              const isActive = index === activeRouteIndex
-              const label = getRouteVariantLabel(index, routeAlternatives)
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  className={`bottom-route-chip${isActive ? ' bottom-route-chip--active' : ''}`}
-                  tabIndex={0}
-                  onClick={() => {
-                    onChangeActiveRoute(index)
-                    onOpenRouteSheet()
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      onChangeActiveRoute(index)
-                      onOpenRouteSheet()
-                    }
-                  }}
-                  aria-label={`Выбрать маршрут: ${label}, ~${route.totalMinutes} мин, пересадок ${route.transfersCount}`}
-                >
-                  <div className="bottom-route-chip-main">
-                    {label} • ⏱ {route.totalMinutes} мин
-                  </div>
-                  <div className="bottom-route-chip-sub">
-                    Пересадок: {route.transfersCount}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       {routeResult && !errorMessage && (
         <div
           className={`bottom-route-details${

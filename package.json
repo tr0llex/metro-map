@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
+    "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/kitty-metro-icon-maskable.svg",
     "build:data": "cd go-layout-solver && go run . -csv ../new_map_source/metro.ru.csv -connections ../new_map_source/connections.json -yandex ../normalized/yandex_coords.json -overrides ../normalized/layout_overrides.json -out ../normalized/fullGraph.json",
     "extract:yandex": "npx ts-node --transpile-only scripts/extract_yandex_coords.ts",
     "analyze:layout": "npx ts-node --transpile-only scripts/analyze_layout_advanced.ts"
@@ -19,6 +20,7 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
+    "@vite-pwa/assets-generator": "^1.0.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",

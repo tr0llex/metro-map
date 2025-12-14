@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type {
   FullGraphStation,
   FullGraphLine,
@@ -57,7 +57,12 @@ interface HubEditorPanelProps {
     updater: (prev: Record<string, FullGraphEdge>) => Record<string, FullGraphEdge>,
   ) => void
   onSetInspectedStationId: (id: string | null) => void
+  onFocusStation: (stationId: string) => void
   onRotateHubGeometry: (hubId: string, direction: 'cw' | 'ccw') => void
+  onResetStationEdits: (stationId: string) => void
+  onResetEdgeEdits: (edge: FullGraphEdge) => void
+  onResetHubEdits: (hubId: string, stationIds: string[]) => void
+  onResetAllEdits: () => void
 }
 
 export function HubEditorPanel({
@@ -103,11 +108,47 @@ export function HubEditorPanel({
   onSetNewEdgeTarget,
   onSetManualEdges,
   onSetInspectedStationId,
+  onFocusStation,
   onRotateHubGeometry,
+  onResetStationEdits,
+  onResetEdgeEdits,
+  onResetHubEdits,
+  onResetAllEdits,
 }: HubEditorPanelProps) {
   const [activeTab, setActiveTab] = useState<'station' | 'line' | 'connections' | 'hub' | 'manual'>(
     'station',
   )
+  const focusStation = (stationId: string) => {
+    onSetInspectedStationId(stationId)
+    onFocusStation(stationId)
+  }
+  const stationTitleOverride = stationOverrides[inspectedStation.id]?.title
+  const inspectedHubId = inspectedHub?.id
+  const inspectedHubMinTransferSeconds = inspectedHub?.minTransferSeconds
+  const [stationTitleDraft, setStationTitleDraft] = useState(() => {
+    return stationTitleOverride ?? inspectedStation.title
+  })
+  const [edgeMinutesDraftByKey, setEdgeMinutesDraftByKey] = useState<Record<string, string>>({})
+  const [hubMinMinutesDraft, setHubMinMinutesDraft] = useState(() => {
+    if (!inspectedHubId || inspectedHubMinTransferSeconds == null) return ''
+    return String(Math.round(inspectedHubMinTransferSeconds / 60))
+  })
+
+  useEffect(() => {
+    setStationTitleDraft(stationTitleOverride ?? inspectedStation.title)
+  }, [inspectedStation.id, inspectedStation.title, stationTitleOverride])
+
+  useEffect(() => {
+    setEdgeMinutesDraftByKey({})
+  }, [inspectedStation.id, inspectedLineId])
+
+  useEffect(() => {
+    if (!inspectedHubId || inspectedHubMinTransferSeconds == null) {
+      setHubMinMinutesDraft('')
+      return
+    }
+    setHubMinMinutesDraft(String(Math.round(inspectedHubMinTransferSeconds / 60)))
+  }, [inspectedHubId, inspectedHubMinTransferSeconds])
   const [hubAddError, setHubAddError] = useState<string | null>(null)
   const [edgeAddError, setEdgeAddError] = useState<string | null>(null)
   const [bulkLineId, setBulkLineId] = useState<string>('')
@@ -228,12 +269,9 @@ export function HubEditorPanel({
                 <input
                   type="text"
                   className="hub-editor-station-title-input"
-                  defaultValue={
-                    stationOverrides[inspectedStation.id]?.title ?? inspectedStation.title
-                  }
-                  onBlur={(event) =>
-                    onChangeStationTitle(inspectedStation.id, event.target.value)
-                  }
+                  value={stationTitleDraft}
+                  onChange={(event) => setStationTitleDraft(event.target.value)}
+                  onBlur={(event) => onChangeStationTitle(inspectedStation.id, event.target.value)}
                 />
               </div>
               <div className="hub-editor-field">
@@ -271,6 +309,15 @@ export function HubEditorPanel({
                   </button>
                 </div>
               )}
+              <div className="hub-editor-field">
+                <button
+                  type="button"
+                  className="hub-editor-bulk-button"
+                  onClick={() => onResetStationEdits(inspectedStation.id)}
+                >
+                  Сбросить изменения станции
+                </button>
+              </div>
             </section>
 
             <section className="hub-editor-section">
@@ -305,7 +352,7 @@ export function HubEditorPanel({
                     <li
                       key={sid}
                       className="hub-editor-list-item hub-editor-list-item--clickable"
-                      onClick={() => onSetInspectedStationId(sid)}
+                      onClick={() => focusStation(sid)}
                     >
                       <span className="hub-editor-line-dot" />
                       <span className="hub-editor-station-name">
@@ -330,6 +377,8 @@ export function HubEditorPanel({
                 const to = stationById.get(e.toStationId)
                 const key = edgeKey(e.fromStationId, e.toStationId)
                 const edgeOverride = edgeOverrides[key]
+                const manualKey = `manual:${key}`
+                const isManual = !!manualEdges[manualKey]
                 const effectiveIsTransfer =
                   edgeOverride && edgeOverride.isTransfer !== undefined
                     ? edgeOverride.isTransfer
@@ -361,7 +410,7 @@ export function HubEditorPanel({
                     <button
                       type="button"
                       className="hub-editor-connection-main hub-editor-connection-main--link"
-                      onClick={() => onSetInspectedStationId(e.fromStationId)}
+                      onClick={() => focusStation(e.fromStationId)}
                     >
                       {stationOverrides[e.fromStationId]?.title ?? from?.title ?? e.fromStationId}
                     </button>
@@ -369,7 +418,7 @@ export function HubEditorPanel({
                     <button
                       type="button"
                       className="hub-editor-connection-main hub-editor-connection-main--link"
-                      onClick={() => onSetInspectedStationId(e.toStationId)}
+                      onClick={() => focusStation(e.toStationId)}
                     >
                       {stationOverrides[e.toStationId]?.title ?? to?.title ?? e.toStationId}
                     </button>
@@ -388,11 +437,33 @@ export function HubEditorPanel({
                         min={1}
                         step={1}
                         className="hub-editor-connection-minutes"
-                        defaultValue={effectiveMinutes}
-                        onBlur={(event) => onChangeEdgeMinutes(e, event.target.value)}
+                        value={edgeMinutesDraftByKey[key] ?? String(effectiveMinutes)}
+                        onChange={(event) =>
+                          setEdgeMinutesDraftByKey((prev) => ({ ...prev, [key]: event.target.value }))
+                        }
+                        onBlur={(event) => {
+                          onChangeEdgeMinutes(e, event.target.value)
+                          setEdgeMinutesDraftByKey((prev) => {
+                            if (!(key in prev)) return prev
+                            const next = { ...prev }
+                            delete next[key]
+                            return next
+                          })
+                        }}
                       />
                       <span className="hub-editor-connection-minutes-label">мин</span>
                     </div>
+                    {(isManual || edgeOverride) && (
+                      <button
+                        type="button"
+                        className="hub-editor-bulk-button"
+                        onClick={() => onResetEdgeEdits(e)}
+                        title="Сбросить изменения ребра"
+                        aria-label="Сбросить изменения ребра"
+                      >
+                        Сброс
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={`hub-editor-edge-delete${
@@ -473,10 +544,9 @@ export function HubEditorPanel({
                       min={1}
                       step={1}
                       className="hub-editor-hub-minutes-input"
-                      defaultValue={Math.round(inspectedHub.minTransferSeconds / 60)}
-                      onBlur={(event) =>
-                        onChangeHubMinMinutes(inspectedHub.id, event.target.value)
-                      }
+                      value={hubMinMinutesDraft}
+                      onChange={(event) => setHubMinMinutesDraft(event.target.value)}
+                      onBlur={(event) => onChangeHubMinMinutes(inspectedHub.id, event.target.value)}
                     />
                     <span className="hub-editor-hub-minutes-suffix">мин</span>
                   </div>
@@ -500,6 +570,15 @@ export function HubEditorPanel({
                       вправо ⟳
                     </button>
                   </div>
+                </div>
+                <div className="hub-editor-bulk-actions">
+                  <button
+                    type="button"
+                    className="hub-editor-bulk-button"
+                    onClick={() => onResetHubEdits(inspectedHub.id, inspectedHub.stationIds)}
+                  >
+                    Сбросить настройки хаба
+                  </button>
                 </div>
                 <div className="hub-editor-hub-add-row">
                   <input
@@ -556,7 +635,7 @@ export function HubEditorPanel({
                       <li
                         key={sid}
                         className="hub-editor-list-item hub-editor-list-item--clickable"
-                        onClick={() => onSetInspectedStationId(sid)}
+                        onClick={() => focusStation(sid)}
                       >
                         <span
                           className="hub-editor-line-dot"
@@ -687,6 +766,8 @@ export function HubEditorPanel({
                   e.lineNumericId != null ? lineByNumericId.get(e.lineNumericId) : undefined
                 const key = edgeKey(e.fromStationId, e.toStationId)
                 const edgeOverride = edgeOverrides[key]
+                const manualKey = `manual:${key}`
+                const isManual = !!manualEdges[manualKey]
                 const effectiveIsTransfer =
                   edgeOverride && edgeOverride.isTransfer !== undefined
                     ? edgeOverride.isTransfer
@@ -717,7 +798,7 @@ export function HubEditorPanel({
                     <button
                       type="button"
                       className="hub-editor-connection-main hub-editor-connection-main--link"
-                      onClick={() => onSetInspectedStationId(otherId)}
+                      onClick={() => focusStation(otherId)}
                     >
                       {stationOverrides[otherId]?.title ?? other?.title ?? otherId}
                     </button>
@@ -736,11 +817,33 @@ export function HubEditorPanel({
                         min={1}
                         step={1}
                         className="hub-editor-connection-minutes"
-                        defaultValue={effectiveMinutes}
-                        onBlur={(event) => onChangeEdgeMinutes(e, event.target.value)}
+                        value={edgeMinutesDraftByKey[key] ?? String(effectiveMinutes)}
+                        onChange={(event) =>
+                          setEdgeMinutesDraftByKey((prev) => ({ ...prev, [key]: event.target.value }))
+                        }
+                        onBlur={(event) => {
+                          onChangeEdgeMinutes(e, event.target.value)
+                          setEdgeMinutesDraftByKey((prev) => {
+                            if (!(key in prev)) return prev
+                            const next = { ...prev }
+                            delete next[key]
+                            return next
+                          })
+                        }}
                       />
                       <span className="hub-editor-connection-minutes-label">мин</span>
                     </div>
+                    {(isManual || edgeOverride) && (
+                      <button
+                        type="button"
+                        className="hub-editor-bulk-button"
+                        onClick={() => onResetEdgeEdits(e)}
+                        title="Сбросить изменения ребра"
+                        aria-label="Сбросить изменения ребра"
+                      >
+                        Сброс
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={`hub-editor-edge-delete${
@@ -762,6 +865,15 @@ export function HubEditorPanel({
             <div className="hub-editor-section-title">Ручные изменения</div>
             <div className="hub-editor-section-subtitle">
               {`Станций: ${Object.keys(manualStations).length} • Рёбер: ${Object.keys(manualEdges).length}`}
+            </div>
+            <div className="hub-editor-bulk-actions">
+              <button
+                type="button"
+                className="hub-editor-edge-delete"
+                onClick={onResetAllEdits}
+              >
+                Сбросить все изменения
+              </button>
             </div>
             {editorSelectedStationIds.length > 0 && (
               <div className="hub-editor-bulk-row">
@@ -911,21 +1023,34 @@ export function HubEditorPanel({
                 )}
                 {searchResults.length > 0 && (
                   <ul className="hub-editor-list hub-editor-list--compact">
-                    {searchResults.slice(0, 80).map((st) => (
-                      <li
-                        key={st.id}
-                        className="hub-editor-list-item hub-editor-list-item--clickable"
-                        onClick={() => {
-                          onSetInspectedStationId(st.id)
-                          setActiveTab('station')
-                        }}
-                      >
-                        <span className="hub-editor-line-dot" />
-                        <span className="hub-editor-station-name">
-                          {stationOverrides[st.id]?.title ?? st.title ?? st.id}
-                        </span>
-                      </li>
-                    ))}
+                    {searchResults.slice(0, 80).map((st) => {
+                      const overrideLineId = stationOverrides[st.id]?.lineNumericId
+                      const effectiveLineId =
+                        overrideLineId === undefined ? (st.lineNumericId ?? null) : overrideLineId
+                      const lineColor =
+                        effectiveLineId != null
+                          ? lineByNumericId.get(effectiveLineId)?.colorHex
+                          : undefined
+
+                      return (
+                        <li
+                          key={st.id}
+                          className="hub-editor-list-item hub-editor-list-item--clickable"
+                          onClick={() => {
+                            focusStation(st.id)
+                            setActiveTab('station')
+                          }}
+                        >
+                          <span
+                            className="hub-editor-line-dot"
+                            style={lineColor ? { backgroundColor: lineColor } : undefined}
+                          />
+                          <span className="hub-editor-station-name">
+                            {stationOverrides[st.id]?.title ?? st.title ?? st.id}
+                          </span>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </>
@@ -939,7 +1064,7 @@ export function HubEditorPanel({
                       key={st.id}
                       className="hub-editor-list-item hub-editor-list-item--clickable"
                       onClick={() => {
-                        onSetInspectedStationId(st.id)
+                        focusStation(st.id)
                         setActiveTab('station')
                       }}
                     >
@@ -964,7 +1089,7 @@ export function HubEditorPanel({
                         key={`${e.fromStationId}-${e.toStationId}-${index}`}
                         className="hub-editor-list-item hub-editor-list-item--clickable"
                         onClick={() => {
-                          onSetInspectedStationId(e.fromStationId)
+                          focusStation(e.fromStationId)
                           setActiveTab('connections')
                         }}
                       >
@@ -1020,7 +1145,7 @@ export function HubEditorPanel({
                             else if (override !== undefined) effHubId = override
                             else effHubId = st.hubId ?? null
                             if (effHubId === hubId) {
-                              onSetInspectedStationId(sid)
+                              focusStation(sid)
                               setActiveTab('hub')
                               break
                             }
@@ -1178,7 +1303,7 @@ export function HubEditorPanel({
                             key={st.id}
                             className="hub-editor-list-item hub-editor-list-item--clickable"
                             onClick={() => {
-                              onSetInspectedStationId(st.id)
+                              focusStation(st.id)
                               setActiveTab('station')
                             }}
                           >
@@ -1231,7 +1356,7 @@ export function HubEditorPanel({
                               key={`${issue.key}-${issue.kind}`}
                               className="hub-editor-list-item hub-editor-list-item--clickable"
                               onClick={() => {
-                                onSetInspectedStationId(issue.fromId)
+                                focusStation(issue.fromId)
                                 setActiveTab('connections')
                               }}
                             >

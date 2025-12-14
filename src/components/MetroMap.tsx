@@ -23,6 +23,8 @@ interface MetroMapProps {
   collisionDebug?: boolean
   /** Колбэк для передачи наружу текущих оверрайдов координат станций */
   onLayoutChange?: (overrides: Record<string, { x: number; y: number }>) => void
+  editorLayoutOverrides?: Record<string, { x: number; y: number }>
+  editorLayoutApplyToken?: number
   /** Колбэк при взаимодействии с картой (pan/zoom), например, чтобы сворачивать UI-шторки */
   onMapInteraction?: () => void
   /** Клик по станции в режиме редактирования для открытия окна редактирования хаба */
@@ -45,6 +47,7 @@ interface MetroMapProps {
   onInitialViewportReady?: () => void
   /** Открыта ли мобильная шторка с деталями маршрута (для учёта её высоты при автофите). */
   routeSheetOpen?: boolean
+  editorFocusCommand?: { stationId: string; token: number } | null
 }
 
 interface ViewportState {
@@ -598,6 +601,8 @@ export function MetroMap({
   editMode = false,
   collisionDebug,
   onLayoutChange,
+  editorLayoutOverrides,
+  editorLayoutApplyToken,
   onMapInteraction,
   onEditStationInspect,
   stationHubOverrides,
@@ -609,6 +614,7 @@ export function MetroMap({
   hubRotateCommand,
   onEditSelectionChange,
   onInitialViewportReady,
+  editorFocusCommand,
   routeSheetOpen = false,
 }: MetroMapProps) {
   const [viewport, setViewport] = useState<ViewportState>({
@@ -664,6 +670,7 @@ export function MetroMap({
   const initialViewportReportedRef = useRef(false)
 
   const lastHubRotateTokenRef = useRef<number | null>(null)
+  const lastEditorFocusTokenRef = useRef<number | null>(null)
 
   const routePulseRef = useRef<{ startedAt: number } | null>(null)
   const clickPulseRef = useRef<{ stationId: string; startedAt: number } | null>(null)
@@ -684,7 +691,7 @@ export function MetroMap({
     }
   }, [])
 
-  const ensureAnimationLoop = () => {
+  const ensureAnimationLoop = useCallback(() => {
     if (animationRafRef.current != null) return
 
     const loop = () => {
@@ -724,7 +731,7 @@ export function MetroMap({
     }
 
     animationRafRef.current = requestAnimationFrame(loop)
-  }
+  }, [])
 
   useEffect(() => {
     if (routeEdgeKeys && routeEdgeKeys.length > 0) {
@@ -733,7 +740,7 @@ export function MetroMap({
     } else {
       routePulseRef.current = null
     }
-  }, [routeEdgeKeys, routeStationIds])
+  }, [routeEdgeKeys, routeStationIds, ensureAnimationLoop])
 
   useEffect(() => {
     viewportRef.current = viewport
@@ -756,6 +763,15 @@ export function MetroMap({
   const [stationOverrides, setStationOverrides] = useState<Record<string, { x: number; y: number }>>(
     {},
   )
+  const lastEditorLayoutApplyTokenRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!editMode) return
+    if (editorLayoutApplyToken == null) return
+    if (lastEditorLayoutApplyTokenRef.current === editorLayoutApplyToken) return
+    lastEditorLayoutApplyTokenRef.current = editorLayoutApplyToken
+    setStationOverrides(editorLayoutOverrides ?? {})
+  }, [editMode, editorLayoutApplyToken, editorLayoutOverrides])
   const [selectedStationIds, setSelectedStationIds] = useState<string[]>([])
   const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null)
   const [dragStationIds, setDragStationIds] = useState<string[] | null>(null)
@@ -1197,6 +1213,7 @@ export function MetroMap({
     }
 
     let rafId: number | null = null
+    const routeKey = Array.from(routeStationIdSet).join(',')
 
     const computeAutoFit = () => {
       let minX = Infinity
@@ -1230,8 +1247,8 @@ export function MetroMap({
       // Базовые инпуты из props для десктопа и горизонтальных отступов.
       let insetTopRaw = visibleInsets?.top ?? 0
       let insetBottomRaw = visibleInsets?.bottom ?? 0
-      const insetLeft = visibleInsets?.left ?? 0
-      const insetRight = visibleInsets?.right ?? 0
+      const insetLeftRaw = visibleInsets?.left ?? 0
+      const insetRightRaw = visibleInsets?.right ?? 0
 
       // На мобиле считаем вертикальные инпуты по фактической высоте хедера и шторки,
       // чтобы автофит всегда опирался на реальное окно между ними и не шёл "на шаг позади".
@@ -1257,8 +1274,16 @@ export function MetroMap({
         }
       }
 
-      const insetTop = insetTopRaw + headerSafeMarginPx
-      const insetBottom = insetBottomRaw + bottomSafeMarginPx
+      const insetTop = Math.round(insetTopRaw + headerSafeMarginPx)
+      const insetBottom = Math.round(insetBottomRaw + bottomSafeMarginPx)
+      const insetLeft = Math.round(insetLeftRaw)
+      const insetRight = Math.round(insetRightRaw)
+
+      const insetKey = `${insetTop}|${insetRight}|${insetBottom}|${insetLeft}`
+      const lastFit = lastRouteFitRef.current
+      if (lastFit && lastFit.routeKey === routeKey && lastFit.insetKey === insetKey) {
+        return insetKey
+      }
 
       const visibleWidth = Math.max(50, displayWidth - insetLeft - insetRight)
       const visibleHeight = Math.max(50, displayHeight - insetTop - insetBottom)
@@ -1296,13 +1321,44 @@ export function MetroMap({
         offsetY,
       })
 
-      const routeKey = Array.from(routeStationIdSet).join(',')
-      const insetKey = `${insetTop}|${insetRight}|${insetBottom}|${insetLeft}`
       lastRouteFitRef.current = { routeKey, bottomInset: insetBottom, insetKey }
+      return insetKey
     }
 
     if (typeof window !== 'undefined') {
-      rafId = window.requestAnimationFrame(computeAutoFit)
+      let lastInsetKey: string | null = null
+      let stableFrames = 0
+      let startedAt: number | null = null
+
+      const MAX_TRACK_MS = 520
+      const MAX_STABLE_FRAMES = 2
+      const MIN_TRACK_MS_BEFORE_EARLY_STOP = 200
+
+      const tick = (timestamp: number) => {
+        if (startedAt == null) {
+          startedAt = timestamp
+        }
+
+        const nextInsetKey = computeAutoFit() ?? null
+
+        if (nextInsetKey === lastInsetKey) {
+          stableFrames += 1
+        } else {
+          lastInsetKey = nextInsetKey
+          stableFrames = 0
+        }
+
+        const elapsed = timestamp - startedAt
+        const canStopEarly =
+          elapsed >= MIN_TRACK_MS_BEFORE_EARLY_STOP && stableFrames >= MAX_STABLE_FRAMES
+        if (elapsed < MAX_TRACK_MS && !canStopEarly) {
+          rafId = window.requestAnimationFrame(tick)
+        } else {
+          rafId = null
+        }
+      }
+
+      rafId = window.requestAnimationFrame(tick)
     } else {
       computeAutoFit()
     }
@@ -1424,12 +1480,12 @@ export function MetroMap({
     })
   }
 
-  const stopZoomClickAnimation = () => {
+  const stopZoomClickAnimation = useCallback(() => {
     if (zoomClickAnimRafRef.current != null) {
       cancelAnimationFrame(zoomClickAnimRafRef.current)
       zoomClickAnimRafRef.current = null
     }
-  }
+  }, [])
 
   const stepZoomHold = () => {
     if (zoomHoldDirectionRef.current === 0) {
@@ -1538,6 +1594,55 @@ export function MetroMap({
     zoomClickAnimRafRef.current = requestAnimationFrame(step)
   }
 
+  useEffect(() => {
+    if (!editMode) return
+    if (!editorFocusCommand) return
+    const { stationId, token } = editorFocusCommand
+    if (token == null) return
+    if (lastEditorFocusTokenRef.current === token) return
+    if (!canvasSize.width || !canvasSize.height) return
+    const st = positionedById.get(stationId)
+    if (!st) return
+
+    lastEditorFocusTokenRef.current = token
+    stopZoomClickAnimation()
+
+    const displayWidth = canvasSize.width
+    const displayHeight = canvasSize.height
+    const insetTop = visibleInsets?.top ?? 0
+    const insetRight = visibleInsets?.right ?? 0
+    const insetBottom = visibleInsets?.bottom ?? 0
+    const insetLeft = visibleInsets?.left ?? 0
+
+    const visibleWidth = Math.max(50, displayWidth - insetLeft - insetRight)
+    const visibleHeight = Math.max(50, displayHeight - insetTop - insetBottom)
+
+    const screenCenterX = displayWidth / 2
+    const screenCenterY = displayHeight / 2
+    const visibleCenterX = insetLeft + visibleWidth / 2
+    const visibleCenterY = insetTop + visibleHeight / 2
+
+    setViewport((prev) => {
+      const minScale = 1.25
+      const nextScale = Math.min(MAX_SCALE, Math.max(prev.scale, minScale))
+      const offsetX = visibleCenterX - screenCenterX - st.x * nextScale
+      const offsetY = visibleCenterY - screenCenterY - st.y * nextScale
+      return clampViewport({ scale: nextScale, offsetX, offsetY })
+    })
+
+    clickPulseRef.current = { stationId, startedAt: performance.now() }
+    ensureAnimationLoop()
+  }, [
+    editMode,
+    editorFocusCommand,
+    canvasSize,
+    visibleInsets,
+    positionedById,
+    clampViewport,
+    stopZoomClickAnimation,
+    ensureAnimationLoop,
+  ])
+
   const getWorldPointFromMouse = (event: { clientX: number; clientY: number }) => {
     const canvas = canvasRef.current
     if (!canvas) return null
@@ -1631,7 +1736,7 @@ export function MetroMap({
       initialViewportReportedRef.current = true
       onInitialViewportReady()
     }
-  }, [worldBounds, canvasSize, hasInitialViewport, clampViewport, teatralnayaWorld])
+  }, [worldBounds, canvasSize, hasInitialViewport, clampViewport, teatralnayaWorld, onInitialViewportReady])
 
   // Перерисовка схемы при изменении вьюпорта или подсветки
   useEffect(() => {
@@ -2460,6 +2565,7 @@ export function MetroMap({
     fromStationId,
     toStationId,
     routeStationIdSet,
+    selectedStationIdSet,
     routeEdgeKeySet,
     routeLongTransferEdgeKeySet,
     canvasSize,

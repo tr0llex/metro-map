@@ -1,24 +1,34 @@
 interface UpdateBannerProps {
-  onClick: () => void
+  onUpdate: () => void
+  onLater: () => void
 }
 
-export function UpdateBanner({ onClick }: UpdateBannerProps) {
+export function UpdateBanner({ onUpdate, onLater }: UpdateBannerProps) {
   return (
     <div className="update-banner" role="status" aria-live="polite">
       <div className="update-banner-icon" aria-hidden="true">
         ⟳
       </div>
       <div className="update-banner-content">
-        <span className="update-banner-title">Новая схема готова</span>
-        <span className="update-banner-subtitle">Обновим за пару секунд?</span>
+        <span className="update-banner-title">Доступно обновление</span>
+        <span className="update-banner-subtitle">Обновить приложение сейчас?</span>
       </div>
-      <button
-        type="button"
-        className="update-banner-button"
-        onClick={onClick}
-      >
-        Обновить
-      </button>
+      <div className="update-banner-actions">
+        <button
+          type="button"
+          className="update-banner-later"
+          onClick={onLater}
+        >
+          Позже
+        </button>
+        <button
+          type="button"
+          className="update-banner-button"
+          onClick={onUpdate}
+        >
+          Обновить
+        </button>
+      </div>
     </div>
   )
 }

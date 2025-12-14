@@ -14,12 +14,10 @@ self.addEventListener('activate', (event) => {
       // ignore
     }
 
+    // Intentionally do not force navigation/reload.
+    // This worker exists only to clean up old registrations and caches.
     try {
       await self.clients.claim()
-      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      for (const client of clients) {
-        client.navigate(client.url)
-      }
     } catch (e) {
       // ignore
     }
