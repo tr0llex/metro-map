@@ -8,6 +8,67 @@ export interface NeighborEdge {
 
 export const TRANSFER_PENALTY_MINUTES = 0
 
+type HeapItem = {
+  id: string
+  dist: number
+}
+
+class MinHeap {
+  private data: HeapItem[] = []
+
+  size(): number {
+    return this.data.length
+  }
+
+  push(item: HeapItem): void {
+    this.data.push(item)
+    this.bubbleUp(this.data.length - 1)
+  }
+
+  pop(): HeapItem | undefined {
+    const n = this.data.length
+    if (n === 0) return undefined
+    const top = this.data[0]
+    const last = this.data.pop()!
+    if (n > 1) {
+      this.data[0] = last
+      this.bubbleDown(0)
+    }
+    return top
+  }
+
+  private bubbleUp(index: number): void {
+    let i = index
+    while (i > 0) {
+      const parent = (i - 1) >> 1
+      if (this.data[parent].dist <= this.data[i].dist) break
+      const tmp = this.data[parent]
+      this.data[parent] = this.data[i]
+      this.data[i] = tmp
+      i = parent
+    }
+  }
+
+  private bubbleDown(index: number): void {
+    let i = index
+    const n = this.data.length
+    while (true) {
+      const left = i * 2 + 1
+      if (left >= n) break
+      const right = left + 1
+      let smallest = left
+      if (right < n && this.data[right].dist < this.data[left].dist) {
+        smallest = right
+      }
+      if (this.data[i].dist <= this.data[smallest].dist) break
+      const tmp = this.data[i]
+      this.data[i] = this.data[smallest]
+      this.data[smallest] = tmp
+      i = smallest
+    }
+  }
+}
+
 export function undirectedEdgeKey(a: string, b: string): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`
 }
@@ -82,50 +143,41 @@ export function shortestPathFullGraphWithPenalty(
     return { path: [startId], route: empty }
   }
 
+  void stationIds
+
   const dist = new Map<string, number>()
   const prev = new Map<string, string>()
-
-  for (const id of stationIds) {
-    dist.set(id, Infinity)
-  }
   dist.set(startId, 0)
 
-  const visited = new Set<string>()
+  const heap = new MinHeap()
+  heap.push({ id: startId, dist: 0 })
 
-  while (true) {
-    let current: string | null = null
-    let best = Infinity
-    for (const id of stationIds) {
-      if (visited.has(id)) continue
-      const d = dist.get(id)!
-      if (d < best) {
-        best = d
-        current = id
-      }
-    }
-
-    if (current === null || best === Infinity) {
-      break
+  while (heap.size() > 0) {
+    const top = heap.pop()!
+    const current = top.id
+    const currentDist = dist.get(current)
+    if (currentDist === undefined || top.dist !== currentDist) {
+      continue
     }
 
     if (current === targetId) {
       break
     }
 
-    visited.add(current)
-
     const neighbors = adjacency.get(current) ?? []
     for (const edge of neighbors) {
       const extra = edge.travelMinutes + (edge.isTransfer ? transferPenaltyMinutes : 0)
-      const alt = dist.get(current)! + extra
-      if (alt < dist.get(edge.toStationId)!) {
+      const alt = currentDist + extra
+      const existing = dist.get(edge.toStationId) ?? Infinity
+      if (alt < existing) {
         dist.set(edge.toStationId, alt)
         prev.set(edge.toStationId, current)
+        heap.push({ id: edge.toStationId, dist: alt })
       }
     }
   }
 
-  if (!prev.has(targetId)) {
+  if (startId !== targetId && !prev.has(targetId)) {
     return null
   }
 

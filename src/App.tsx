@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent, TouchEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type {
+  ComponentType,
+  LazyExoticComponent,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent,
+  TouchEvent,
+} from 'react'
 import './App.css'
 import './theme.css'
 import helloKittyIcon from './assets/kitty-metro-logo.svg'
@@ -7,10 +13,11 @@ import { InstallGuideCard } from './components/InstallGuideCard.tsx'
 import { UpdateBanner } from './components/UpdateBanner.tsx'
 import { SplashScreen } from './components/SplashScreen.tsx'
 import { RouteForm } from './components/RouteForm.tsx'
+import type { RouteSuggestionItem } from './components/RouteForm.tsx'
 import { RouteDetailsSheet } from './components/RouteDetailsSheet.tsx'
 import type { DecoratedSegment } from './components/RouteDetailsSheet.tsx'
 import { RouteHeader } from './components/RouteHeader.tsx'
-import { HubEditorPanel } from './components/HubEditorPanel.tsx'
+import type { HubEditorPanelProps } from './components/HubEditorPanel.tsx'
 import {
   fullGraphLines,
   fullGraphStations,
@@ -20,7 +27,6 @@ import {
 import { findRouteAlternativesFullGraph } from './metro/routing.ts'
 import type {
   RouteResult,
-  FullGraphExport,
   FullGraphEdge,
   EdgeOverride,
   FullGraphStation,
@@ -29,13 +35,22 @@ import type {
 import { MetroMap } from './components/MetroMap.tsx'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
-const EDITOR_ENABLED = import.meta.env.DEV
+const EDITOR_ENABLED = import.meta.env.DEV || import.meta.env.MODE === 'editor'
+
+const HubEditorPanelLazy: LazyExoticComponent<ComponentType<HubEditorPanelProps>> | null =
+  EDITOR_ENABLED
+    ? lazy(() =>
+        import('./components/HubEditorPanel.tsx').then((m) => ({ default: m.HubEditorPanel })),
+      )
+    : null
 
 type NavigatorWithStandalone = Navigator & { standalone?: boolean }
 
 type StationOverride = {
   title?: string
   lineNumericId?: number | null
+  lat?: number
+  lon?: number
 }
 
 type SavedRoute = {
@@ -176,9 +191,14 @@ function App() {
   const sheetMinVisibleRef = useRef<HTMLDivElement | null>(null)
   const routeDetailsRef = useRef<HTMLDivElement | null>(null)
   const sheetMaxOffsetPxRef = useRef(0)
+  const sheetMinHeightPxRef = useRef(0)
+  const sheetOpenHeightPxRef = useRef(0)
   const savedRouteCounterRef = useRef(1)
   const [hubRotateCommand, setHubRotateCommand] = useState<
     { hubId: string; direction: 'cw' | 'ccw'; token: number } | null
+  >(null)
+  const [hubMirrorCommand, setHubMirrorCommand] = useState<
+    { hubId: string; token: number } | null
   >(null)
   const [editorFocusCommand, setEditorFocusCommand] = useState<
     { stationId: string; token: number } | null
@@ -225,6 +245,7 @@ function App() {
   const edgeKey = useCallback((a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`), [])
 
   const hubRotateTokenRef = useRef(0)
+  const hubMirrorTokenRef = useRef(0)
   const editorFocusTokenRef = useRef(0)
 
   const showEditorToast = useCallback((message: string) => {
@@ -237,6 +258,17 @@ function App() {
       setEditorToast(null)
     }, 2200)
   }, [])
+
+  const handleMirrorHubGeometry = useCallback(
+    (hubId: string) => {
+      setHubMirrorCommand(() => {
+        hubMirrorTokenRef.current += 1
+        return { hubId, token: hubMirrorTokenRef.current }
+      })
+      showEditorToast('Хаб отзеркален')
+    },
+    [showEditorToast],
+  )
 
   const copyTextToClipboard = useCallback(async (text: string): Promise<boolean> => {
     if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -439,11 +471,11 @@ function App() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
+      const tag = target?.tagName
       const isEditableElement =
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          (target as HTMLElement).isContentEditable)
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        (target as HTMLElement).isContentEditable
       if (isEditableElement) return
 
       const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
@@ -721,9 +753,26 @@ function App() {
       return { ...prev, [stationId]: true }
     })
   }, [])
+  const swRegistrationRef = useRef<ServiceWorkerRegistration | undefined>(undefined)
+  const swLastUpdateCheckMsRef = useRef<number>(0)
+  const checkForSwUpdate = useCallback(() => {
+    if (typeof window === 'undefined') return
+
+    const now = Date.now()
+    if (now - swLastUpdateCheckMsRef.current < 3000) {
+      return
+    }
+    swLastUpdateCheckMsRef.current = now
+
+    const reg = swRegistrationRef.current
+    if (!reg) return
+    void reg.update()
+  }, [])
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
     onRegistered(swRegistration: ServiceWorkerRegistration | undefined) {
+      swRegistrationRef.current = swRegistration
       console.log('SW registered', swRegistration)
+      checkForSwUpdate()
     },
     onRegisterError(error: unknown) {
       console.log('SW registration error', error)
@@ -742,6 +791,12 @@ function App() {
   })
   const fromInputRef = useRef<HTMLInputElement | null>(null)
   const toInputRef = useRef<HTMLInputElement | null>(null)
+
+  const focusIfNeeded = (el: HTMLInputElement | null) => {
+    if (!el) return
+    if (typeof document !== 'undefined' && document.activeElement === el) return
+    el.focus()
+  }
   const sheetTouchStartYRef = useRef<number | null>(null)
   const sheetTouchLastYRef = useRef<number | null>(null)
   const sheetDragStartProgressRef = useRef<number | null>(null)
@@ -755,12 +810,8 @@ function App() {
       const clamped = Math.max(0, Math.min(1, progress))
       sheetProgressRef.current = clamped
 
-      // 0 — шторка полностью свернута (у нижнего края), 1 — полностью раскрыта.
-      // Двигаем её по translateY в пределах небольшого диапазона, чтобы сохранить
-      // связь с пальцем, но не делать гигантский сдвиг.
       const maxOffsetPx = sheetMaxOffsetPxRef.current
       const translateY = (1 - clamped) * maxOffsetPx
-
       el.style.transform = `translateY(${translateY}px)`
     },
     [isDesktop],
@@ -773,7 +824,18 @@ function App() {
     const minEl = sheetMinVisibleRef.current
     if (!sheetEl || !minEl) return
 
-    const minHeight = minEl.offsetHeight
+    const innerEl = sheetEl.querySelector<HTMLElement>('.bottom-sheet-inner')
+    let innerPaddingTop = 0
+    let innerPaddingBottom = 0
+    if (innerEl) {
+      const style = window.getComputedStyle(innerEl)
+      const pt = Number.parseFloat(style.paddingTop)
+      const pb = Number.parseFloat(style.paddingBottom)
+      innerPaddingTop = Number.isFinite(pt) ? pt : 0
+      innerPaddingBottom = Number.isFinite(pb) ? pb : 0
+    }
+
+    const minHeight = minEl.offsetHeight + innerPaddingTop + innerPaddingBottom
 
     let detailsHeight = 0
     let detailsMarginTop = 0
@@ -792,16 +854,28 @@ function App() {
     const rootFontSizeStr = window.getComputedStyle(document.documentElement).fontSize
     const rootFontSize = Number.parseFloat(rootFontSizeStr)
     const remPx = Number.isFinite(rootFontSize) ? rootFontSize : 16
-    const maxHeightPx = Math.max(0, viewportHeight - remPx * 1.75)
 
-    const desiredOpenHeight = minHeight + detailsMarginTop + detailsHeight
+    const isFullScreenAllowed = isSmartSuggestionsOpen
+    const maxHeightPxRaw = isFullScreenAllowed
+      ? viewportHeight
+      : Math.min(Math.max(0, viewportHeight - remPx * 1.75), viewportHeight * 0.78)
+    const maxHeightPx = Math.max(minHeight, maxHeightPxRaw)
+
+    const hasExpandableContent = detailsHeight > 2 || isSmartSuggestionsOpen
+    const defaultExpandedHeight =
+      isFullScreenAllowed ? viewportHeight : hasExpandableContent ? Math.max(minHeight, viewportHeight * 0.62) : minHeight
+
+    const desiredOpenHeight = Math.max(minHeight + detailsMarginTop + detailsHeight, defaultExpandedHeight)
     const openHeight = Math.min(desiredOpenHeight, maxHeightPx)
+
+    sheetMinHeightPxRef.current = minHeight
+    sheetOpenHeightPxRef.current = openHeight
     sheetMaxOffsetPxRef.current = Math.max(0, openHeight - minHeight)
 
     sheetEl.style.height = `${openHeight}px`
 
     updateSheetTransformDom(sheetProgressRef.current)
-  }, [isDesktop, updateSheetTransformDom])
+  }, [isDesktop, isSmartSuggestionsOpen, updateSheetTransformDom])
 
   useLayoutEffect(() => {
     recomputeSheetMaxOffsetPx()
@@ -840,6 +914,10 @@ function App() {
     const onResize = () => schedule()
     window.addEventListener('resize', onResize)
 
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', onResize)
+    vv?.addEventListener('scroll', onResize)
+
     let ro: ResizeObserver | null = null
     if (typeof window.ResizeObserver === 'function') {
       ro = new window.ResizeObserver(() => schedule())
@@ -852,6 +930,8 @@ function App() {
 
     return () => {
       window.removeEventListener('resize', onResize)
+      vv?.removeEventListener('resize', onResize)
+      vv?.removeEventListener('scroll', onResize)
       if (raf) {
         window.cancelAnimationFrame(raf)
       }
@@ -859,7 +939,19 @@ function App() {
         ro.disconnect()
       }
     }
-  }, [isDesktop, recomputeSheetMaxOffsetPx])
+  }, [
+    isDesktop,
+    recomputeSheetMaxOffsetPx,
+    errorMessage,
+    routeAlternatives.length,
+    activeRouteIndex,
+    isRouteSheetOpen,
+    isSmartSuggestionsOpen,
+    favoriteRoutes.length,
+    recentRoutes.length,
+    nearbyStatus,
+    nearbyStations.length,
+  ])
 
   const stopSheetSpring = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -943,6 +1035,81 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    checkForSwUpdate()
+
+    const onFocus = () => checkForSwUpdate()
+    const onPageShow = () => checkForSwUpdate()
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkForSwUpdate()
+      }
+    }
+
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('pageshow', onPageShow)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('pageshow', onPageShow)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [checkForSwUpdate])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    if (!('serviceWorker' in navigator)) {
+      return
+    }
+
+    void (async () => {
+      let registrations: readonly ServiceWorkerRegistration[]
+      try {
+        registrations = await navigator.serviceWorker.getRegistrations()
+      } catch {
+        return
+      }
+
+      const legacyRegs = registrations.filter((reg) => {
+        const sw = reg.active ?? reg.waiting ?? reg.installing
+        if (!sw?.scriptURL) return false
+        try {
+          const url = new URL(sw.scriptURL)
+          return url.pathname.endsWith('/sw.js')
+        } catch {
+          return false
+        }
+      })
+
+      if (legacyRegs.length === 0) {
+        return
+      }
+
+      try {
+        const keys = await caches.keys()
+        await Promise.all(keys.map((k) => caches.delete(k)))
+      } catch {
+        // ignore
+      }
+
+      for (const reg of legacyRegs) {
+        try {
+          await reg.unregister()
+        } catch {
+          // ignore
+        }
+      }
+
+      checkForSwUpdate()
+    })()
+  }, [checkForSwUpdate])
+
+  useEffect(() => {
     if (needRefresh) {
       return
     }
@@ -999,8 +1166,16 @@ function App() {
         }
       }
 
+      const sheetEl = document.querySelector<HTMLElement>('.bottom-sheet')
+      if (sheetEl && isDesktop) {
+        const r = sheetEl.getBoundingClientRect()
+        if (r.right > left) {
+          left = Math.min(r.right, viewportWidth)
+        }
+      }
+
       const zoomControlsEl = document.querySelector<HTMLElement>('.metro-map-zoom-controls')
-      if (zoomControlsEl && isDesktop) {
+      if (zoomControlsEl) {
         const r = zoomControlsEl.getBoundingClientRect()
         const inset = Math.max(0, viewportWidth - r.left)
         if (inset > right) {
@@ -1039,7 +1214,9 @@ function App() {
       const target = event.target as HTMLElement | null
       const tag = target?.tagName
       const isInputLike =
-        tag === 'INPUT' || tag === 'TEXTAREA' || (target && target.isContentEditable)
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        (target && target.isContentEditable)
       if (isInputLike) return
 
       if ((event.key === 'e' || event.key === 'E') && (event.ctrlKey || event.metaKey)) {
@@ -1086,7 +1263,7 @@ function App() {
     try {
       window.localStorage.setItem('kitty-metro-install-guide-seen', '1')
     } catch {
-      return
+      // ignore
     }
   }
 
@@ -1139,7 +1316,7 @@ function App() {
     try {
       window.sessionStorage.setItem('kitty-metro-update-dismissed', '1')
     } catch {
-      return
+      // ignore
     }
   }
 
@@ -1149,15 +1326,46 @@ function App() {
       setIsSmartSuggestionsOpen(false)
     }
     if (!isDesktop) {
-      const hasRouteToAnimate = routeAlternatives.length > 0 && !errorMessage
-      if (hasRouteToAnimate) {
+      recomputeSheetMaxOffsetPx()
+      const hasRange = sheetMaxOffsetPxRef.current > 0
+      if (hasRange) {
         startSheetSpring(open ? 1 : 0, 0)
       } else {
         stopSheetSpring()
-        updateSheetTransformDom(1)
+        updateSheetTransformDom(0)
       }
     }
   }
+
+  useEffect(() => {
+    if (isDesktop) return
+
+    if (isSmartSuggestionsOpen) {
+      if (!isRouteSheetOpen) {
+        setIsRouteSheetOpen(true)
+      }
+      startSheetSpring(1, 0)
+      return
+    }
+
+    const hasRoute = routeAlternatives.length > 0 && !errorMessage
+    if (!hasRoute) {
+      stopSheetSpring()
+      updateSheetTransformDom(0)
+      if (isRouteSheetOpen) {
+        setIsRouteSheetOpen(false)
+      }
+    }
+  }, [
+    isDesktop,
+    isSmartSuggestionsOpen,
+    isRouteSheetOpen,
+    routeAlternatives.length,
+    errorMessage,
+    startSheetSpring,
+    stopSheetSpring,
+    updateSheetTransformDom,
+  ])
 
   const allStations = useMemo(() => {
     const manualList = Object.values(manualStations)
@@ -1505,6 +1713,80 @@ function App() {
     [stationById],
   )
 
+  const handleUpdateStationGeoFromOSM = useCallback(
+    async (stationId: string) => {
+      const base = stationById.get(stationId)
+      if (!base) {
+        throw new Error('Станция не найдена')
+      }
+
+      const title = stationOverrides[stationId]?.title?.trim() || base.title
+      const query = `станция метро ${title}, Москва`
+      const url =
+        'https://nominatim.openstreetmap.org/search' +
+        `?format=jsonv2&limit=1&countrycodes=ru&accept-language=ru&q=${encodeURIComponent(query)}`
+
+      const resp = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+
+      if (!resp.ok) {
+        throw new Error(`OSM API error: ${resp.status}`)
+      }
+
+      const data = (await resp.json()) as Array<{ lat?: string; lon?: string }>
+      const first = data[0]
+      const lat = first?.lat != null ? Number(first.lat) : NaN
+      const lon = first?.lon != null ? Number(first.lon) : NaN
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        throw new Error('OSM: координаты не найдены')
+      }
+
+      setStationOverrides((prev) => {
+        const baseLat = base.lat
+        const baseLon = base.lon
+        const current = prev[stationId]
+        const next: StationOverride = { ...(current ?? {}) }
+
+        if (baseLat !== undefined && lat === baseLat) {
+          delete next.lat
+        } else {
+          next.lat = lat
+        }
+
+        if (baseLon !== undefined && lon === baseLon) {
+          delete next.lon
+        } else {
+          next.lon = lon
+        }
+
+        if (
+          next.title === undefined &&
+          next.lineNumericId === undefined &&
+          next.lat === undefined &&
+          next.lon === undefined
+        ) {
+          if (!(stationId in prev)) return prev
+          const cloned = { ...prev }
+          delete cloned[stationId]
+          return cloned
+        }
+
+        if (current && current.title === next.title && current.lineNumericId === next.lineNumericId) {
+          return prev
+        }
+
+        return { ...prev, [stationId]: next }
+      })
+
+      showEditorToast('lat/lon обновлены (OSM)')
+    },
+    [stationById, stationOverrides, showEditorToast],
+  )
+
   const handleCreateManualStation = useCallback(() => {
     const existingIds = new Set<string>()
     for (const s of fullGraphStations) existingIds.add(s.id)
@@ -1667,7 +1949,12 @@ function App() {
           next.title = trimmed
         }
 
-        if (next.title === undefined && next.lineNumericId === undefined) {
+        if (
+          next.title === undefined &&
+          next.lineNumericId === undefined &&
+          next.lat === undefined &&
+          next.lon === undefined
+        ) {
           if (!(stationId in prev)) return prev
           const cloned = { ...prev }
           delete cloned[stationId]
@@ -1980,32 +2267,48 @@ function App() {
   const fromSuggestions = useMemo(() => {
     const q = fromStation.trim().toLowerCase()
     if (!q || fromFixed) return []
-    const result: FullGraphStation[] = []
+    const result: RouteSuggestionItem[] = []
     for (const s of allStations) {
       const ov = stationOverrides[s.id]
       const title = ov?.title?.trim() || s.title
       if (title.toLowerCase().includes(q)) {
-        result.push(s)
+        const effectiveLineNumericId =
+          ov && ov.lineNumericId !== undefined ? ov.lineNumericId : s.lineNumericId
+
+        const color =
+          effectiveLineNumericId != null
+            ? lineByNumericId.get(effectiveLineNumericId)?.colorHex
+            : undefined
+
+        result.push({ id: s.id, title, color })
         if (result.length >= 6) break
       }
     }
     return result
-  }, [fromStation, fromFixed, allStations, stationOverrides])
+  }, [fromStation, fromFixed, allStations, stationOverrides, lineByNumericId])
 
   const toSuggestions = useMemo(() => {
     const q = toStation.trim().toLowerCase()
     if (!q || toFixed) return []
-    const result: FullGraphStation[] = []
+    const result: RouteSuggestionItem[] = []
     for (const s of allStations) {
       const ov = stationOverrides[s.id]
       const title = ov?.title?.trim() || s.title
       if (title.toLowerCase().includes(q)) {
-        result.push(s)
+        const effectiveLineNumericId =
+          ov && ov.lineNumericId !== undefined ? ov.lineNumericId : s.lineNumericId
+
+        const color =
+          effectiveLineNumericId != null
+            ? lineByNumericId.get(effectiveLineNumericId)?.colorHex
+            : undefined
+
+        result.push({ id: s.id, title, color })
         if (result.length >= 6) break
       }
     }
     return result
-  }, [toStation, toFixed, allStations, stationOverrides])
+  }, [toStation, toFixed, allStations, stationOverrides, lineByNumericId])
 
   const routeResult = routeAlternatives[activeRouteIndex] ?? null
 
@@ -2293,9 +2596,12 @@ function App() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords
-        const withCoords = allStations.filter(
-          (s) => typeof s.lat === 'number' && typeof s.lon === 'number',
-        )
+        const withCoords = allStations.filter((s) => {
+          const ov = stationOverrides[s.id]
+          const lat = ov?.lat ?? s.lat
+          const lon = ov?.lon ?? s.lon
+          return typeof lat === 'number' && typeof lon === 'number'
+        })
         if (withCoords.length === 0) {
           setNearbyStatus('error')
           setNearbyError('Нет станций с координатами.')
@@ -2306,10 +2612,13 @@ function App() {
         const toRad = (deg: number) => (deg * Math.PI) / 180
 
         const scored = withCoords.map((s) => {
+          const ov = stationOverrides[s.id]
+          const effectiveLat = (ov?.lat ?? s.lat) as number
+          const effectiveLon = (ov?.lon ?? s.lon) as number
           const lat1 = toRad(latitude)
           const lon1 = toRad(longitude)
-          const lat2 = toRad(s.lat as number)
-          const lon2 = toRad(s.lon as number)
+          const lat2 = toRad(effectiveLat)
+          const lon2 = toRad(effectiveLon)
           const dLat = lat2 - lat1
           const dLon = lon2 - lon1
           const a =
@@ -2345,7 +2654,7 @@ function App() {
         maximumAge: 60000,
       },
     )
-  }, [allStations])
+  }, [allStations, stationOverrides])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -2406,9 +2715,16 @@ function App() {
   }
 
   const handleSheetTouchStart = (event: TouchEvent) => {
-    if (!routeResult || errorMessage) return
+    if (errorMessage) return
     if (isDesktop) return
     if (event.touches.length === 0) return
+
+    recomputeSheetMaxOffsetPx()
+
+    if (sheetMaxOffsetPxRef.current <= 0) {
+      return
+    }
+
     if (!isRouteSheetOpen) {
       setIsRouteSheetOpen(true)
     }
@@ -2431,7 +2747,11 @@ function App() {
     const touch = event.touches[0]
     sheetTouchLastYRef.current = touch.clientY
     const startY = sheetTouchStartYRef.current
-    const dragRange = sheetMaxOffsetPxRef.current
+    let dragRange = sheetMaxOffsetPxRef.current
+    if (!dragRange || dragRange <= 0) {
+      recomputeSheetMaxOffsetPx()
+      dragRange = sheetMaxOffsetPxRef.current
+    }
     if (!dragRange || dragRange <= 0) return
     const startProgress =
       sheetDragStartProgressRef.current != null
@@ -2635,7 +2955,7 @@ function App() {
     }
 
     if (nextFromName.trim()) {
-      toInputRef.current?.focus()
+      focusIfNeeded(toInputRef.current)
     }
   }
 
@@ -2697,7 +3017,7 @@ function App() {
     }
 
     if (nextToName.trim() && !fromStation.trim()) {
-      fromInputRef.current?.focus()
+      focusIfNeeded(fromInputRef.current)
     }
   }
 
@@ -2777,13 +3097,31 @@ function App() {
 
   useEffect(() => {
     if (isDesktop) return
-    if (!routeResult) {
-      stopSheetSpring()
-      updateSheetTransformDom(1)
+
+    if (isSmartSuggestionsOpen) {
+      recomputeSheetMaxOffsetPx()
+      updateSheetTransformDom(sheetProgressRef.current)
       return
     }
+
+    const hasRoute = routeAlternatives.length > 0 && !errorMessage
+    if (!hasRoute) {
+      stopSheetSpring()
+      updateSheetTransformDom(0)
+      return
+    }
+
+    recomputeSheetMaxOffsetPx()
     updateSheetTransformDom(sheetProgressRef.current)
-  }, [routeResult, isDesktop, stopSheetSpring, updateSheetTransformDom])
+  }, [
+    isDesktop,
+    isSmartSuggestionsOpen,
+    routeAlternatives.length,
+    errorMessage,
+    recomputeSheetMaxOffsetPx,
+    stopSheetSpring,
+    updateSheetTransformDom,
+  ])
 
   return (
     <div className={`app-root${isSplashActive ? ' app-root--splash-active' : ''}`}>
@@ -2823,6 +3161,7 @@ function App() {
           stationTitleOverrides={stationTitleOverridesForMap}
           extraStations={Object.values(manualStations)}
           hubRotateCommand={hubRotateCommand}
+          hubMirrorCommand={hubMirrorCommand}
           editorFocusCommand={editorFocusCommand}
           onEditSelectionChange={setEditorSelectedStationIds}
           onInitialViewportReady={handleInitialViewportReady}
@@ -2841,11 +3180,9 @@ function App() {
               onChipClick={() => {
                 setRouteSheetOpenState(true)
                 if (!trimmedFrom) {
-                  fromInputRef.current?.focus()
+                  focusIfNeeded(fromInputRef.current)
                 } else if (!trimmedTo) {
-                  toInputRef.current?.focus()
-                } else if (!isDesktop) {
-                  toInputRef.current?.focus()
+                  focusIfNeeded(toInputRef.current)
                 }
               }}
             />
@@ -2860,57 +3197,63 @@ function App() {
           </>
         )}
 
-        {effectiveEditMode && inspectedStation && (
-          <HubEditorPanel
-            inspectedStation={inspectedStation}
-            inspectedLineId={inspectedLineId}
-            inspectedLine={inspectedLine}
-            inspectedLineEdges={inspectedLineEdges}
-            inspectedHub={inspectedHub}
-            inspectedEdges={inspectedEdges}
-            fullGraphLines={fullGraphLines}
-            fullGraphEdges={fullGraphEdges}
-            stationOverrides={stationOverrides}
-            manualStations={manualStations}
-            manualEdges={manualEdges}
-            stationHubOverrides={stationHubOverrides}
-            hiddenStations={hiddenStations}
-            availableHubIds={availableHubIds}
-            baseHubIds={fullGraphTransferHubs.map((hub) => hub.id)}
-            stationById={stationById}
-            lineByNumericId={lineByNumericId}
-            effectiveLineStationIdsById={effectiveLineStationIdsById}
-            edgeOverrides={edgeOverrides}
-            editorSelectedStationIds={editorSelectedStationIds}
-            hubAddStationInput={hubAddStationInput}
-            newEdgeTarget={newEdgeTarget}
-            findExactStationByName={findExactStationByName}
-            edgeKey={edgeKey}
-            onClose={() => setEditMode(false)}
-            onUndo={handleEditorUndo}
-            onRedo={handleEditorRedo}
-            canUndo={canEditorUndo}
-            canRedo={canEditorRedo}
-            onChangeStationTitle={handleChangeStationTitle}
-            onChangeStationLine={handleChangeStationLine}
-            onDeleteManualStation={handleDeleteManualStation}
-            onToggleEdgeTransfer={handleToggleEdgeTransfer}
-            onChangeEdgeMinutes={handleChangeEdgeMinutes}
-            onToggleEdgeDisabled={handleToggleEdgeDisabled}
-            onChangeStationHub={handleChangeStationHub}
-            onChangeHubMinMinutes={handleChangeHubMinMinutes}
-            onToggleStationHidden={handleToggleStationHidden}
-            onSetHubAddStationInput={setHubAddStationInput}
-            onSetNewEdgeTarget={setNewEdgeTarget}
-            onSetManualEdges={setManualEdges}
-            onSetInspectedStationId={setInspectedStationId}
-            onFocusStation={handleFocusStation}
-            onRotateHubGeometry={handleRotateHubGeometry}
-            onResetStationEdits={handleResetStationEdits}
-            onResetEdgeEdits={handleResetEdgeEdits}
-            onResetHubEdits={handleResetHubEdits}
-            onResetAllEdits={handleResetAllEditorEdits}
-          />
+        {EDITOR_ENABLED && HubEditorPanelLazy && effectiveEditMode && inspectedStation && (
+          <Suspense fallback={null}>
+            <HubEditorPanelLazy
+              inspectedStation={inspectedStation}
+              inspectedLineId={inspectedLineId}
+              inspectedLine={inspectedLine}
+              inspectedLineEdges={inspectedLineEdges}
+              inspectedHub={inspectedHub}
+              inspectedEdges={inspectedEdges}
+              fullGraphLines={fullGraphLines}
+              fullGraphEdges={fullGraphEdges}
+              stationOverrides={stationOverrides}
+              manualStations={manualStations}
+              manualEdges={manualEdges}
+              stationHubOverrides={stationHubOverrides}
+              hiddenStations={hiddenStations}
+              availableHubIds={availableHubIds}
+              baseHubIds={fullGraphTransferHubs.map((hub) => hub.id)}
+              stationById={stationById}
+              lineByNumericId={lineByNumericId}
+              effectiveLineStationIdsById={effectiveLineStationIdsById}
+              edgeOverrides={edgeOverrides}
+              hubMinOverrides={hubMinOverrides}
+              hubRotationOverrides={hubRotationOverrides}
+              editorSelectedStationIds={editorSelectedStationIds}
+              hubAddStationInput={hubAddStationInput}
+              newEdgeTarget={newEdgeTarget}
+              findExactStationByName={findExactStationByName}
+              edgeKey={edgeKey}
+              onClose={() => setEditMode(false)}
+              onUndo={handleEditorUndo}
+              onRedo={handleEditorRedo}
+              canUndo={canEditorUndo}
+              canRedo={canEditorRedo}
+              onChangeStationTitle={handleChangeStationTitle}
+              onChangeStationLine={handleChangeStationLine}
+              onDeleteManualStation={handleDeleteManualStation}
+              onToggleEdgeTransfer={handleToggleEdgeTransfer}
+              onChangeEdgeMinutes={handleChangeEdgeMinutes}
+              onToggleEdgeDisabled={handleToggleEdgeDisabled}
+              onChangeStationHub={handleChangeStationHub}
+              onChangeHubMinMinutes={handleChangeHubMinMinutes}
+              onToggleStationHidden={handleToggleStationHidden}
+              onSetHubAddStationInput={setHubAddStationInput}
+              onSetNewEdgeTarget={setNewEdgeTarget}
+              onSetManualEdges={setManualEdges}
+              onSetInspectedStationId={setInspectedStationId}
+              onFocusStation={handleFocusStation}
+              onRotateHubGeometry={handleRotateHubGeometry}
+              onMirrorHubGeometry={handleMirrorHubGeometry}
+              onUpdateStationGeoFromOSM={handleUpdateStationGeoFromOSM}
+              onResetStationEdits={handleResetStationEdits}
+              onResetEdgeEdits={handleResetEdgeEdits}
+              onResetHubEdits={handleResetHubEdits}
+              onResetAllEdits={handleResetAllEditorEdits}
+            />
+          </Suspense>
         )}
 
         {!effectiveEditMode && isPrimaryUiReady && (
@@ -2932,6 +3275,14 @@ function App() {
                     type="button"
                     className="bottom-sheet-handle"
                     aria-label="Потянуть, чтобы раскрыть или свернуть детали маршрута"
+                  />
+                )}
+
+                {!routeResult && !isDesktop && (
+                  <button
+                    type="button"
+                    className="bottom-sheet-handle"
+                    aria-label="Потянуть, чтобы раскрыть или свернуть шторку"
                   />
                 )}
 
@@ -3089,7 +3440,7 @@ function App() {
                     </section>
                   )}
 
-                {routeAlternatives.length > 0 && routeResult && !errorMessage && !isDesktop && (
+                {routeAlternatives.length > 1 && !errorMessage && !isDesktop && (
                   <div className="bottom-route-summary-wrapper">
                     <div className="bottom-route-summary-scroll">
                       {routeAlternatives.map((route, index) => {
@@ -3207,246 +3558,6 @@ function App() {
                   }
                 >
                   ⚡
-                </button>
-                <button
-                  type="button"
-                  className="editor-fab editor-fab--small editor-fab--secondary"
-                  onClick={async () => {
-                    try {
-                      const json = JSON.stringify(lastLayoutOverrides, null, 2)
-                      const ok = json ? await copyTextToClipboard(json) : false
-                      if (ok) {
-                        showEditorToast('layout_overrides.json скопирован')
-                      } else {
-                        showEditorToast('Не удалось скопировать layout_overrides.json')
-                      }
-                    } catch {
-                      showEditorToast('Не удалось скопировать layout_overrides.json')
-                      // ignore clipboard errors
-                    }
-                  }}
-                  aria-label="Скопировать layout_overrides.json в буфер обмена"
-                  title="Скопировать layout_overrides.json"
-                >
-                  xy
-                </button>
-                <button
-                  type="button"
-                  className="editor-fab editor-fab--small editor-fab--secondary"
-                  onClick={async () => {
-                    try {
-                      const snapshot: FullGraphExport = {
-                        lines: fullGraphLines.map((line) => ({
-                          ...line,
-                          stationIds:
-                            effectiveLineStationIdsById.get(line.id) ?? line.stationIds,
-                        })),
-                        stations: (() => {
-                          const result: FullGraphStation[] = []
-
-                          for (const s of fullGraphStations) {
-                            if (hiddenStations[s.id]) continue
-
-                            const hubOverride = stationHubOverrides[s.id]
-                            const baseHubId = s.hubId ?? null
-                            let next: FullGraphStation = s
-                            if (hubOverride === null) {
-                              next = { ...next, hubId: undefined }
-                            } else if (hubOverride !== undefined && hubOverride !== baseHubId) {
-                              next = { ...next, hubId: hubOverride }
-                            }
-
-                            const stOverride = stationOverrides[s.id]
-                            if (stOverride) {
-                              const trimmedTitle = stOverride.title?.trim()
-                              if (trimmedTitle && trimmedTitle !== s.title) {
-                                next = { ...next, title: trimmedTitle }
-                              }
-                              if (
-                                stOverride.lineNumericId !== undefined &&
-                                stOverride.lineNumericId !== s.lineNumericId
-                              ) {
-                                next = { ...next, lineNumericId: stOverride.lineNumericId }
-                              }
-                            }
-
-                            const pos = lastLayoutOverrides[s.id]
-                            if (pos) {
-                              next = {
-                                ...next,
-                                layoutX: pos.x,
-                                layoutY: pos.y,
-                              }
-                            }
-
-                            result.push(next)
-                          }
-
-                          for (const s of Object.values(manualStations)) {
-                            if (hiddenStations[s.id]) continue
-
-                            const hubOverride = stationHubOverrides[s.id]
-                            const baseHubId = s.hubId ?? null
-                            let next: FullGraphStation = s
-                            if (hubOverride === null) {
-                              next = { ...next, hubId: undefined }
-                            } else if (hubOverride !== undefined && hubOverride !== baseHubId) {
-                              next = { ...next, hubId: hubOverride }
-                            }
-
-                            const stOverride = stationOverrides[s.id]
-                            if (stOverride) {
-                              const trimmedTitle = stOverride.title?.trim()
-                              if (trimmedTitle && trimmedTitle !== s.title) {
-                                next = { ...next, title: trimmedTitle }
-                              }
-                              if (
-                                stOverride.lineNumericId !== undefined &&
-                                stOverride.lineNumericId !== s.lineNumericId
-                              ) {
-                                next = { ...next, lineNumericId: stOverride.lineNumericId }
-                              }
-                            }
-
-                            const pos = lastLayoutOverrides[s.id]
-                            if (pos) {
-                              next = {
-                                ...next,
-                                layoutX: pos.x,
-                                layoutY: pos.y,
-                              }
-                            }
-
-                            result.push(next)
-                          }
-
-                          return result
-                        })(),
-                        edges: (() => {
-                          const allEdges: FullGraphEdge[] = [
-                            ...Object.values(manualEdges),
-                            ...fullGraphEdges,
-                          ]
-
-                          const result: FullGraphEdge[] = []
-                          const seen = new Set<string>()
-
-                          for (const e of allEdges) {
-                            if (hiddenStations[e.fromStationId] || hiddenStations[e.toStationId])
-                              continue
-
-                            const key = edgeKey(e.fromStationId, e.toStationId)
-                            if (seen.has(key)) continue
-                            seen.add(key)
-
-                            const override = edgeOverrides[key]
-                            if (override?.disabled) continue
-
-                            let next = e
-                            if (
-                              override &&
-                              override.isTransfer !== undefined &&
-                              override.isTransfer !== e.isTransfer
-                            ) {
-                              next = { ...next, isTransfer: override.isTransfer }
-                            }
-                            if (
-                              override &&
-                              override.medianTravelSeconds !== undefined &&
-                              override.medianTravelSeconds !== e.medianTravelSeconds
-                            ) {
-                              next = { ...next, medianTravelSeconds: override.medianTravelSeconds }
-                            }
-
-                            result.push(next)
-                          }
-
-                          return result
-                        })(),
-                        transferHubs: (() => {
-                          const hubMeta = new Map<
-                            string,
-                            {
-                              minTransferSeconds: number
-                              source: (typeof fullGraphTransferHubs)[number]['source']
-                              rotationDeg?: number
-                            }
-                          >()
-                          for (const hub of fullGraphTransferHubs) {
-                            hubMeta.set(hub.id, {
-                              minTransferSeconds: hub.minTransferSeconds,
-                              source: hub.source,
-                              rotationDeg: hub.rotationDeg,
-                            })
-                          }
-
-                          const hubToStationIds = new Map<string, string[]>()
-
-                          const pushStationToHub = (st: FullGraphStation) => {
-                            if (hiddenStations[st.id]) {
-                              return
-                            }
-                            const override = stationHubOverrides[st.id]
-                            let hubId: string | null
-                            if (override === null) hubId = null
-                            else if (override !== undefined) hubId = override
-                            else hubId = st.hubId ?? null
-                            if (!hubId) return
-                            let list = hubToStationIds.get(hubId)
-                            if (!list) {
-                              list = []
-                              hubToStationIds.set(hubId, list)
-                            }
-                            list.push(st.id)
-                          }
-
-                          for (const st of fullGraphStations) {
-                            pushStationToHub(st)
-                          }
-                          for (const st of Object.values(manualStations)) {
-                            pushStationToHub(st)
-                          }
-
-                          const result: typeof fullGraphTransferHubs = []
-                          for (const [hubId, stationIds] of hubToStationIds.entries()) {
-                            const meta = hubMeta.get(hubId)
-                            const baseMinSeconds = meta?.minTransferSeconds ?? 180
-                            const overrideMinSeconds = hubMinOverrides[hubId]
-                            const minTransferSeconds = overrideMinSeconds ?? baseMinSeconds
-                            const baseRotationDeg = meta?.rotationDeg
-                            const overrideRotationDeg = hubRotationOverrides[hubId]
-                            const rotationDeg =
-                              overrideRotationDeg !== undefined
-                                ? overrideRotationDeg
-                                : baseRotationDeg
-                            result.push({
-                              id: hubId,
-                              stationIds,
-                              minTransferSeconds,
-                              source: (meta?.source ?? 'manual_override') as (typeof fullGraphTransferHubs)[number]['source'],
-                              ...(rotationDeg !== undefined ? { rotationDeg } : {}),
-                            })
-                          }
-                          return result
-                        })(),
-                      }
-
-                      const json = JSON.stringify(snapshot, null, 2)
-                      const ok = json ? await copyTextToClipboard(json) : false
-                      if (ok) {
-                        showEditorToast('fullGraph.json скопирован')
-                      } else {
-                        showEditorToast('Не удалось скопировать fullGraph.json')
-                      }
-                    } catch {
-                      showEditorToast('Не удалось скопировать fullGraph.json')
-                      // ignore clipboard errors
-                    }
-                  }}
-                  aria-label="Скопировать fullGraph.json в буфер обмена"
-                  title="Скопировать fullGraph.json"
-                >
-                  ⧉
                 </button>
                 <button
                   type="button"

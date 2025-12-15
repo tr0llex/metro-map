@@ -132,6 +132,8 @@ export interface EditorOverridesStation {
   title?: string;
   lineNumericId?: number | null;
   hubId?: string | null;
+  lat?: number;
+  lon?: number;
   hidden?: boolean;
   manual?: boolean;
 }

@@ -10,9 +10,11 @@ import type {
 interface StationOverrideLite {
   title?: string
   lineNumericId?: number | null
+  lat?: number
+  lon?: number
 }
 
-interface HubEditorPanelProps {
+export interface HubEditorPanelProps {
   inspectedStation: FullGraphStation
   inspectedLineId: number | null
   inspectedLine: FullGraphLine | null
@@ -32,6 +34,8 @@ interface HubEditorPanelProps {
   lineByNumericId: Map<number, FullGraphLine>
   effectiveLineStationIdsById: Map<number, string[]>
   edgeOverrides: Record<string, EdgeOverride>
+  hubMinOverrides: Record<string, number>
+  hubRotationOverrides: Record<string, number>
   editorSelectedStationIds: string[]
   hubAddStationInput: string
   newEdgeTarget: string
@@ -59,7 +63,9 @@ interface HubEditorPanelProps {
   onSetInspectedStationId: (id: string | null) => void
   onFocusStation: (stationId: string) => void
   onRotateHubGeometry: (hubId: string, direction: 'cw' | 'ccw') => void
+  onMirrorHubGeometry: (hubId: string) => void
   onResetStationEdits: (stationId: string) => void
+  onUpdateStationGeoFromOSM?: (stationId: string) => Promise<void>
   onResetEdgeEdits: (edge: FullGraphEdge) => void
   onResetHubEdits: (hubId: string, stationIds: string[]) => void
   onResetAllEdits: () => void
@@ -110,7 +116,9 @@ export function HubEditorPanel({
   onSetInspectedStationId,
   onFocusStation,
   onRotateHubGeometry,
+  onMirrorHubGeometry,
   onResetStationEdits,
+  onUpdateStationGeoFromOSM,
   onResetEdgeEdits,
   onResetHubEdits,
   onResetAllEdits,
@@ -157,6 +165,9 @@ export function HubEditorPanel({
   const [searchFilterHiddenOnly, setSearchFilterHiddenOnly] = useState(false)
   const [searchFilterNoHubOnly, setSearchFilterNoHubOnly] = useState(false)
   const [searchFilterManualOnly, setSearchFilterManualOnly] = useState(false)
+
+  const [geoUpdateStatus, setGeoUpdateStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [geoUpdateError, setGeoUpdateError] = useState<string | null>(null)
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase()
   let searchResults: FullGraphStation[] = []
@@ -318,6 +329,42 @@ export function HubEditorPanel({
                   Сбросить изменения станции
                 </button>
               </div>
+            </section>
+
+            <section className="hub-editor-section">
+              <div className="hub-editor-section-title">Геокоординаты</div>
+              <div className="hub-editor-section-subtitle">
+                lat: {String(stationOverrides[inspectedStation.id]?.lat ?? inspectedStation.lat ?? '—')} • lon:{' '}
+                {String(stationOverrides[inspectedStation.id]?.lon ?? inspectedStation.lon ?? '—')}
+              </div>
+              {onUpdateStationGeoFromOSM && (
+                <>
+                  <div className="hub-editor-field">
+                    <button
+                      type="button"
+                      className="hub-editor-bulk-button"
+                      disabled={geoUpdateStatus === 'loading'}
+                      onClick={async () => {
+                        setGeoUpdateError(null)
+                        setGeoUpdateStatus('loading')
+                        try {
+                          await onUpdateStationGeoFromOSM(inspectedStation.id)
+                          setGeoUpdateStatus('idle')
+                        } catch (e) {
+                          const msg = e instanceof Error ? e.message : 'Не удалось обновить координаты'
+                          setGeoUpdateError(msg)
+                          setGeoUpdateStatus('error')
+                        }
+                      }}
+                    >
+                      Обновить lat/lon через OSM
+                    </button>
+                  </div>
+                  {geoUpdateError && (
+                    <div className="hub-editor-section-subtitle">{geoUpdateError}</div>
+                  )}
+                </>
+              )}
             </section>
 
             <section className="hub-editor-section">
@@ -568,6 +615,14 @@ export function HubEditorPanel({
                       style={{ marginLeft: '0.25rem' }}
                     >
                       вправо ⟳
+                    </button>
+                    <button
+                      type="button"
+                      className="hub-editor-hub-minutes-input"
+                      onClick={() => onMirrorHubGeometry(inspectedHub.id)}
+                      style={{ marginLeft: '0.25rem' }}
+                    >
+                      ↔ зеркально
                     </button>
                   </div>
                 </div>

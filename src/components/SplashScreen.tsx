@@ -1,4 +1,4 @@
-import type { TransitionEvent } from 'react'
+import type { KeyboardEvent, TransitionEvent } from 'react'
 import helloKittyIcon from '../assets/kitty-metro-logo.svg'
 
 interface SplashScreenProps {
@@ -12,6 +12,18 @@ export function SplashScreen({ isDone, onDone, onHidden }: SplashScreenProps) {
     onDone()
   }
 
+  const handleRootKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onDone()
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onDone()
+    }
+  }
+
   const handleTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return
     if (isDone) {
@@ -23,7 +35,11 @@ export function SplashScreen({ isDone, onDone, onHidden }: SplashScreenProps) {
     <div
       className={`app-splash${isDone ? ' app-splash--hidden' : ''}`}
       onClick={handleRootClick}
+      onKeyDown={handleRootKeyDown}
       onTransitionEnd={handleTransitionEnd}
+      role="button"
+      tabIndex={0}
+      aria-label="Закрыть заставку"
     >
       <div className="app-splash-orbit">
         <div className="app-splash-orbit-inner" />

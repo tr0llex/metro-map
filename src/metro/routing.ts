@@ -12,6 +12,9 @@ import {
 
 const fullGraphStationIds = fullGraphStations.map((s) => s.id);
 
+const fullGraphAdjacency = buildAdjacencyListFromFullGraph(fullGraphEdges);
+const fullGraphEdgeByKey = buildEdgeByKey(fullGraphEdges);
+
 // Поиск маршрута на основе полного графа (fullGraphEdges/fullGraphStations).
 // Базовый вариант: оптимизация по времени с мягким штрафом за пересадку.
 export function findShortestRouteFullGraph(
@@ -21,8 +24,8 @@ export function findShortestRouteFullGraph(
     transferPenaltyMinutes?: number;
   },
 ): RouteResult | null {
-  const adjacency = buildAdjacencyListFromFullGraph(fullGraphEdges);
-  const edgeByKey = buildEdgeByKey(fullGraphEdges);
+  const adjacency = fullGraphAdjacency;
+  const edgeByKey = fullGraphEdgeByKey;
   const transferPenaltyMinutes = options?.transferPenaltyMinutes ?? TRANSFER_PENALTY_MINUTES;
   const result = shortestPathFullGraphWithPenalty(
     startId,
@@ -51,6 +54,9 @@ export function findRouteAlternativesFullGraph(
   },
 ): RouteResult[] {
   const maxAlternatives = options?.maxAlternatives ?? 6;
+  const hasOverrides = !!options?.edgeOverrides;
+  const extraEdges = options?.extraEdges ?? [];
+  const useBaseGraph = !hasOverrides && extraEdges.length === 0;
 
   // Набор разных "настроек" штрафа за пересадки, чтобы получить разные компромиссы.
   const baseTransferPenalty = options?.transferPenaltyMinutes ?? TRANSFER_PENALTY_MINUTES;
@@ -64,8 +70,12 @@ export function findRouteAlternativesFullGraph(
   ];
 
   const appliedEdges: FullGraphEdge[] = (() => {
+    if (useBaseGraph) {
+      return fullGraphEdges;
+    }
+
     const overrides = options?.edgeOverrides;
-    const extra = options?.extraEdges ?? [];
+    const extra = extraEdges;
 
     // manual/extra edges имеют приоритет над базовыми при одинаковой паре станций
     const rawEdges: FullGraphEdge[] = [...extra, ...fullGraphEdges];
@@ -98,6 +108,9 @@ export function findRouteAlternativesFullGraph(
   })();
 
   const allStationIds: string[] = (() => {
+    if (useBaseGraph) {
+      return fullGraphStationIds;
+    }
     const set = new Set<string>(fullGraphStationIds);
     for (const e of appliedEdges) {
       set.add(e.fromStationId);
@@ -106,8 +119,8 @@ export function findRouteAlternativesFullGraph(
     return Array.from(set);
   })();
 
-  const adjacency = buildAdjacencyListFromFullGraph(appliedEdges);
-  const edgeByKey = buildEdgeByKey(appliedEdges);
+  const adjacency = useBaseGraph ? fullGraphAdjacency : buildAdjacencyListFromFullGraph(appliedEdges);
+  const edgeByKey = useBaseGraph ? fullGraphEdgeByKey : buildEdgeByKey(appliedEdges);
 
   const candidates: { path: string[]; route: RouteResult }[] = [];
   const seenPathKeys = new Set<string>();

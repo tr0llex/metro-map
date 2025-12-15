@@ -7,12 +7,33 @@ import (
 	"strconv"
 )
 
+type OptionalString struct {
+	Set   bool
+	Value *string
+}
+
+func (o *OptionalString) UnmarshalJSON(b []byte) error {
+	o.Set = true
+	if string(b) == "null" {
+		o.Value = nil
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	o.Value = &s
+	return nil
+}
+
 type StationOverride struct {
-	Title         *string `json:"title,omitempty"`
-	LineNumericID *int    `json:"lineNumericId,omitempty"`
-	HubID         *string `json:"hubId,omitempty"`
-	Hidden        *bool   `json:"hidden,omitempty"`
-	Manual        *bool   `json:"manual,omitempty"`
+	Title         *string        `json:"title,omitempty"`
+	LineNumericID *int           `json:"lineNumericId,omitempty"`
+	HubID         OptionalString `json:"hubId"`
+	Lat           *float64       `json:"lat,omitempty"`
+	Lon           *float64       `json:"lon,omitempty"`
+	Hidden        *bool          `json:"hidden,omitempty"`
+	Manual        *bool          `json:"manual,omitempty"`
 }
 
 type LineOverride struct {
@@ -94,8 +115,18 @@ func ApplyGraphOverrides(graph *FullGraphExport, ov *GraphOverrides) error {
 			if sOv.LineNumericID != nil {
 				st.LineNumericID = *sOv.LineNumericID
 			}
-			if sOv.HubID != nil {
-				st.HubID = *sOv.HubID
+			if sOv.HubID.Set {
+				if sOv.HubID.Value == nil {
+					st.HubID = ""
+				} else {
+					st.HubID = *sOv.HubID.Value
+				}
+			}
+			if sOv.Lat != nil && isFinite(*sOv.Lat) {
+				st.Lat = *sOv.Lat
+			}
+			if sOv.Lon != nil && isFinite(*sOv.Lon) {
+				st.Lon = *sOv.Lon
 			}
 			if sOv.Hidden != nil && *sOv.Hidden {
 				hiddenSet[id] = struct{}{}

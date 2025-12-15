@@ -42,6 +42,7 @@ interface MetroMapProps {
   /** Флаг блокировки взаимодействий карты (pan/zoom), когда внешний UI в режиме выбора маршрута */
   interactionsLocked?: boolean
   hubRotateCommand?: { hubId: string; direction: 'cw' | 'ccw'; token: number } | null
+  hubMirrorCommand?: { hubId: string; token: number } | null
   /** Изменение набора выделенных станций в режиме редактора (для bulk-операций в UI) */
   onEditSelectionChange?: (selectedIds: string[]) => void
   onInitialViewportReady?: () => void
@@ -80,8 +81,6 @@ const STATION_SELECTED_RADIUS = 8
 const STATION_BORDER_WIDTH = 2
 const STATION_FILL_COLOR = '#ffffff'
 const HUB_PIE_BASE_ALPHA = 0.96
-const HUB_PIE_HALO_ALPHA = 0.24
-const HUB_PIE_HALO_RADIUS_MULT = 2.1
 const HUB_DIM_ALPHA_WHEN_ROUTE = 0.35
 
 const HUB_ROTATE_STEP_RAD = (Math.PI / 180) * 15
@@ -612,11 +611,24 @@ export function MetroMap({
   extraStations,
   interactionsLocked,
   hubRotateCommand,
+  hubMirrorCommand,
   onEditSelectionChange,
   onInitialViewportReady,
   editorFocusCommand,
   routeSheetOpen = false,
 }: MetroMapProps) {
+  const [mapThemeTokens, setMapThemeTokens] = useState(() => {
+    return {
+      strongLabelColor: LABEL_TEXT_COLOR,
+      weakLabelColor: LABEL_TEXT_COLOR,
+      lineHaloColor: 'rgba(249, 250, 251, 0.96)',
+      stationFillColor: STATION_FILL_COLOR,
+      routeFallbackColor: '#ec4899',
+      endpointColorA: '#22c1b4',
+      endpointColorB: '#ef4444',
+    }
+  })
+
   const [viewport, setViewport] = useState<ViewportState>({
     scale: 1,
     offsetX: 0,
@@ -633,6 +645,10 @@ export function MetroMap({
   const wheelRafRef = useRef<number | null>(null)
   const isWheelZoomingRef = useRef(false)
   const wheelStopTimeoutRef = useRef<number | null>(null)
+  const wheelZoomRafRef = useRef<number | null>(null)
+  const wheelZoomPendingPxRef = useRef(0)
+  const wheelZoomLastClientRef = useRef<{ x: number; y: number } | null>(null)
+  const wheelZoomStopRequestedRef = useRef(false)
   const [isPanning, setIsPanning] = useState(false)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   const [hasDragged, setHasDragged] = useState(false)
@@ -670,13 +686,57 @@ export function MetroMap({
   const initialViewportReportedRef = useRef(false)
 
   const lastHubRotateTokenRef = useRef<number | null>(null)
+  const lastHubMirrorTokenRef = useRef<number | null>(null)
   const lastEditorFocusTokenRef = useRef<number | null>(null)
 
   const routePulseRef = useRef<{ startedAt: number } | null>(null)
   const clickPulseRef = useRef<{ stationId: string; startedAt: number } | null>(null)
   const animationRafRef = useRef<number | null>(null)
   const [animationTick, setAnimationTick] = useState(0)
-  const lastAnimationTickRef = useRef(0)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (typeof document === 'undefined') return
+
+    const readToken = (
+      rootStyle: CSSStyleDeclaration,
+      name: string,
+      fallback: string,
+    ) => rootStyle.getPropertyValue(name).trim() || fallback
+
+    const readAll = () => {
+      const rootStyle = window.getComputedStyle(document.documentElement)
+      setMapThemeTokens({
+        strongLabelColor: readToken(rootStyle, '--map-label-color-strong', LABEL_TEXT_COLOR),
+        weakLabelColor: readToken(rootStyle, '--map-label-color-weak', LABEL_TEXT_COLOR),
+        lineHaloColor: readToken(rootStyle, '--map-line-halo-color', 'rgba(249, 250, 251, 0.96)'),
+        stationFillColor: readToken(rootStyle, '--map-station-fill', STATION_FILL_COLOR),
+        routeFallbackColor: readToken(rootStyle, '--map-route-fallback-color', '#ec4899'),
+        endpointColorA: readToken(rootStyle, '--map-endpoint-a', '#22c1b4'),
+        endpointColorB: readToken(rootStyle, '--map-endpoint-b', '#ef4444'),
+      })
+    }
+
+    readAll()
+
+    const rootEl = document.documentElement
+    const obs = new MutationObserver(() => readAll())
+    obs.observe(rootEl, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] })
+
+    const mql = window.matchMedia?.('(prefers-color-scheme: dark)')
+    const onMediaChange = () => readAll()
+
+    if (mql) {
+      mql.addEventListener('change', onMediaChange)
+    }
+
+    return () => {
+      obs.disconnect()
+      if (mql) {
+        mql.removeEventListener('change', onMediaChange)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -687,6 +747,18 @@ export function MetroMap({
       if (panInertiaRafRef.current != null) {
         cancelAnimationFrame(panInertiaRafRef.current)
         panInertiaRafRef.current = null
+      }
+      if (zoomHoldRafRef.current != null) {
+        cancelAnimationFrame(zoomHoldRafRef.current)
+        zoomHoldRafRef.current = null
+      }
+      if (zoomClickAnimRafRef.current != null) {
+        cancelAnimationFrame(zoomClickAnimRafRef.current)
+        zoomClickAnimRafRef.current = null
+      }
+      if (zoomHoldTimeoutRef.current != null) {
+        window.clearTimeout(zoomHoldTimeoutRef.current)
+        zoomHoldTimeoutRef.current = null
       }
     }
   }, [])
@@ -721,11 +793,10 @@ export function MetroMap({
         return
       }
 
-      const last = lastAnimationTickRef.current
-      if (now - last >= 1000 / 120) {
-        lastAnimationTickRef.current = now
-        setAnimationTick(now)
-      }
+      // Обновляем тик на каждом кадре rAF: это автоматически синхронизируется
+      // с частотой дисплея (60/100/120/240/... Гц) и даёт максимально плавные
+      // пульсации/подсветки.
+      setAnimationTick(now)
 
       animationRafRef.current = requestAnimationFrame(loop)
     }
@@ -751,6 +822,10 @@ export function MetroMap({
       if (wheelRafRef.current != null) {
         cancelAnimationFrame(wheelRafRef.current)
         wheelRafRef.current = null
+      }
+      if (wheelZoomRafRef.current != null) {
+        cancelAnimationFrame(wheelZoomRafRef.current)
+        wheelZoomRafRef.current = null
       }
       if (wheelStopTimeoutRef.current != null) {
         window.clearTimeout(wheelStopTimeoutRef.current)
@@ -904,6 +979,64 @@ export function MetroMap({
     return map
   }, [positionedStations])
 
+  const visibleLineStationIdsByLineId = useMemo(() => {
+    const map = new Map<number, string[]>()
+    for (const line of fullGraphLines) {
+      const ids: string[] = []
+      for (const sid of line.stationIds) {
+        if (positionedById.has(sid)) ids.push(sid)
+      }
+      map.set(line.id, ids)
+    }
+    return map
+  }, [positionedById])
+
+  const farTransferSegments = useMemo(() => {
+    const list: { ax: number; ay: number; bx: number; by: number }[] = []
+    for (const e of fullGraphEdges) {
+      if (!e.isTransfer) continue
+      const kind = e.transferKind
+      if (kind === 'near' || kind === 'ignored') continue
+      const a = positionedById.get(e.fromStationId)
+      const b = positionedById.get(e.toStationId)
+      if (!a || !b) continue
+      if (!kind && a.hubId && b.hubId && a.hubId === b.hubId) continue
+      list.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y })
+    }
+    return list
+  }, [positionedById])
+
+  const labelSegmentsByStationId = useMemo(() => {
+    const segmentsByStationId = new Map<string, { ax: number; ay: number; bx: number; by: number }[]>()
+    for (const line of fullGraphLines) {
+      const ids = visibleLineStationIdsByLineId.get(line.id) ?? []
+      if (ids.length < 2) continue
+      const isRing = RING_LINE_IDS.has(line.id)
+      const segmentCount = isRing ? ids.length : ids.length - 1
+      for (let i = 0; i < segmentCount; i += 1) {
+        const aId = ids[i]
+        const bId = ids[(i + 1) % ids.length]
+        const a = positionedById.get(aId)
+        const b = positionedById.get(bId)
+        if (!a || !b) continue
+        const seg = { ax: a.x, ay: a.y, bx: b.x, by: b.y }
+        let listA = segmentsByStationId.get(aId)
+        if (!listA) {
+          listA = []
+          segmentsByStationId.set(aId, listA)
+        }
+        listA.push(seg)
+        let listB = segmentsByStationId.get(bId)
+        if (!listB) {
+          listB = []
+          segmentsByStationId.set(bId, listB)
+        }
+        listB.push(seg)
+      }
+    }
+    return segmentsByStationId
+  }, [visibleLineStationIdsByLineId, positionedById])
+
   const teatralnayaWorld = useMemo(() => {
     if (positionedStations.length === 0) return null
     const byId = positionedStations.find((st) => st.id === 'mos-2-2.99')
@@ -947,7 +1080,7 @@ export function MetroMap({
     const corridorEdgeKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
 
     for (const line of fullGraphLines) {
-      const ids = line.stationIds.filter((sid) => positionedById.has(sid))
+      const ids = visibleLineStationIdsByLineId.get(line.id) ?? []
       if (ids.length < 2) continue
       const isRing = RING_LINE_IDS.has(line.id)
       const segmentCount = isRing ? ids.length : ids.length - 1
@@ -968,7 +1101,7 @@ export function MetroMap({
     }
 
     return { corridorEdgeUsage, corridorEdgeKey }
-  }, [positionedById])
+  }, [visibleLineStationIdsByLineId])
 
   const hubGroups = useMemo(() => {
     const groups = new Map<string, PositionedStation[]>()
@@ -1046,6 +1179,35 @@ export function MetroMap({
       return next
     })
   }, [hubRotateCommand, positionedStations, editMode])
+
+  useEffect(() => {
+    if (!editMode) return
+    if (!hubMirrorCommand) return
+
+    const { hubId, token } = hubMirrorCommand
+    if (token == null) return
+    if (lastHubMirrorTokenRef.current === token) return
+    lastHubMirrorTokenRef.current = token
+
+    const group = positionedStations.filter((st) => st.hubId === hubId)
+    if (group.length === 0) return
+
+    let cx = 0
+    for (const st of group) {
+      cx += st.x
+    }
+    cx /= group.length
+
+    setStationOverrides((prev) => {
+      const next = { ...prev }
+      for (const st of group) {
+        const dx = st.x - cx
+        const rx = cx - dx
+        next[st.id] = { x: rx, y: st.y }
+      }
+      return next
+    })
+  }, [hubMirrorCommand, positionedStations, editMode])
 
   // Проекция координат Яндекс-схемы (yandexX/yandexY) в мировые координаты текущей схемы.
   // Используем аффинное преобразование: центрируем bbox Яндекса и масштабируем его
@@ -1269,7 +1431,8 @@ export function MetroMap({
           if (sheetEl) {
             const r = sheetEl.getBoundingClientRect()
             // Всё, что ниже верха шторки, считаем перекрытой областью.
-            insetBottomRaw = Math.max(0, viewportHeightLocal - Math.max(r.top, 0))
+            const top = Math.max(0, Math.min(r.top, viewportHeightLocal))
+            insetBottomRaw = Math.max(0, viewportHeightLocal - top)
           }
         }
       }
@@ -1394,10 +1557,40 @@ export function MetroMap({
     const displayWidth = canvasSize.width
     const displayHeight = canvasSize.height
 
-    const insetTop = visibleInsets?.top ?? 0
-    const insetRight = visibleInsets?.right ?? 0
-    const insetBottom = visibleInsets?.bottom ?? 0
-    const insetLeft = visibleInsets?.left ?? 0
+    const headerSafeMarginPx = 10
+    const bottomSafeMarginPx = 14
+
+    let insetTopRaw = visibleInsets?.top ?? 0
+    let insetBottomRaw = visibleInsets?.bottom ?? 0
+    const insetRightRaw = visibleInsets?.right ?? 0
+    const insetLeftRaw = visibleInsets?.left ?? 0
+
+    if (typeof window !== 'undefined') {
+      const vv = window.visualViewport
+      const viewportHeightLocal = vv?.height ?? window.innerHeight
+      const viewportWidthLocal = vv?.width ?? window.innerWidth
+      const isMobileViewport = viewportWidthLocal < 1024
+
+      if (isMobileViewport) {
+        const headerEl = document.querySelector<HTMLElement>('.app-header')
+        if (headerEl) {
+          const r = headerEl.getBoundingClientRect()
+          insetTopRaw = Math.max(0, Math.min(r.bottom, viewportHeightLocal))
+        }
+
+        const sheetEl = document.querySelector<HTMLElement>('.bottom-sheet')
+        if (sheetEl) {
+          const r = sheetEl.getBoundingClientRect()
+          const top = Math.max(0, Math.min(r.top, viewportHeightLocal))
+          insetBottomRaw = Math.max(0, viewportHeightLocal - top)
+        }
+      }
+    }
+
+    const insetTop = Math.round(insetTopRaw + headerSafeMarginPx)
+    const insetBottom = Math.round(insetBottomRaw + bottomSafeMarginPx)
+    const insetRight = Math.round(insetRightRaw)
+    const insetLeft = Math.round(insetLeftRaw)
 
     const visibleWidth = Math.max(50, displayWidth - insetLeft - insetRight)
     const visibleHeight = Math.max(50, displayHeight - insetTop - insetBottom)
@@ -1428,6 +1621,7 @@ export function MetroMap({
     worldBounds,
     positionedStations,
     visibleInsets,
+    routeSheetOpen,
     clampViewport,
     editMode,
   ])
@@ -1814,21 +2008,15 @@ export function MetroMap({
 
     const hasRoute = routeEdgeKeySet.size > 0 || routeStationIdSet.size > 0
 
-    const rootStyle = window.getComputedStyle(document.documentElement)
-    const strongLabelColor =
-      rootStyle.getPropertyValue('--map-label-color-strong').trim() || LABEL_TEXT_COLOR
-    const weakLabelColor =
-      rootStyle.getPropertyValue('--map-label-color-weak').trim() || LABEL_TEXT_COLOR
-    const lineHaloColor =
-      rootStyle.getPropertyValue('--map-line-halo-color').trim() || 'rgba(249, 250, 251, 0.96)'
-    const stationFillColor =
-      rootStyle.getPropertyValue('--map-station-fill').trim() || STATION_FILL_COLOR
-    const routeFallbackColor =
-      rootStyle.getPropertyValue('--map-route-fallback-color').trim() || '#ec4899'
-    const endpointColorA =
-      rootStyle.getPropertyValue('--map-endpoint-a').trim() || '#22c1b4'
-    const endpointColorB =
-      rootStyle.getPropertyValue('--map-endpoint-b').trim() || '#ef4444'
+    const {
+      strongLabelColor,
+      weakLabelColor,
+      lineHaloColor,
+      stationFillColor,
+      routeFallbackColor,
+      endpointColorA,
+      endpointColorB,
+    } = mapThemeTokens
 
     // Общие коридоры: используем уже подготовленный кеш, чтобы знать, какие рёбра делят несколько линий.
     const { corridorEdgeUsage, corridorEdgeKey } = corridorEdgeData
@@ -2105,7 +2293,7 @@ export function MetroMap({
     if (shouldDrawHubGroups && hubGroups.size > 0) {
       ctx.save()
       const basePieRadius = stationRadius * 1.7
-      const innerPieRadius = stationRadius * 0.95
+      const innerPieRadius = stationRadius * 0.65
 
       for (const group of hubGroups.values()) {
         if (!group || group.length === 0) continue
@@ -2162,13 +2350,6 @@ export function MetroMap({
         // Выбираем базовый старт так, чтобы центр первого сектора совпадал с его целевым углом.
         let startAngle = colorsWithAngle[0].angle - sectorAngle / 2
 
-        const haloRadius = outerRadius * HUB_PIE_HALO_RADIUS_MULT
-        ctx.globalAlpha = HUB_PIE_HALO_ALPHA * hubVisibility
-        ctx.beginPath()
-        ctx.arc(cx, cy, haloRadius, 0, Math.PI * 2)
-        ctx.fillStyle = lineHaloColor
-        ctx.fill()
-
         ctx.globalAlpha = HUB_PIE_BASE_ALPHA * hubVisibility
 
         const routeColors = new Set<string>()
@@ -2210,12 +2391,6 @@ export function MetroMap({
         ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2)
         ctx.fillStyle = stationFillColor
         ctx.fill()
-
-        ctx.beginPath()
-        ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2)
-        ctx.strokeStyle = 'rgba(15, 23, 42, 0.16)'
-        ctx.lineWidth = 1.4
-        ctx.stroke()
       }
 
       ctx.restore()
@@ -2228,28 +2403,10 @@ export function MetroMap({
       ctx.setLineDash([4, 8])
       ctx.lineWidth = 0.9
       ctx.strokeStyle = 'rgba(236, 72, 153, 0.4)'
-      for (const e of fullGraphEdges) {
-        if (!e.isTransfer) continue
-
-        const kind = e.transferKind
-        if (kind === 'near' || kind === 'ignored') continue
-
-        const a = positionedById.get(e.fromStationId)
-        const b = positionedById.get(e.toStationId)
-        if (!a || !b) continue
-
-        const aHub = a.hubId
-        const bHub = b.hubId
-
-        // Если тип явно не задан, фильтруем по hubId, чтобы не рисовать
-        // внутренние связи одного хаба.
-        if (!kind && aHub && bHub && aHub === bHub) {
-          continue
-        }
-
+      for (const seg of farTransferSegments) {
         ctx.beginPath()
-        ctx.moveTo(a.x, a.y)
-        ctx.lineTo(b.x, b.y)
+        ctx.moveTo(seg.ax, seg.ay)
+        ctx.lineTo(seg.bx, seg.by)
         ctx.stroke()
       }
 
@@ -2349,48 +2506,11 @@ export function MetroMap({
       const shouldRecomputeLabels = !isWheelZooming && shouldRecomputeLabelsBase
 
       if (shouldRecomputeLabels) {
-        const segmentsByStationId = new Map<
-          string,
-          { ax: number; ay: number; bx: number; by: number }[]
-        >()
-
-        for (const line of fullGraphLines) {
-          const ids = line.stationIds.filter((sid) => positionedById.has(sid))
-          if (ids.length < 2) continue
-
-          const isRing = RING_LINE_IDS.has(line.id)
-          const segmentCount = isRing ? ids.length : ids.length - 1
-
-          for (let i = 0; i < segmentCount; i += 1) {
-            const aId = ids[i]
-            const bId = ids[(i + 1) % ids.length]
-            const a = positionedById.get(aId)
-            const b = positionedById.get(bId)
-            if (!a || !b) continue
-
-            const seg = { ax: a.x, ay: a.y, bx: b.x, by: b.y }
-
-            let listA = segmentsByStationId.get(aId)
-            if (!listA) {
-              listA = []
-              segmentsByStationId.set(aId, listA)
-            }
-            listA.push(seg)
-
-            let listB = segmentsByStationId.get(bId)
-            if (!listB) {
-              listB = []
-              segmentsByStationId.set(bId, listB)
-            }
-            listB.push(seg)
-          }
-        }
-
         labelPlacementsRef.current.placements = computeStationLabelPlacements(
           labelCtx,
           positionedStations,
           labelFontPx,
-          segmentsByStationId,
+          labelSegmentsByStationId,
         )
         labelPlacementsRef.current.stationsRef = positionedStations
       }
@@ -2575,8 +2695,11 @@ export function MetroMap({
     collisionDebug,
     yandexWorldById,
     animationTick,
+    mapThemeTokens,
     corridorEdgeData,
     hubGroups,
+    farTransferSegments,
+    labelSegmentsByStationId,
   ])
 
   // Актуализируем внутренний размер при ресайзе окна / изменении доступного места
@@ -2682,63 +2805,135 @@ export function MetroMap({
     panInertiaRafRef.current = requestAnimationFrame(step)
   }
 
-  const scheduleViewportCommit = () => {
+  const scheduleViewportCommit = useCallback(() => {
     if (wheelRafRef.current != null) return
     wheelRafRef.current = requestAnimationFrame(() => {
       wheelRafRef.current = null
       setViewport(viewportRef.current)
     })
-  }
+  }, [])
 
-  const handleWheel: React.WheelEventHandler<HTMLCanvasElement> = (event) => {
-    if (interactionsLocked && !editMode) return
-    if (onMapInteraction) onMapInteraction()
-    const delta = -event.deltaY
-    const zoomFactor = delta > 0 ? 1.1 : 0.9
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      if (interactionsLocked && !editMode) return
+      if (onMapInteraction) onMapInteraction()
+      event.preventDefault()
 
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      const rect = canvas.getBoundingClientRect()
+      const LINE_HEIGHT_PX = 16
+      const deltaMode = event.deltaMode
+      const deltaPxRaw =
+        deltaMode === 1
+          ? event.deltaY * LINE_HEIGHT_PX
+          : deltaMode === 2
+            ? event.deltaY * Math.max(1, rect.height)
+            : event.deltaY
+
+      wheelZoomPendingPxRef.current += deltaPxRaw
+      wheelZoomLastClientRef.current = { x: event.clientX, y: event.clientY }
+
+      isWheelZoomingRef.current = true
+      wheelZoomStopRequestedRef.current = false
+      if (wheelStopTimeoutRef.current != null) {
+        window.clearTimeout(wheelStopTimeoutRef.current)
+        wheelStopTimeoutRef.current = null
+      }
+      wheelStopTimeoutRef.current = window.setTimeout(() => {
+        wheelStopTimeoutRef.current = null
+        wheelZoomStopRequestedRef.current = true
+      }, 120)
+
+      if (wheelZoomRafRef.current != null) return
+
+      const ZOOM_SENSITIVITY = 0.0022
+      const APPLY_ALPHA = 0.22
+      const MIN_PENDING_PX = 0.25
+      const MAX_STEP_PX = 140
+
+      const step = () => {
+        wheelZoomRafRef.current = null
+
+        const pending = wheelZoomPendingPxRef.current
+        if (Math.abs(pending) < MIN_PENDING_PX) {
+          wheelZoomPendingPxRef.current = 0
+          if (wheelZoomStopRequestedRef.current) {
+            wheelZoomStopRequestedRef.current = false
+            isWheelZoomingRef.current = false
+            setAnimationTick(performance.now())
+            return
+          }
+
+          wheelZoomRafRef.current = requestAnimationFrame(step)
+          return
+        }
+
+        let stepPx = pending * APPLY_ALPHA
+        if (stepPx > MAX_STEP_PX) stepPx = MAX_STEP_PX
+        if (stepPx < -MAX_STEP_PX) stepPx = -MAX_STEP_PX
+        wheelZoomPendingPxRef.current = pending - stepPx
+
+        const zoomFactorRaw = Math.exp(-stepPx * ZOOM_SENSITIVITY)
+        const zoomFactor = Math.min(1.18, Math.max(0.85, zoomFactorRaw))
+
+        const canvasNow = canvasRef.current
+        const lastClient = wheelZoomLastClientRef.current
+        if (!canvasNow || !lastClient) {
+          wheelZoomPendingPxRef.current = 0
+          isWheelZoomingRef.current = false
+          setAnimationTick(performance.now())
+          return
+        }
+
+        const rectNow = canvasNow.getBoundingClientRect()
+        const current = viewportRef.current
+        const currentScale = current.scale
+        let nextScale = currentScale * zoomFactor
+        nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale))
+        if (nextScale !== currentScale) {
+          const centerX = rectNow.width / 2
+          const centerY = rectNow.height / 2
+          const xScreen = lastClient.x - rectNow.left
+          const yScreen = lastClient.y - rectNow.top
+
+          const worldX = (xScreen - (centerX + current.offsetX)) / currentScale
+          const worldY = (yScreen - (centerY + current.offsetY)) / currentScale
+
+          const nextOffsetX = xScreen - centerX - worldX * nextScale
+          const nextOffsetY = yScreen - centerY - worldY * nextScale
+
+          viewportRef.current = clampViewport({
+            scale: nextScale,
+            offsetX: nextOffsetX,
+            offsetY: nextOffsetY,
+          })
+          setViewport(viewportRef.current)
+        }
+
+        wheelZoomRafRef.current = requestAnimationFrame(step)
+      }
+
+      wheelZoomRafRef.current = requestAnimationFrame(step)
+
+    },
+    [clampViewport, editMode, interactionsLocked, onMapInteraction]
+  )
+
+  useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // Помечаем фазу активного wheel-зума: во время неё рендерим в лёгком режиме
-    isWheelZoomingRef.current = true
-    if (wheelStopTimeoutRef.current != null) {
-      window.clearTimeout(wheelStopTimeoutRef.current)
-      wheelStopTimeoutRef.current = null
+    const listener: EventListener = (e) => {
+      handleWheel(e as WheelEvent)
     }
 
-    const current = viewportRef.current
-    const currentScale = current.scale
-    let nextScale = currentScale * zoomFactor
-    nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale))
-    if (nextScale === currentScale) return
-
-    const rect = canvas.getBoundingClientRect()
-    const centerX = rect.width / 2
-    const centerY = rect.height / 2
-    const xScreen = event.clientX - rect.left
-    const yScreen = event.clientY - rect.top
-
-    // Помечаем фазу активного wheel-зума: во время неё рендерим в лёгком режиме
-    const worldX = (xScreen - (centerX + current.offsetX)) / currentScale
-    const worldY = (yScreen - (centerY + current.offsetY)) / currentScale
-
-    const nextOffsetX = xScreen - centerX - worldX * nextScale
-    const nextOffsetY = yScreen - centerY - worldY * nextScale
-
-    viewportRef.current = clampViewport({
-      scale: nextScale,
-      offsetX: nextOffsetX,
-      offsetY: nextOffsetY,
-    })
-
-    scheduleViewportCommit()
-
-    wheelStopTimeoutRef.current = window.setTimeout(() => {
-      isWheelZoomingRef.current = false
-      // Один полный кадр после остановки скролла, чтобы пересчитать подписи/слои
-      setAnimationTick(performance.now())
-    }, 120)
-  }
+    canvas.addEventListener('wheel', listener, { passive: false })
+    return () => {
+      canvas.removeEventListener('wheel', listener)
+    }
+  }, [handleWheel])
 
   const handleZoomIn = () => {
     if (interactionsLocked && !editMode) return
@@ -3316,7 +3511,6 @@ export function MetroMap({
         className="metro-map-svg"
         width={viewBoxSize}
         height={viewBoxSize}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

@@ -1,11 +1,18 @@
+import { useCallback, useLayoutEffect, useState } from 'react'
 import type { KeyboardEvent, RefObject } from 'react'
-import type { FullGraphStation } from '../metro/types'
+import { createPortal } from 'react-dom'
+
+export type RouteSuggestionItem = {
+  id: string
+  title: string
+  color?: string
+}
 
 interface RouteFormProps {
   fromStation: string
   toStation: string
-  fromSuggestions: FullGraphStation[]
-  toSuggestions: FullGraphStation[]
+  fromSuggestions: RouteSuggestionItem[]
+  toSuggestions: RouteSuggestionItem[]
   fromSuggestionIndex: number
   toSuggestionIndex: number
   fromSelectedColor?: string
@@ -44,24 +51,145 @@ export function RouteForm({
   onClearFrom,
   onClearTo,
 }: RouteFormProps) {
+  const [fromAnchorRect, setFromAnchorRect] = useState<DOMRect | null>(null)
+  const [toAnchorRect, setToAnchorRect] = useState<DOMRect | null>(null)
+
+  const measureFromAnchor = useCallback(() => {
+    const el = fromInputRef.current
+    if (!el) return
+    setFromAnchorRect(el.getBoundingClientRect())
+  }, [fromInputRef])
+
+  const measureToAnchor = useCallback(() => {
+    const el = toInputRef.current
+    if (!el) return
+    setToAnchorRect(el.getBoundingClientRect())
+  }, [toInputRef])
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return
+    if (typeof document === 'undefined') return
+
+    if (fromSuggestions.length === 0) {
+      setFromAnchorRect(null)
+      return
+    }
+
+    measureFromAnchor()
+
+    const vv = window.visualViewport
+    const onAnyChange = () => measureFromAnchor()
+    window.addEventListener('resize', onAnyChange)
+    window.addEventListener('scroll', onAnyChange, true)
+    vv?.addEventListener('resize', onAnyChange)
+    vv?.addEventListener('scroll', onAnyChange)
+
+    return () => {
+      window.removeEventListener('resize', onAnyChange)
+      window.removeEventListener('scroll', onAnyChange, true)
+      vv?.removeEventListener('resize', onAnyChange)
+      vv?.removeEventListener('scroll', onAnyChange)
+    }
+  }, [fromSuggestions.length, measureFromAnchor])
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return
+    if (typeof document === 'undefined') return
+
+    if (toSuggestions.length === 0) {
+      setToAnchorRect(null)
+      return
+    }
+
+    measureToAnchor()
+
+    const vv = window.visualViewport
+    const onAnyChange = () => measureToAnchor()
+    window.addEventListener('resize', onAnyChange)
+    window.addEventListener('scroll', onAnyChange, true)
+    vv?.addEventListener('resize', onAnyChange)
+    vv?.addEventListener('scroll', onAnyChange)
+
+    return () => {
+      window.removeEventListener('resize', onAnyChange)
+      window.removeEventListener('scroll', onAnyChange, true)
+      vv?.removeEventListener('resize', onAnyChange)
+      vv?.removeEventListener('scroll', onAnyChange)
+    }
+  }, [measureToAnchor, toSuggestions.length])
+
+  const renderSuggestionsPortal = (
+    anchorRect: DOMRect | null,
+    suggestions: RouteSuggestionItem[],
+    activeIndex: number,
+    onSelect: (stationId: string) => void,
+  ) => {
+    if (typeof document === 'undefined') return null
+    if (!anchorRect) return null
+    if (suggestions.length === 0) return null
+
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    const viewportHeight = vv?.height ?? (typeof window !== 'undefined' ? window.innerHeight : 0)
+    const gapPx = 6
+    const spaceAbove = Math.max(0, anchorRect.top - gapPx)
+    const spaceBelow = Math.max(0, viewportHeight - anchorRect.bottom - gapPx)
+    const renderAbove = spaceAbove >= spaceBelow
+    const maxHeightPx = Math.min(144, Math.max(0, (renderAbove ? spaceAbove : spaceBelow) - gapPx))
+    const bottom = Math.max(0, viewportHeight - anchorRect.top + gapPx)
+    const top = Math.max(0, anchorRect.bottom + gapPx)
+
+    return createPortal(
+      <ul
+        className="field-suggestions"
+        role="listbox"
+        style={{
+          position: 'fixed',
+          left: `${anchorRect.left}px`,
+          right: 'auto',
+          width: `${anchorRect.width}px`,
+          top: renderAbove ? undefined : `${top}px`,
+          bottom: renderAbove ? `${bottom}px` : undefined,
+          maxHeight: `${maxHeightPx}px`,
+          zIndex: 10000,
+          pointerEvents: 'auto',
+        }}
+      >
+        {suggestions.map((s, index) => {
+          const isActive = index === activeIndex
+          return (
+            <li
+              key={s.id}
+              className={`suggestion-item${isActive ? ' suggestion-item--active' : ''}`}
+              onPointerDown={(event) => {
+                if (event.pointerType === 'mouse') {
+                  event.preventDefault()
+                }
+              }}
+              role="option"
+              aria-selected={isActive}
+              onClick={() => onSelect(s.id)}
+            >
+              <span
+                className="suggestion-line-dot"
+                style={s.color ? { backgroundColor: s.color } : undefined}
+              />
+              <span className="suggestion-item-label">{s.title}</span>
+            </li>
+          )
+        })}
+      </ul>,
+      document.body,
+    )
+  }
+
   return (
     <div className="bottom-fields-row">
       <div className="bottom-field">
-        {fromSuggestions.length > 0 && (
-          <ul className="field-suggestions">
-            {fromSuggestions.map((s, index) => {
-              const isActive = index === fromSuggestionIndex
-              return (
-                <li
-                  key={s.id}
-                  className={`suggestion-item${isActive ? ' suggestion-item--active' : ''}`}
-                  onClick={() => onSelectFromSuggestion(s.id)}
-                >
-                  {s.title}
-                </li>
-              )
-            })}
-          </ul>
+        {renderSuggestionsPortal(
+          fromAnchorRect,
+          fromSuggestions,
+          fromSuggestionIndex,
+          onSelectFromSuggestion,
         )}
         {fromSelectedColor && (
           <span
@@ -101,22 +229,7 @@ export function RouteForm({
       </button>
 
       <div className="bottom-field">
-        {toSuggestions.length > 0 && (
-          <ul className="field-suggestions">
-            {toSuggestions.map((s, index) => {
-              const isActive = index === toSuggestionIndex
-              return (
-                <li
-                  key={s.id}
-                  className={`suggestion-item${isActive ? ' suggestion-item--active' : ''}`}
-                  onClick={() => onSelectToSuggestion(s.id)}
-                >
-                  {s.title}
-                </li>
-              )
-            })}
-          </ul>
-        )}
+        {renderSuggestionsPortal(toAnchorRect, toSuggestions, toSuggestionIndex, onSelectToSuggestion)}
         {toSelectedColor && (
           <span
             className="bottom-input-line-dot"

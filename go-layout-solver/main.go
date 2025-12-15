@@ -69,20 +69,3 @@ func writeGraphJSON(graph FullGraphExport, outPath string) error {
 
 	return nil
 }
-
-// readLayoutOverrides читает JSON-файл с оверрайдами координат станций формата
-// { "stationId": { "x": number, "y": number }, ... }.
-func readLayoutOverrides(path string) (map[string]LayoutOverride, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("open overrides file: %w", err)
-	}
-	defer f.Close()
-
-	dec := json.NewDecoder(f)
-	var m map[string]LayoutOverride
-	if err := dec.Decode(&m); err != nil {
-		return nil, fmt.Errorf("decode overrides json: %w", err)
-	}
-	return m, nil
-}
