@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
           short_name: 'Kitty Metro',
           description:
             'Розовое офлайн-приложение для построения маршрутов в московском метро во вселенной Hello Kitty.',
-          theme_color: '#ff9ecb',
+          theme_color: '#f5f5f7',
           background_color: '#ffe4f1',
           display: 'standalone',
           orientation: 'portrait-primary',

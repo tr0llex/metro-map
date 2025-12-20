@@ -38,6 +38,24 @@ body {
   -webkit-backdrop-filter: blur(var(--blur-glass-soft));
 }
 
+@media (max-width: 1023.98px) {
+  :root.perf-interaction .app-header,
+  :root.perf-interaction .bottom-sheet,
+  :root.perf-interaction .bottom-sheet-inner {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (max-width: 1023.98px) {
+  .app-header {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+  }
+}
+
 .route-placeholder,
 .route-result,
 .route-step,

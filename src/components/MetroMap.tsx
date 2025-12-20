@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fullGraphLines, fullGraphStations, fullGraphEdges } from '../metro/fullGraph'
 import type { PositionedStation, LayoutStation } from '../metro/layoutEngine'
 import { computeLayout } from '../metro/layoutEngine'
@@ -6,7 +6,11 @@ import type { FullGraphStation } from '../metro/types'
 
 interface MetroMapProps {
   selectionMode: 'from' | 'to'
-  onSelectStation: (stationId: string, stationName: string) => void
+  onSelectStation: (
+    stationId: string,
+    stationName: string,
+    clientPoint?: { x: number; y: number; t?: number },
+  ) => void
   fromStationName?: string
   toStationName?: string
   fromStationId?: string
@@ -35,6 +39,7 @@ interface MetroMapProps {
   hiddenStationIds?: Set<string>
   /** Отступы невидимой области поверх карты (header, bottom-sheet, редактор), в px */
   visibleInsets?: { top: number; right: number; bottom: number; left: number }
+  getBottomInsetPx?: () => number
   /** Переопределения названий станций по id (editor overrides) */
   stationTitleOverrides?: Record<string, string>
   /** Дополнительные станции, созданные вручную в редакторе (manualStations из App) */
@@ -86,6 +91,8 @@ const HUB_DIM_ALPHA_WHEN_ROUTE = 0.35
 const HUB_ROTATE_STEP_RAD = (Math.PI / 180) * 15
 
 const ROUTE_PULSE_DURATION_MS = 1500
+const ROUTE_BUILD_DELAY_MS = 180
+const ROUTE_BUILD_DURATION_MS = 2100
 const STATION_CLICK_PULSE_DURATION_MS = 360
 
 // Типографика подписей станций: выровнена под UI-токены
@@ -587,7 +594,7 @@ function computeStationLabelPlacements(
   return placements
 }
 
-export function MetroMap({
+export const MetroMap = memo(function MetroMap({
   selectionMode,
   onSelectStation,
   fromStationName,
@@ -607,6 +614,7 @@ export function MetroMap({
   stationHubOverrides,
   hiddenStationIds,
   visibleInsets,
+  getBottomInsetPx,
   stationTitleOverrides,
   extraStations,
   interactionsLocked,
@@ -617,6 +625,8 @@ export function MetroMap({
   editorFocusCommand,
   routeSheetOpen = false,
 }: MetroMapProps) {
+  const devPerfEnabled = import.meta.env.DEV
+
   const [mapThemeTokens, setMapThemeTokens] = useState(() => {
     return {
       strongLabelColor: LABEL_TEXT_COLOR,
@@ -654,6 +664,8 @@ export function MetroMap({
   const [hasDragged, setHasDragged] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const labelCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const canvasRectRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null)
+  const canvasRectRafRef = useRef<number | null>(null)
   const pinchStartDistanceRef = useRef<number | null>(null)
   const pinchStartScaleRef = useRef<number>(1)
   const pinchCenterWorldRef = useRef<{ x: number; y: number } | null>(null)
@@ -674,6 +686,7 @@ export function MetroMap({
   const panInertiaRafRef = useRef<number | null>(null)
   const lastTapTimeRef = useRef<number | null>(null)
   const lastTapPosRef = useRef<{ x: number; y: number } | null>(null)
+  const lastTouchStationClickAtRef = useRef<number>(0)
   const zoomDragActiveRef = useRef(false)
   const zoomDragUsedRef = useRef(false)
   const zoomDragStartScaleRef = useRef(1)
@@ -690,9 +703,23 @@ export function MetroMap({
   const lastEditorFocusTokenRef = useRef<number | null>(null)
 
   const routePulseRef = useRef<{ startedAt: number } | null>(null)
+  const routeBuildRef = useRef<{ startedAt: number; routeKey: string } | null>(null)
   const clickPulseRef = useRef<{ stationId: string; startedAt: number } | null>(null)
   const animationRafRef = useRef<number | null>(null)
   const [animationTick, setAnimationTick] = useState(0)
+
+  const clickPulsePerfRef = useRef<
+    | {
+        stationId: string
+        startedAt: number
+        lastFrameAt: number
+        frames: number
+        maxDt: number
+        over16: number
+        over32: number
+      }
+    | null
+  >(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -766,8 +793,7 @@ export function MetroMap({
   const ensureAnimationLoop = useCallback(() => {
     if (animationRafRef.current != null) return
 
-    const loop = () => {
-      const now = performance.now()
+    const loop = (now: number) => {
       let hasActive = false
 
       if (routePulseRef.current) {
@@ -779,12 +805,57 @@ export function MetroMap({
         }
       }
 
+      if (routeBuildRef.current) {
+        const elapsed = now - routeBuildRef.current.startedAt
+        if (elapsed < ROUTE_BUILD_DURATION_MS) {
+          hasActive = true
+        } else {
+          routeBuildRef.current = null
+        }
+      }
+
       if (clickPulseRef.current) {
         const elapsed = now - clickPulseRef.current.startedAt
         if (elapsed < STATION_CLICK_PULSE_DURATION_MS) {
           hasActive = true
         } else {
           clickPulseRef.current = null
+        }
+      }
+
+      if (devPerfEnabled) {
+        const active = clickPulseRef.current
+        if (active) {
+          const perf = clickPulsePerfRef.current
+          if (!perf || perf.stationId !== active.stationId) {
+            clickPulsePerfRef.current = {
+              stationId: active.stationId,
+              startedAt: now,
+              lastFrameAt: now,
+              frames: 0,
+              maxDt: 0,
+              over16: 0,
+              over32: 0,
+            }
+          } else {
+            const dt = now - perf.lastFrameAt
+            perf.lastFrameAt = now
+            if (dt > 0) {
+              perf.frames += 1
+              if (dt > perf.maxDt) perf.maxDt = dt
+              if (dt > 16.7) perf.over16 += 1
+              if (dt > 32) perf.over32 += 1
+            }
+          }
+        } else if (clickPulsePerfRef.current) {
+          const perf = clickPulsePerfRef.current
+          const elapsed = now - perf.startedAt
+          console.log(
+            `[perf][clickPulse] station=${perf.stationId} elapsed=${elapsed.toFixed(0)}ms frames=${perf.frames} maxDt=${perf.maxDt.toFixed(
+              1,
+            )}ms >16=${perf.over16} >32=${perf.over32}`,
+          )
+          clickPulsePerfRef.current = null
         }
       }
 
@@ -802,14 +873,58 @@ export function MetroMap({
     }
 
     animationRafRef.current = requestAnimationFrame(loop)
+  }, [devPerfEnabled])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const scheduleRectUpdate = () => {
+      if (canvasRectRafRef.current != null) return
+      canvasRectRafRef.current = window.requestAnimationFrame(() => {
+        canvasRectRafRef.current = null
+        const rect = canvas.getBoundingClientRect()
+        canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+      })
+    }
+
+    scheduleRectUpdate()
+    window.addEventListener('resize', scheduleRectUpdate)
+    window.addEventListener('scroll', scheduleRectUpdate, true)
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', scheduleRectUpdate)
+    vv?.addEventListener('scroll', scheduleRectUpdate)
+
+    return () => {
+      window.removeEventListener('resize', scheduleRectUpdate)
+      window.removeEventListener('scroll', scheduleRectUpdate, true)
+      vv?.removeEventListener('resize', scheduleRectUpdate)
+      vv?.removeEventListener('scroll', scheduleRectUpdate)
+      if (canvasRectRafRef.current != null) {
+        window.cancelAnimationFrame(canvasRectRafRef.current)
+        canvasRectRafRef.current = null
+      }
+    }
   }, [])
 
   useEffect(() => {
     if (routeEdgeKeys && routeEdgeKeys.length > 0) {
-      routePulseRef.current = { startedAt: performance.now() }
-      ensureAnimationLoop()
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame((ts) => {
+          routePulseRef.current = { startedAt: ts }
+
+          const routeKey = `${routeEdgeKeys.join(',')}|${routeStationIds?.join(',') ?? ''}`
+          if (!routeBuildRef.current || routeBuildRef.current.routeKey !== routeKey) {
+            routeBuildRef.current = { startedAt: ts + ROUTE_BUILD_DELAY_MS, routeKey }
+          }
+
+          ensureAnimationLoop()
+        })
+      }
     } else {
       routePulseRef.current = null
+      routeBuildRef.current = null
     }
   }, [routeEdgeKeys, routeStationIds, ensureAnimationLoop])
 
@@ -1407,35 +1522,10 @@ export function MetroMap({
       const bottomSafeMarginPx = 14
 
       // Базовые инпуты из props для десктопа и горизонтальных отступов.
-      let insetTopRaw = visibleInsets?.top ?? 0
-      let insetBottomRaw = visibleInsets?.bottom ?? 0
+      const insetTopRaw = visibleInsets?.top ?? 0
+      const insetBottomRaw = getBottomInsetPx ? getBottomInsetPx() : (visibleInsets?.bottom ?? 0)
       const insetLeftRaw = visibleInsets?.left ?? 0
       const insetRightRaw = visibleInsets?.right ?? 0
-
-      // На мобиле считаем вертикальные инпуты по фактической высоте хедера и шторки,
-      // чтобы автофит всегда опирался на реальное окно между ними и не шёл "на шаг позади".
-      if (typeof window !== 'undefined') {
-        const vv = window.visualViewport
-        const viewportHeightLocal = vv?.height ?? window.innerHeight
-        const viewportWidthLocal = vv?.width ?? window.innerWidth
-        const isMobileViewport = viewportWidthLocal < 1024
-
-        if (isMobileViewport) {
-          const headerEl = document.querySelector<HTMLElement>('.app-header')
-          if (headerEl) {
-            const r = headerEl.getBoundingClientRect()
-            insetTopRaw = Math.max(0, Math.min(r.bottom, viewportHeightLocal))
-          }
-
-          const sheetEl = document.querySelector<HTMLElement>('.bottom-sheet')
-          if (sheetEl) {
-            const r = sheetEl.getBoundingClientRect()
-            // Всё, что ниже верха шторки, считаем перекрытой областью.
-            const top = Math.max(0, Math.min(r.top, viewportHeightLocal))
-            insetBottomRaw = Math.max(0, viewportHeightLocal - top)
-          }
-        }
-      }
 
       const insetTop = Math.round(insetTopRaw + headerSafeMarginPx)
       const insetBottom = Math.round(insetBottomRaw + bottomSafeMarginPx)
@@ -1537,6 +1627,7 @@ export function MetroMap({
     worldBounds,
     positionedById,
     visibleInsets,
+    getBottomInsetPx,
     editMode,
     routeSheetOpen,
   ])
@@ -1560,32 +1651,10 @@ export function MetroMap({
     const headerSafeMarginPx = 10
     const bottomSafeMarginPx = 14
 
-    let insetTopRaw = visibleInsets?.top ?? 0
-    let insetBottomRaw = visibleInsets?.bottom ?? 0
+    const insetTopRaw = visibleInsets?.top ?? 0
+    const insetBottomRaw = getBottomInsetPx ? getBottomInsetPx() : (visibleInsets?.bottom ?? 0)
     const insetRightRaw = visibleInsets?.right ?? 0
     const insetLeftRaw = visibleInsets?.left ?? 0
-
-    if (typeof window !== 'undefined') {
-      const vv = window.visualViewport
-      const viewportHeightLocal = vv?.height ?? window.innerHeight
-      const viewportWidthLocal = vv?.width ?? window.innerWidth
-      const isMobileViewport = viewportWidthLocal < 1024
-
-      if (isMobileViewport) {
-        const headerEl = document.querySelector<HTMLElement>('.app-header')
-        if (headerEl) {
-          const r = headerEl.getBoundingClientRect()
-          insetTopRaw = Math.max(0, Math.min(r.bottom, viewportHeightLocal))
-        }
-
-        const sheetEl = document.querySelector<HTMLElement>('.bottom-sheet')
-        if (sheetEl) {
-          const r = sheetEl.getBoundingClientRect()
-          const top = Math.max(0, Math.min(r.top, viewportHeightLocal))
-          insetBottomRaw = Math.max(0, viewportHeightLocal - top)
-        }
-      }
-    }
 
     const insetTop = Math.round(insetTopRaw + headerSafeMarginPx)
     const insetBottom = Math.round(insetBottomRaw + bottomSafeMarginPx)
@@ -1621,6 +1690,7 @@ export function MetroMap({
     worldBounds,
     positionedStations,
     visibleInsets,
+    getBottomInsetPx,
     routeSheetOpen,
     clampViewport,
     editMode,
@@ -1648,7 +1718,8 @@ export function MetroMap({
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const rect = canvas.getBoundingClientRect()
+    const rect = canvasRectRef.current ?? canvas.getBoundingClientRect()
+    canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
     const centerX = rect.width / 2
     const centerY = rect.height / 2
     const xScreen = clientX - rect.left
@@ -1730,10 +1801,11 @@ export function MetroMap({
     stopZoomClickAnimation()
 
     const duration = 280
-    const startTime = performance.now()
+    let startTime: number | null = null
     let lastEased = 0
 
     const step = (timestamp: number) => {
+      if (startTime == null) startTime = timestamp
       const elapsed = timestamp - startTime
       const t = Math.min(1, elapsed / duration)
       const eased = 1 - (1 - t) * (1 - t) * (1 - t) // ease-out-cubic
@@ -1763,10 +1835,11 @@ export function MetroMap({
     stopZoomClickAnimation()
 
     const duration = 280
-    const startTime = performance.now()
+    let startTime: number | null = null
     let lastEased = 0
 
     const step = (timestamp: number) => {
+      if (startTime == null) startTime = timestamp
       const elapsed = timestamp - startTime
       const t = Math.min(1, elapsed / duration)
       const eased = 1 - (1 - t) * (1 - t) * (1 - t) // ease-out-cubic
@@ -1824,7 +1897,12 @@ export function MetroMap({
       return clampViewport({ scale: nextScale, offsetX, offsetY })
     })
 
-    clickPulseRef.current = { stationId, startedAt: performance.now() }
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame((ts) => {
+        clickPulseRef.current = { stationId, startedAt: ts }
+        ensureAnimationLoop()
+      })
+    }
     ensureAnimationLoop()
   }, [
     editMode,
@@ -1841,7 +1919,8 @@ export function MetroMap({
     const canvas = canvasRef.current
     if (!canvas) return null
 
-    const rect = canvas.getBoundingClientRect()
+    const rect = canvasRectRef.current ?? canvas.getBoundingClientRect()
+    canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
     const centerX = rect.width / 2
     const centerY = rect.height / 2
 
@@ -1942,7 +2021,7 @@ export function MetroMap({
     const labelCtx = labelCanvas.getContext('2d')
     if (!ctx || !labelCtx) return
 
-    const now = animationTick || performance.now()
+    const now = animationTick
 
     const dpr = window.devicePixelRatio || 1
 
@@ -2093,6 +2172,10 @@ export function MetroMap({
       let routePulseScale = 1
       let routeShadowExtra = 0
 
+      let buildOverlayAlphaMul = 0
+      let buildDashOffset = 0
+      let buildProgressT = 1
+
       if (routePulseRef.current) {
         const elapsed = now - routePulseRef.current.startedAt
         if (elapsed > 0 && elapsed < ROUTE_PULSE_DURATION_MS) {
@@ -2100,6 +2183,32 @@ export function MetroMap({
           const eased = 1 - (1 - t) * (1 - t)
           routePulseScale = 1 + 0.14 * (1 - t)
           routeShadowExtra = 5 * eased
+        }
+      }
+
+      if (routeBuildRef.current) {
+        const elapsed = now - routeBuildRef.current.startedAt
+        if (elapsed >= 0 && elapsed < ROUTE_BUILD_DURATION_MS) {
+          const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
+          const smootherstep = (t: number) => {
+            const x = clamp01(t)
+            return x * x * x * (x * (x * 6 - 15) + 10)
+          }
+
+          const rampMs = 260
+          const holdMs = 720
+          const rampT = smootherstep(elapsed / rampMs)
+          const fadeStartMs = rampMs + holdMs
+          const tailMs = Math.max(1, ROUTE_BUILD_DURATION_MS - fadeStartMs)
+          const fadeT = smootherstep((elapsed - fadeStartMs) / tailMs)
+          const peakOverlay = 0.34
+          const holdT = elapsed < fadeStartMs ? 1 : 1 - fadeT
+          buildOverlayAlphaMul = peakOverlay * rampT * holdT
+
+          buildProgressT = elapsed < fadeStartMs ? smootherstep(elapsed / fadeStartMs) : 1
+
+          const dashT = smootherstep(elapsed / ROUTE_BUILD_DURATION_MS)
+          buildDashOffset = -dashT * 120
         }
       }
 
@@ -2175,6 +2284,77 @@ export function MetroMap({
           ctx.moveTo(a.x, a.y)
           ctx.lineTo(b.x, b.y)
           ctx.stroke()
+        }
+      }
+
+      if (buildOverlayAlphaMul > 0) {
+        const routeBuildOverlayColor = '#f3f4f6'
+        const orderedIds = (() => {
+          if (!routeStationIds || routeStationIds.length < 2) return [] as string[]
+          const ids = routeStationIds.filter((id) => positionedById.has(id))
+          if (ids.length < 2) return []
+
+          if (fromStationId && ids[0] !== fromStationId && ids[ids.length - 1] === fromStationId) {
+            ids.reverse()
+          }
+          if (toStationId && ids[ids.length - 1] !== toStationId && ids[0] === toStationId) {
+            ids.reverse()
+          }
+          return ids
+        })()
+
+        if (orderedIds.length >= 2) {
+          const segments: { ax: number; ay: number; bx: number; by: number; len: number }[] = []
+          for (let i = 0; i < orderedIds.length - 1; i += 1) {
+            const a = positionedById.get(orderedIds[i])
+            const b = positionedById.get(orderedIds[i + 1])
+            if (!a || !b) continue
+            const len = Math.hypot(b.x - a.x, b.y - a.y)
+            if (len <= 1e-3) continue
+            segments.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y, len })
+          }
+
+          let totalLen = 0
+          for (const s of segments) totalLen += s.len
+
+          if (totalLen > 1e-3) {
+            const headLen = Math.max(0, Math.min(totalLen, totalLen * Math.max(0, Math.min(1, buildProgressT))))
+
+            ctx.save()
+            ctx.shadowColor = 'rgba(148, 163, 184, 0.35)'
+            ctx.shadowBlur = 10 + routeShadowExtra
+            ctx.setLineDash([26, 18])
+            ctx.lineDashOffset = buildDashOffset
+            ctx.strokeStyle = routeBuildOverlayColor
+            ctx.lineWidth = ROUTE_LINE_WIDTH * routePulseScale * 1.14
+            ctx.globalAlpha = ROUTE_LINE_ALPHA * buildOverlayAlphaMul
+            ctx.lineCap = 'round'
+            ctx.lineJoin = 'round'
+
+            let remaining = headLen
+            let started = false
+            ctx.beginPath()
+            for (const s of segments) {
+              if (remaining <= 0) break
+              if (!started) {
+                ctx.moveTo(s.ax, s.ay)
+                started = true
+              }
+              if (remaining >= s.len) {
+                ctx.lineTo(s.bx, s.by)
+                remaining -= s.len
+                continue
+              }
+              const t = remaining / s.len
+              ctx.lineTo(s.ax + (s.bx - s.ax) * t, s.ay + (s.by - s.ay) * t)
+              remaining = 0
+              break
+            }
+            if (started) ctx.stroke()
+
+            ctx.setLineDash([])
+            ctx.restore()
+          }
         }
       }
 
@@ -2684,6 +2864,7 @@ export function MetroMap({
     toStationName,
     fromStationId,
     toStationId,
+    routeStationIds,
     routeStationIdSet,
     selectedStationIdSet,
     routeEdgeKeySet,
@@ -2708,6 +2889,7 @@ export function MetroMap({
       const canvas = canvasRef.current
       if (!canvas) return
       const rect = canvas.getBoundingClientRect()
+      canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
       if (!rect.width || !rect.height) return
       setCanvasSize((prev) => {
         if (prev.width === rect.width && prev.height === rect.height) return prev
@@ -2822,7 +3004,8 @@ export function MetroMap({
       const canvas = canvasRef.current
       if (!canvas) return
 
-      const rect = canvas.getBoundingClientRect()
+      const rect = canvasRectRef.current ?? canvas.getBoundingClientRect()
+      canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
       const LINE_HEIGHT_PX = 16
       const deltaMode = event.deltaMode
       const deltaPxRaw =
@@ -2862,7 +3045,9 @@ export function MetroMap({
           if (wheelZoomStopRequestedRef.current) {
             wheelZoomStopRequestedRef.current = false
             isWheelZoomingRef.current = false
-            setAnimationTick(performance.now())
+            if (typeof window !== 'undefined') {
+              window.requestAnimationFrame((ts) => setAnimationTick(ts))
+            }
             return
           }
 
@@ -2883,11 +3068,14 @@ export function MetroMap({
         if (!canvasNow || !lastClient) {
           wheelZoomPendingPxRef.current = 0
           isWheelZoomingRef.current = false
-          setAnimationTick(performance.now())
+          if (typeof window !== 'undefined') {
+            window.requestAnimationFrame((ts) => setAnimationTick(ts))
+          }
           return
         }
 
-        const rectNow = canvasNow.getBoundingClientRect()
+        const rectNow = canvasRectRef.current ?? canvasNow.getBoundingClientRect()
+        canvasRectRef.current = { left: rectNow.left, top: rectNow.top, width: rectNow.width, height: rectNow.height }
         const current = viewportRef.current
         const currentScale = current.scale
         let nextScale = currentScale * zoomFactor
@@ -2951,7 +3139,7 @@ export function MetroMap({
     if (interactionsLocked) return
     stopPanInertia()
     panVelocityRef.current = { vx: 0, vy: 0 }
-    panLastSampleTimeRef.current = performance.now()
+    panLastSampleTimeRef.current = typeof event.timeStamp === 'number' ? event.timeStamp : null
     if (onMapInteraction) onMapInteraction()
     if (editMode) {
       const world = getWorldPointFromMouse(event)
@@ -3077,7 +3265,7 @@ export function MetroMap({
     }
 
     // Обновляем скорость панорамирования для инерции
-    const now = performance.now()
+    const now = typeof event.timeStamp === 'number' ? event.timeStamp : 0
     const lastTime = panLastSampleTimeRef.current
     if (lastTime != null) {
       const dt = now - lastTime
@@ -3145,7 +3333,7 @@ export function MetroMap({
     if (interactionsLocked && !editMode) return
     stopPanInertia()
     panVelocityRef.current = { vx: 0, vy: 0 }
-    panLastSampleTimeRef.current = performance.now()
+    panLastSampleTimeRef.current = typeof event.timeStamp === 'number' ? event.timeStamp : null
     if (onMapInteraction) onMapInteraction()
 
     if (event.touches.length === 1) {
@@ -3155,7 +3343,7 @@ export function MetroMap({
 
       // Double-tap + drag: если второй тап пришёл быстро и недалеко от предыдущего, запускаем zoom-drag.
       if (!editMode) {
-        const now = performance.now()
+        const now = typeof event.timeStamp === 'number' ? event.timeStamp : 0
         const lastTime = lastTapTimeRef.current
         const lastPos = lastTapPosRef.current
         const DOUBLE_TAP_MAX_DELAY = 320
@@ -3216,7 +3404,7 @@ export function MetroMap({
       pinchStartDistanceRef.current = distance
       pinchStartScaleRef.current = viewportRef.current.scale
       pinchLastDistanceRef.current = distance
-      pinchLastTimestampRef.current = performance.now()
+      pinchLastTimestampRef.current = typeof event.timeStamp === 'number' ? event.timeStamp : null
       pinchVelocityRef.current = 0
       const t1 = event.touches[0]
       const t2 = event.touches[1]
@@ -3257,7 +3445,8 @@ export function MetroMap({
 
       const canvas = canvasRef.current
       if (!canvas) return
-      const rect = canvas.getBoundingClientRect()
+      const rect = canvasRectRef.current ?? canvas.getBoundingClientRect()
+      canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
       const centerX = rect.width / 2
       const centerY = rect.height / 2
       const xScreen = center.x - rect.left
@@ -3319,7 +3508,7 @@ export function MetroMap({
       }
 
       // Обновляем скорость панорамирования для инерции (тач)
-      const now = performance.now()
+      const now = typeof event.timeStamp === 'number' ? event.timeStamp : 0
       const lastTime = panLastSampleTimeRef.current
       if (lastTime != null) {
         const dt = now - lastTime
@@ -3350,7 +3539,7 @@ export function MetroMap({
       const distance = getTouchDistance(event.touches)
       if (distance <= 0) return
 
-      const now = performance.now()
+      const now = typeof event.timeStamp === 'number' ? event.timeStamp : 0
       const lastDistance = pinchLastDistanceRef.current
       const lastTime = pinchLastTimestampRef.current
       if (lastDistance != null && lastTime != null) {
@@ -3369,7 +3558,8 @@ export function MetroMap({
       const ratio = distance / pinchStartDistanceRef.current
       const rawNextScale = pinchStartScaleRef.current * ratio
 
-      const rect = canvas.getBoundingClientRect()
+      const rect = canvasRectRef.current ?? canvas.getBoundingClientRect()
+      canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
       const centerX = rect.width / 2
       const centerY = rect.height / 2
       const t1 = event.touches[0]
@@ -3444,12 +3634,28 @@ export function MetroMap({
     zoomDragUsedRef.current = false
     zoomDragCenterClientRef.current = null
 
+    if (!editMode && !hadPinch && !hadDrag && !wasZoomDrag && event.changedTouches.length === 1) {
+      const touch = event.changedTouches[0]
+      const x = touch.clientX
+      const y = touch.clientY
+      const t = typeof event.timeStamp === 'number' ? event.timeStamp : undefined
+      const world = getWorldPointFromMouse({ clientX: x, clientY: y })
+      if (world) {
+        const closest = hitTestStationAtWorldPoint(world.x, world.y)
+        if (closest) {
+          lastTouchStationClickAtRef.current = typeof event.timeStamp === 'number' ? event.timeStamp : 0
+          handleStationClick(closest, { x, y, t })
+          return
+        }
+      }
+    }
+
     // Double-tap zoom (только для одиночного тапа без drag/pinch/zoom-drag и вне режима редактирования)
     if (!editMode && !hadPinch && !hadDrag && !wasZoomDrag && event.changedTouches.length === 1) {
       const touch = event.changedTouches[0]
       const x = touch.clientX
       const y = touch.clientY
-      const now = performance.now()
+      const now = typeof event.timeStamp === 'number' ? event.timeStamp : 0
       const lastTime = lastTapTimeRef.current
       const lastPos = lastTapPosRef.current
       const DOUBLE_TAP_MAX_DELAY = 320
@@ -3481,17 +3687,29 @@ export function MetroMap({
     }
   }
 
-  const handleStationClick = (st: PositionedStation) => {
-    clickPulseRef.current = { stationId: st.id, startedAt: performance.now() }
+  const handleStationClick = (st: PositionedStation, clientPoint?: { x: number; y: number; t?: number }) => {
+    const startedAt = clientPoint?.t
+    clickPulseRef.current = { stationId: st.id, startedAt: typeof startedAt === 'number' ? startedAt : (animationTick || 0) }
     ensureAnimationLoop()
+    if (devPerfEnabled) {
+      console.log(
+        `[perf][stationSelect] station=${st.id} t=${typeof clientPoint?.t === 'number' ? clientPoint.t.toFixed(1) : 'n/a'}`,
+      )
+    }
     if (editMode && onEditStationInspect) {
       onEditStationInspect(st.id)
     } else {
-      onSelectStation(st.id, st.title)
+      onSelectStation(st.id, st.title, clientPoint)
     }
   }
 
   const handleClick: React.MouseEventHandler<HTMLCanvasElement> = (event) => {
+    if (!editMode) {
+      const dt = (typeof event.timeStamp === 'number' ? event.timeStamp : 0) - lastTouchStationClickAtRef.current
+      if (dt >= 0 && dt < 900) {
+        return
+      }
+    }
     if (hasDragged) {
       return
     }
@@ -3500,7 +3718,11 @@ export function MetroMap({
     if (!world) return
     const closest = hitTestStationAtWorldPoint(world.x, world.y)
     if (closest) {
-      handleStationClick(closest)
+      handleStationClick(closest, {
+        x: event.clientX,
+        y: event.clientY,
+        t: typeof event.timeStamp === 'number' ? event.timeStamp : undefined,
+      })
     }
   }
 
@@ -3620,4 +3842,4 @@ export function MetroMap({
       </div>
     </div>
   )
-}
+})

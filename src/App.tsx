@@ -1,4 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  lazy,
+  startTransition,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type {
   ComponentType,
   LazyExoticComponent,
@@ -24,7 +34,6 @@ import {
   fullGraphEdges,
   fullGraphTransferHubs,
 } from './metro/fullGraph.ts'
-import { findRouteAlternativesFullGraph } from './metro/routing.ts'
 import type {
   RouteResult,
   FullGraphEdge,
@@ -126,6 +135,19 @@ function App() {
   const [toStation, setToStation] = useState('')
   const [fromStationId, setFromStationId] = useState<string | null>(null)
   const [toStationId, setToStationId] = useState<string | null>(null)
+  const [stationPickPopover, setStationPickPopover] = useState<{
+    stationId: string
+    stationName: string
+    clientPoint: { x: number; y: number; t?: number }
+  } | null>(null)
+  const [stationPickPopoverClosing, setStationPickPopoverClosing] = useState(false)
+  const [stationPickPopoverPressed, setStationPickPopoverPressed] = useState<'from' | 'to' | null>(null)
+  const [stationPickPopoverPos, setStationPickPopoverPos] = useState<{ left: number; top: number } | null>(
+    null,
+  )
+  const stationPickPopoverRef = useRef<HTMLDivElement | null>(null)
+  const stationPickPopoverCloseTimeoutRef = useRef<number | null>(null)
+  const stationPickPopoverPerfRef = useRef<{ openedAt: number; tapAt?: number } | null>(null)
   const [routeAlternatives, setRouteAlternatives] = useState<RouteResult[]>([])
   const [activeRouteIndex, setActiveRouteIndex] = useState(0)
   const [isRouteSheetOpen, setIsRouteSheetOpen] = useState(false)
@@ -194,6 +216,109 @@ function App() {
   const sheetMinHeightPxRef = useRef(0)
   const sheetOpenHeightPxRef = useRef(0)
   const savedRouteCounterRef = useRef(1)
+
+  const routeWorkerRef = useRef<Worker | null>(null)
+  const routeWorkerRequestIdRef = useRef(0)
+  const routeWorkerPendingRef = useRef<
+    Map<
+      number,
+      {
+        fromId: string
+        toId: string
+        fromTitleEffective: string
+        toTitleEffective: string
+        isDesktop: boolean
+      }
+    >
+  >(new Map())
+
+  const perfInteractionActiveRef = useRef(false)
+  const perfInteractionTimeoutRef = useRef<number | null>(null)
+
+  const markPerfInteraction = useCallback(() => {
+    if (typeof window === 'undefined') return
+    if (typeof document === 'undefined') return
+
+    const root = document.documentElement
+    if (!perfInteractionActiveRef.current) {
+      perfInteractionActiveRef.current = true
+      root.classList.add('perf-interaction')
+    }
+
+    if (perfInteractionTimeoutRef.current != null) {
+      window.clearTimeout(perfInteractionTimeoutRef.current)
+      perfInteractionTimeoutRef.current = null
+    }
+
+    perfInteractionTimeoutRef.current = window.setTimeout(() => {
+      perfInteractionTimeoutRef.current = null
+      perfInteractionActiveRef.current = false
+      root.classList.remove('perf-interaction')
+    }, 180)
+  }, [])
+
+  const perfLastFrameTsRef = useRef<number | null>(null)
+  const perfFrameSamplesRef = useRef<number[]>([])
+  const perfLogCooldownRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    if (typeof window === 'undefined') return
+
+    let raf = 0
+    const tick = (ts: number) => {
+      raf = window.requestAnimationFrame(tick)
+      if (!perfInteractionActiveRef.current) {
+        perfLastFrameTsRef.current = ts
+        return
+      }
+
+      const last = perfLastFrameTsRef.current
+      perfLastFrameTsRef.current = ts
+      if (last == null) return
+
+      const dt = ts - last
+      if (!Number.isFinite(dt) || dt <= 0) return
+
+      const samples = perfFrameSamplesRef.current
+      samples.push(dt)
+      if (samples.length > 80) samples.shift()
+
+      const now = performance.now()
+      if (now < perfLogCooldownRef.current) return
+      if (samples.length < 40) return
+
+      const sorted = [...samples].sort((a, b) => a - b)
+      const p50 = sorted[Math.floor(sorted.length * 0.5)]
+      const p95 = sorted[Math.floor(sorted.length * 0.95)]
+      const max = sorted[sorted.length - 1]
+      // логируем редко, чтобы не заспамить консоль
+      perfLogCooldownRef.current = now + 1500
+      console.log('[perf] interaction frame dt ms', {
+        p50: Number(p50?.toFixed(1)),
+        p95: Number(p95?.toFixed(1)),
+        max: Number(max?.toFixed(1)),
+      })
+    }
+
+    raf = window.requestAnimationFrame(tick)
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && perfInteractionTimeoutRef.current != null) {
+        window.clearTimeout(perfInteractionTimeoutRef.current)
+        perfInteractionTimeoutRef.current = null
+      }
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.remove('perf-interaction')
+      }
+      perfInteractionActiveRef.current = false
+    }
+  }, [])
   const [hubRotateCommand, setHubRotateCommand] = useState<
     { hubId: string; direction: 'cw' | 'ccw'; token: number } | null
   >(null)
@@ -357,7 +482,7 @@ function App() {
   }, [])
 
   const handleEditorUndo = useCallback(() => {
-    setEditorHistory((prev) => {
+    setEditorHistory((prev: EditorHistoryState) => {
       if (prev.index <= 0) return prev
       const nextIndex = prev.index - 1
       const snapshot = prev.items[nextIndex]
@@ -367,7 +492,7 @@ function App() {
   }, [applyEditorSnapshot])
 
   const handleEditorRedo = useCallback(() => {
-    setEditorHistory((prev) => {
+    setEditorHistory((prev: EditorHistoryState) => {
       if (prev.index < 0 || prev.index >= prev.items.length - 1) return prev
       const nextIndex = prev.index + 1
       const snapshot = prev.items[nextIndex]
@@ -552,14 +677,14 @@ function App() {
     }
   }, [])
 
-  const persistRoutesToStorage = (key: string, routes: SavedRoute[]) => {
+  const persistRoutesToStorage = useCallback((key: string, routes: SavedRoute[]) => {
     if (typeof window === 'undefined') return
     try {
       window.localStorage.setItem(key, JSON.stringify(routes))
     } catch {
       // ignore
     }
-  }
+  }, [])
 
   const handleClearRecentRoutes = () => {
     setRecentRoutes([])
@@ -753,6 +878,31 @@ function App() {
       return { ...prev, [stationId]: true }
     })
   }, [])
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!import.meta.env.DEV) return
+    if (!('serviceWorker' in navigator)) return
+
+    const alreadyCleaned = window.sessionStorage.getItem('kitty-metro-dev-sw-cleaned') === '1'
+    if (alreadyCleaned) return
+    window.sessionStorage.setItem('kitty-metro-dev-sw-cleaned', '1')
+
+    void (async () => {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(regs.map((r) => r.unregister()))
+
+        const keys = await caches.keys()
+        await Promise.all(keys.map((k) => caches.delete(k)))
+
+        if (regs.length > 0) {
+          window.location.reload()
+        }
+      } catch {
+        // ignore
+      }
+    })()
+  }, [])
   const swRegistrationRef = useRef<ServiceWorkerRegistration | undefined>(undefined)
   const swLastUpdateCheckMsRef = useRef<number>(0)
   const checkForSwUpdate = useCallback(() => {
@@ -797,9 +947,33 @@ function App() {
     if (typeof document !== 'undefined' && document.activeElement === el) return
     el.focus()
   }
+
+  const shouldIgnoreSheetTouch = (target: EventTarget | null) => {
+    if (typeof document === 'undefined') return false
+    if (!(target instanceof Element)) return false
+    if (target.closest('.bottom-sheet-handle')) return false
+    return Boolean(target.closest('input, textarea, select, a'))
+  }
   const sheetTouchStartYRef = useRef<number | null>(null)
   const sheetTouchLastYRef = useRef<number | null>(null)
+  const sheetTouchStartXRef = useRef<number | null>(null)
+  const sheetTouchLastXRef = useRef<number | null>(null)
+  const sheetGestureAxisRef = useRef<'pending' | 'x' | 'y' | null>(null)
+  const sheetDeferredRecomputeRef = useRef(false)
+  const sheetTouchStartedOnButtonRef = useRef(false)
+  const sheetTouchStartedInSmartSuggestionsRef = useRef(false)
   const sheetDragStartProgressRef = useRef<number | null>(null)
+
+  const getBottomInsetPx = useCallback(() => {
+    if (isDesktop) return mapVisibleInsets.bottom
+    const min = sheetMinHeightPxRef.current
+    const maxOffset = sheetMaxOffsetPxRef.current
+    const progress = sheetProgressRef.current
+    const openHeight = min + progress * maxOffset
+    // Шторка может быть уже/выше в зависимости от контента и режима.
+    // Гарантируем неотрицательное значение.
+    return Math.max(0, openHeight)
+  }, [isDesktop, mapVisibleInsets.bottom])
 
   const updateSheetTransformDom = useCallback(
     (progress: number) => {
@@ -812,7 +986,7 @@ function App() {
 
       const maxOffsetPx = sheetMaxOffsetPxRef.current
       const translateY = (1 - clamped) * maxOffsetPx
-      el.style.transform = `translateY(${translateY}px)`
+      el.style.transform = `translate3d(0, ${translateY}px, 0)`
     },
     [isDesktop],
   )
@@ -855,17 +1029,11 @@ function App() {
     const rootFontSize = Number.parseFloat(rootFontSizeStr)
     const remPx = Number.isFinite(rootFontSize) ? rootFontSize : 16
 
-    const isFullScreenAllowed = isSmartSuggestionsOpen
-    const maxHeightPxRaw = isFullScreenAllowed
-      ? viewportHeight
-      : Math.min(Math.max(0, viewportHeight - remPx * 1.75), viewportHeight * 0.78)
+    const maxHeightPxRaw = Math.min(Math.max(0, viewportHeight - remPx * 1.75), viewportHeight * 0.78)
     const maxHeightPx = Math.max(minHeight, maxHeightPxRaw)
 
-    const hasExpandableContent = detailsHeight > 2 || isSmartSuggestionsOpen
-    const defaultExpandedHeight =
-      isFullScreenAllowed ? viewportHeight : hasExpandableContent ? Math.max(minHeight, viewportHeight * 0.62) : minHeight
-
-    const desiredOpenHeight = Math.max(minHeight + detailsMarginTop + detailsHeight, defaultExpandedHeight)
+    const hasExpandableContent = detailsHeight > 2
+    const desiredOpenHeight = hasExpandableContent ? minHeight + detailsMarginTop + detailsHeight : minHeight
     const openHeight = Math.min(desiredOpenHeight, maxHeightPx)
 
     sheetMinHeightPxRef.current = minHeight
@@ -875,7 +1043,7 @@ function App() {
     sheetEl.style.height = `${openHeight}px`
 
     updateSheetTransformDom(sheetProgressRef.current)
-  }, [isDesktop, isSmartSuggestionsOpen, updateSheetTransformDom])
+  }, [isDesktop, updateSheetTransformDom])
 
   useLayoutEffect(() => {
     recomputeSheetMaxOffsetPx()
@@ -904,6 +1072,10 @@ function App() {
 
     let raf = 0
     const schedule = () => {
+      if (sheetTouchStartYRef.current != null) {
+        sheetDeferredRecomputeRef.current = true
+        return
+      }
       if (raf) return
       raf = window.requestAnimationFrame(() => {
         raf = 0
@@ -952,6 +1124,26 @@ function App() {
     nearbyStatus,
     nearbyStations.length,
   ])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (isDesktop) return
+
+    const sheetEl = bottomSheetRef.current
+    const innerEl = sheetEl?.querySelector<HTMLElement>('.bottom-sheet-inner')
+    if (!innerEl) return
+
+    const onTouchMove = (event: globalThis.TouchEvent) => {
+      if (sheetTouchStartYRef.current == null) return
+      if (sheetGestureAxisRef.current !== 'y') return
+      event.preventDefault()
+    }
+
+    innerEl.addEventListener('touchmove', onTouchMove, { passive: false })
+    return () => {
+      innerEl.removeEventListener('touchmove', onTouchMove)
+    }
+  }, [isDesktop])
 
   const stopSheetSpring = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -1140,73 +1332,121 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const updateInsets = () => {
-      if (typeof window === 'undefined') return
-      const vv = window.visualViewport
-      const viewportWidth = vv?.width ?? window.innerWidth
-      const viewportHeightLocal = vv?.height ?? window.innerHeight
+    if (typeof window === 'undefined') return
+    if (typeof document === 'undefined') return
 
-      let top = 0
-      let left = 0
-      let right = 0
+    let raf = 0
+    let burstRaf: number | null = null
+    const schedule = () => {
+      if (raf) return
+      raf = window.requestAnimationFrame(() => {
+        raf = 0
+        const mapEl = document.querySelector<HTMLElement>('.metro-map-wrapper')
+        if (!mapEl) return
 
-      const headerEl = document.querySelector<HTMLElement>('.app-header')
-      if (headerEl) {
-        const r = headerEl.getBoundingClientRect()
-        if (r.bottom > top) {
-          top = Math.min(r.bottom, viewportHeightLocal)
+        const mapRect = mapEl.getBoundingClientRect()
+        const mapWidth = Math.max(1, mapRect.width)
+        const mapHeight = Math.max(1, mapRect.height)
+
+        let top = 0
+        let left = 0
+        let right = 0
+
+        let headerInsetCandidate = 0
+        let headerRect: DOMRect | null = null
+
+        const headerEl = document.querySelector<HTMLElement>('.app-header')
+        if (headerEl) {
+          const r = headerEl.getBoundingClientRect()
+          headerRect = r
+          headerInsetCandidate = Math.min(Math.max(0, r.bottom - mapRect.top), mapHeight)
         }
-      }
 
-      const hubPanelEl = document.querySelector<HTMLElement>('.hub-editor-panel')
-      if (hubPanelEl) {
-        const r = hubPanelEl.getBoundingClientRect()
-        if (r.right > left) {
-          left = Math.min(r.right, viewportWidth)
+        // dev-editor панель учитываем только когда она реально присутствует в DOM
+        const hubPanelEl = document.querySelector<HTMLElement>('.hub-editor-panel')
+        if (hubPanelEl) {
+          const r = hubPanelEl.getBoundingClientRect()
+          const inset = Math.max(0, r.right - mapRect.left)
+          if (inset > left) {
+            left = Math.min(inset, mapWidth)
+          }
         }
-      }
 
-      const sheetEl = document.querySelector<HTMLElement>('.bottom-sheet')
-      if (sheetEl && isDesktop) {
-        const r = sheetEl.getBoundingClientRect()
-        if (r.right > left) {
-          left = Math.min(r.right, viewportWidth)
+        const sheetEl = document.querySelector<HTMLElement>('.bottom-sheet')
+        if (sheetEl && isDesktop) {
+          const r = sheetEl.getBoundingClientRect()
+          const inset = Math.max(0, r.right - mapRect.left)
+          if (inset > left) {
+            left = Math.min(inset, mapWidth)
+          }
         }
-      }
 
-      const zoomControlsEl = document.querySelector<HTMLElement>('.metro-map-zoom-controls')
-      if (zoomControlsEl) {
-        const r = zoomControlsEl.getBoundingClientRect()
-        const inset = Math.max(0, viewportWidth - r.left)
-        if (inset > right) {
-          right = inset
+        const zoomControlsEl = document.querySelector<HTMLElement>('.metro-map-zoom-controls')
+        if (zoomControlsEl) {
+          const r = zoomControlsEl.getBoundingClientRect()
+          const inset = Math.max(0, mapRect.right - r.left)
+          if (inset > right) {
+            right = Math.min(inset, mapWidth)
+          }
         }
-      }
 
-      setMapVisibleInsets((prev: typeof mapVisibleInsets) => ({ top, right, bottom: prev.bottom, left }))
+        if (headerRect && headerInsetCandidate > 0) {
+          const usableLeft = mapRect.left + left
+          const usableRight = mapRect.right - right
+          const overlapW = Math.min(headerRect.right, usableRight) - Math.max(headerRect.left, usableLeft)
+          if (overlapW > 0) {
+            top = headerInsetCandidate
+          }
+        }
+
+        setMapVisibleInsets((prev: typeof mapVisibleInsets) => ({
+          top,
+          right,
+          bottom: prev.bottom,
+          left,
+        }))
+      })
     }
 
-    updateInsets()
-    window.addEventListener('resize', updateInsets)
+    const startBurst = () => {
+      if (burstRaf != null) {
+        window.cancelAnimationFrame(burstRaf)
+        burstRaf = null
+      }
+
+      let framesLeft = 16
+      const tick = () => {
+        schedule()
+        framesLeft -= 1
+        if (framesLeft > 0) {
+          burstRaf = window.requestAnimationFrame(tick)
+        } else {
+          burstRaf = null
+        }
+      }
+
+      burstRaf = window.requestAnimationFrame(tick)
+    }
+
+    schedule()
+    startBurst()
+    window.addEventListener('resize', schedule)
     const vv = window.visualViewport
-    vv?.addEventListener('resize', updateInsets)
+    vv?.addEventListener('resize', schedule)
+    vv?.addEventListener('scroll', schedule)
 
     return () => {
-      window.removeEventListener('resize', updateInsets)
-      vv?.removeEventListener('resize', updateInsets)
+      window.removeEventListener('resize', schedule)
+      vv?.removeEventListener('resize', schedule)
+      vv?.removeEventListener('scroll', schedule)
+      if (raf) {
+        window.cancelAnimationFrame(raf)
+      }
+      if (burstRaf != null) {
+        window.cancelAnimationFrame(burstRaf)
+      }
     }
-  }, [
-    editMode,
-    isDesktop,
-    errorMessage,
-    inspectedStationId,
-    routeAlternatives.length,
-    isRouteSheetOpen,
-  ])
-
-  // Вертикальные инсетЫ (header + шторка) для автофита маршрута теперь считаются
-  // непосредственно внутри MetroMap по DOM, поэтому в App мы управляем только
-  // верхним/левым/правым инсетами через mapVisibleInsets.
+  }, [isDesktop, isRouteSheetOpen])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1320,22 +1560,108 @@ function App() {
     }
   }
 
-  const setRouteSheetOpenState = (open: boolean) => {
+  const setRouteSheetOpenState = useCallback((open: boolean) => {
     setIsRouteSheetOpen(open)
     if (!open) {
       setIsSmartSuggestionsOpen(false)
     }
     if (!isDesktop) {
-      recomputeSheetMaxOffsetPx()
-      const hasRange = sheetMaxOffsetPxRef.current > 0
-      if (hasRange) {
-        startSheetSpring(open ? 1 : 0, 0)
-      } else {
-        stopSheetSpring()
-        updateSheetTransformDom(0)
+      if (!open) {
+        const hasRange = sheetMaxOffsetPxRef.current > 0
+        if (hasRange) {
+          startSheetSpring(0, 0)
+        } else {
+          stopSheetSpring()
+          updateSheetTransformDom(0)
+        }
+        return
       }
+
+      // Открытие: откладываем тяжёлые layout-риды (scrollHeight/getComputedStyle)
+      // на следующий кадр, чтобы не блокировать первый paint контента на слабых устройствах.
+      window.requestAnimationFrame(() => {
+        recomputeSheetMaxOffsetPx()
+        const hasRange = sheetMaxOffsetPxRef.current > 0
+        if (hasRange) {
+          startSheetSpring(1, 0)
+        } else {
+          stopSheetSpring()
+          updateSheetTransformDom(0)
+        }
+      })
     }
-  }
+  }, [
+    isDesktop,
+    recomputeSheetMaxOffsetPx,
+    startSheetSpring,
+    stopSheetSpring,
+    updateSheetTransformDom,
+  ])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const worker = new Worker(new URL('./routeWorker.ts', import.meta.url), { type: 'module' })
+    routeWorkerRef.current = worker
+
+    const pending = routeWorkerPendingRef.current
+
+    worker.onmessage = (event: MessageEvent) => {
+      const msg = event.data as
+        | { type: 'routeResult'; requestId: number; routes: RouteResult[] }
+        | { type: 'routeError'; requestId: number; errorMessage: string }
+
+      if (!msg || typeof msg.requestId !== 'number') return
+
+      const ctx = pending.get(msg.requestId)
+      if (!ctx) return
+      pending.delete(msg.requestId)
+
+      if (msg.type === 'routeError') {
+        setErrorMessage(msg.errorMessage || 'Маршрут между этими станциями не найден.')
+        return
+      }
+
+      const routes = msg.routes ?? []
+      if (routes.length === 0) {
+        setErrorMessage('Маршрут между этими станциями не найден.')
+        return
+      }
+
+      setRecentRoutes((prev: SavedRoute[]) => {
+        const filtered = prev.filter(
+          (item) => !(item.fromStationId === ctx.fromId && item.toStationId === ctx.toId),
+        )
+        const next: SavedRoute[] = [
+          {
+            fromStationId: ctx.fromId,
+            toStationId: ctx.toId,
+            fromTitle: ctx.fromTitleEffective,
+            toTitle: ctx.toTitleEffective,
+            lastUsedAt: savedRouteCounterRef.current++,
+          },
+          ...filtered,
+        ].slice(0, 5)
+
+        persistRoutesToStorage(RECENTS_STORAGE_KEY, next)
+        return next
+      })
+
+      startTransition(() => {
+        setRouteAlternatives(routes)
+        setActiveRouteIndex(0)
+        if (routes.length === 1 || ctx.isDesktop) {
+          setRouteSheetOpenState(true)
+        }
+      })
+    }
+
+    return () => {
+      routeWorkerRef.current = null
+      pending.clear()
+      worker.terminate()
+    }
+  }, [persistRoutesToStorage, setRouteSheetOpenState])
 
   useEffect(() => {
     if (isDesktop) return
@@ -1406,6 +1732,8 @@ function App() {
     }
     return result
   }, [stationOverrides])
+
+  const extraStationsForMap = useMemo(() => Object.values(manualStations), [manualStations])
 
   const stationById = useMemo(() => {
     const map = new Map<string, FullGraphStation>()
@@ -2203,6 +2531,9 @@ function App() {
   }
 
   const buildRouteByIds = (fromId: string, toId: string) => {
+    if (import.meta.env.DEV) {
+      console.log(`[perf][route] buildRouteByIds from=${fromId} to=${toId}`)
+    }
     setErrorMessage(null)
     clearRoutes()
     setRouteSheetOpenState(false)
@@ -2223,45 +2554,38 @@ function App() {
     setFromStationId(fromId)
     setToStationId(toId)
 
-    const routes = findRouteAlternativesFullGraph(fromId, toId, {
-      maxAlternatives: 6,
-      edgeOverrides,
-      extraEdges: Object.values(manualEdges),
-    })
-    if (routes.length === 0) {
-      setErrorMessage('Маршрут между этими станциями не найден.')
+    const worker = routeWorkerRef.current
+    if (!worker) {
+      setErrorMessage('Не удалось запустить вычисление маршрута. Обнови страницу.')
       return
     }
+
+    // Отменяем/игнорируем все предыдущие pending запросы (важно при быстром тапе по станциям)
+    routeWorkerPendingRef.current.clear()
+
+    routeWorkerRequestIdRef.current += 1
+    const requestId = routeWorkerRequestIdRef.current
 
     const fromTitleEffective = stationTitleById.get(fromId) ?? fromStationResolved.title
     const toTitleEffective = stationTitleById.get(toId) ?? toStationResolved.title
 
-    setRecentRoutes((prev) => {
-      const filtered = prev.filter(
-        (item) =>
-          !(item.fromStationId === fromId && item.toStationId === toId),
-      )
-      const next: SavedRoute[] = [
-        {
-          fromStationId: fromId,
-          toStationId: toId,
-          fromTitle: fromTitleEffective,
-          toTitle: toTitleEffective,
-          lastUsedAt: savedRouteCounterRef.current++,
-        },
-        ...filtered,
-      ].slice(0, 5)
-
-      persistRoutesToStorage(RECENTS_STORAGE_KEY, next)
-      return next
+    routeWorkerPendingRef.current.set(requestId, {
+      fromId,
+      toId,
+      fromTitleEffective,
+      toTitleEffective,
+      isDesktop,
     })
 
-    setRouteAlternatives(routes)
-    setActiveRouteIndex(0)
-    // На мобиле шторка остаётся свернутой, на десктопе подробности всегда открываем
-    if (routes.length === 1 || isDesktop) {
-      setRouteSheetOpenState(true)
-    }
+    worker.postMessage({
+      type: 'route',
+      requestId,
+      fromId,
+      toId,
+      maxAlternatives: 6,
+      edgeOverrides,
+      extraEdges: Object.values(manualEdges),
+    })
   }
 
   const fromSuggestions = useMemo(() => {
@@ -2362,32 +2686,31 @@ function App() {
     const { fromStationId: fromId, toStationId: toId, fromTitle, toTitle } =
       activeRouteEndpoints
 
-    setFavoriteRoutes((prev) => {
-      const exists = prev.some(
-        (item) => item.fromStationId === fromId && item.toStationId === toId,
+    const prevRoutes = favoriteRoutes
+    const exists = prevRoutes.some(
+      (item) => item.fromStationId === fromId && item.toStationId === toId,
+    )
+    let next: SavedRoute[]
+    if (exists) {
+      next = prevRoutes.filter(
+        (item) => !(item.fromStationId === fromId && item.toStationId === toId),
       )
-      let next: SavedRoute[]
-      if (exists) {
-        next = prev.filter(
-          (item) => !(item.fromStationId === fromId && item.toStationId === toId),
-        )
-      } else {
-        const now = Date.now()
-        next = [
-          {
-            fromStationId: fromId,
-            toStationId: toId,
-            fromTitle,
-            toTitle,
-            lastUsedAt: now,
-          },
-          ...prev,
-        ].slice(0, 20)
-      }
+    } else {
+      const now = Date.now()
+      next = [
+        {
+          fromStationId: fromId,
+          toStationId: toId,
+          fromTitle,
+          toTitle,
+          lastUsedAt: now,
+        },
+        ...prevRoutes,
+      ].slice(0, 20)
+    }
 
-      persistRoutesToStorage(FAVORITES_STORAGE_KEY, next)
-      return next
-    })
+    persistRoutesToStorage(FAVORITES_STORAGE_KEY, next)
+    setFavoriteRoutes(next)
   }
 
   const routeStationIds = useMemo(() => {
@@ -2398,10 +2721,13 @@ function App() {
       if (ids.length === 0) {
         ids.push(step.fromStationId)
       }
-      ids.push(step.toStationId)
+      const last = ids[ids.length - 1]
+      if (last !== step.toStationId) {
+        ids.push(step.toStationId)
+      }
     }
 
-    return Array.from(new Set(ids))
+    return ids
   }, [routeResult])
 
   const routeEdgeKeys = useMemo(() => {
@@ -2584,6 +2910,11 @@ function App() {
   }
 
   const handleRequestNearbyStations = useCallback(() => {
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setNearbyStatus('error')
+      setNearbyError('Геолокация доступна только по HTTPS (или на localhost).')
+      return
+    }
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setNearbyStatus('error')
       setNearbyError('Геолокация недоступна.')
@@ -2644,8 +2975,20 @@ function App() {
           }
         }
       },
-      () => {
+      (error) => {
         setNearbyStatus('error')
+        if (error?.code === 1) {
+          setNearbyError('Нет разрешения на местоположение. Разреши доступ в настройках браузера.')
+          return
+        }
+        if (error?.code === 2) {
+          setNearbyError('Не удалось определить местоположение (нет сигнала).')
+          return
+        }
+        if (error?.code === 3) {
+          setNearbyError('Истекло время ожидания геолокации.')
+          return
+        }
         setNearbyError('Не удалось получить местоположение.')
       },
       {
@@ -2668,7 +3011,22 @@ function App() {
 
     if (!shouldAutoRequest) return
 
-    handleRequestNearbyStations()
+    if (typeof navigator === 'undefined') return
+    const permissionsApi = (navigator as unknown as { permissions?: Permissions }).permissions
+    if (!permissionsApi?.query) {
+      return
+    }
+
+    void permissionsApi
+      .query({ name: 'geolocation' as PermissionName })
+      .then((status) => {
+        if (status.state === 'granted') {
+          handleRequestNearbyStations()
+        }
+      })
+      .catch(() => {
+        return
+      })
   }, [handleRequestNearbyStations])
 
   const handleFromChange = (value: string) => {
@@ -2708,6 +3066,10 @@ function App() {
     setFromSuggestionIndex(-1)
     setErrorMessage(null)
 
+    if (!isDesktop && !toStationId) {
+      focusIfNeeded(toInputRef.current)
+    }
+
     // Если уже есть валидное "Куда" — сразу считаем маршрут
     if (toId) {
       buildRouteByIds(stationId, toId)
@@ -2718,20 +3080,32 @@ function App() {
     if (errorMessage) return
     if (isDesktop) return
     if (event.touches.length === 0) return
+    if (shouldIgnoreSheetTouch(event.target)) return
 
-    recomputeSheetMaxOffsetPx()
+    markPerfInteraction()
 
-    if (sheetMaxOffsetPxRef.current <= 0) {
-      return
-    }
+    // Важно: НЕ делаем recomputeSheetMaxOffsetPx() внутри touchstart.
+    // Там куча layout-ридов (scrollHeight/getComputedStyle) и на low-tier
+    // это даёт фризы на сотни миллисекунд.
+    if (sheetMaxOffsetPxRef.current <= 0) return
 
-    if (!isRouteSheetOpen) {
-      setIsRouteSheetOpen(true)
-    }
     stopSheetSpring()
+    sheetTouchStartedOnButtonRef.current =
+      event.target instanceof Element && Boolean(event.target.closest('button, [role="button"]'))
+    sheetTouchStartedInSmartSuggestionsRef.current =
+      event.target instanceof Element &&
+      Boolean(
+        event.target.closest(
+          '.smart-suggestions-inline, .smart-suggestions, .smart-suggestions-row, .smart-suggestion-chip, .smart-suggestions-inline-chip',
+        ),
+      )
     const touch = event.touches[0]
-    sheetTouchStartYRef.current = touch.clientY
-    sheetTouchLastYRef.current = touch.clientY
+    sheetTouchStartYRef.current = touch.screenY
+    sheetTouchLastYRef.current = touch.screenY
+    sheetTouchStartXRef.current = touch.screenX
+    sheetTouchLastXRef.current = touch.screenX
+    sheetGestureAxisRef.current = 'pending'
+    sheetDeferredRecomputeRef.current = false
     sheetDragStartProgressRef.current = sheetProgressRef.current
 
     const now =
@@ -2744,14 +3118,30 @@ function App() {
   const handleSheetTouchMove = (event: TouchEvent) => {
     if (sheetTouchStartYRef.current == null) return
     if (event.touches.length === 0) return
+    markPerfInteraction()
     const touch = event.touches[0]
-    sheetTouchLastYRef.current = touch.clientY
+    sheetTouchLastYRef.current = touch.screenY
+    sheetTouchLastXRef.current = touch.screenX
+    const gestureThresholdPx = sheetTouchStartedOnButtonRef.current
+      ? sheetTouchStartedInSmartSuggestionsRef.current
+        ? 18
+        : 12
+      : 6
+    const axis = sheetGestureAxisRef.current
+    if (axis === 'pending') {
+      const startX = sheetTouchStartXRef.current ?? touch.screenX
+      const startY = sheetTouchStartYRef.current ?? touch.screenY
+      const dx = touch.screenX - startX
+      const dy = touch.screenY - startY
+      if (Math.abs(dx) >= gestureThresholdPx || Math.abs(dy) >= gestureThresholdPx) {
+        sheetGestureAxisRef.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+      } else {
+        return
+      }
+    }
+    if (sheetGestureAxisRef.current !== 'y') return
     const startY = sheetTouchStartYRef.current
     let dragRange = sheetMaxOffsetPxRef.current
-    if (!dragRange || dragRange <= 0) {
-      recomputeSheetMaxOffsetPx()
-      dragRange = sheetMaxOffsetPxRef.current
-    }
     if (!dragRange || dragRange <= 0) return
     const startProgress =
       sheetDragStartProgressRef.current != null
@@ -2759,7 +3149,7 @@ function App() {
         : isRouteSheetOpen
           ? 1
           : 0
-    const deltaY = touch.clientY - startY
+    const deltaY = touch.screenY - startY
     const nextProgress = Math.max(0, Math.min(1, startProgress - deltaY / dragRange))
 
     const now =
@@ -2790,10 +3180,17 @@ function App() {
   }
 
   const handleSheetTouchEnd = () => {
+    markPerfInteraction()
+    const axis = sheetGestureAxisRef.current
     const startY = sheetTouchStartYRef.current
     const lastY = sheetTouchLastYRef.current
     sheetTouchStartYRef.current = null
     sheetTouchLastYRef.current = null
+    sheetTouchStartXRef.current = null
+    sheetTouchLastXRef.current = null
+    sheetGestureAxisRef.current = null
+    sheetTouchStartedOnButtonRef.current = false
+    sheetTouchStartedInSmartSuggestionsRef.current = false
     sheetDragStartProgressRef.current = null
 
     // Очищаем отложенный кадр анимации drag'а, чтобы не было лишних
@@ -2813,6 +3210,19 @@ function App() {
 
     sheetDragLastSampleTimeRef.current = null
     sheetDragLastSampleProgressRef.current = null
+
+    if (sheetDeferredRecomputeRef.current) {
+      sheetDeferredRecomputeRef.current = false
+      window.requestAnimationFrame(() => {
+        recomputeSheetMaxOffsetPx()
+      })
+    }
+
+    if (axis !== 'y') {
+      const targetProgress = isRouteSheetOpen ? 1 : 0
+      startSheetSpring(targetProgress, 0)
+      return
+    }
 
     if (startY == null || lastY == null) return
 
@@ -2839,6 +3249,44 @@ function App() {
     startSheetSpring(targetProgress, initialVelocity * 0.35)
   }
 
+  const handleSheetTouchCancel = () => {
+    const axis = sheetGestureAxisRef.current
+    sheetTouchStartYRef.current = null
+    sheetTouchLastYRef.current = null
+    sheetTouchStartXRef.current = null
+    sheetTouchLastXRef.current = null
+    sheetGestureAxisRef.current = null
+    sheetTouchStartedOnButtonRef.current = false
+    sheetTouchStartedInSmartSuggestionsRef.current = false
+    sheetDragStartProgressRef.current = null
+
+    if (sheetAnimFrameRef.current != null) {
+      window.cancelAnimationFrame(sheetAnimFrameRef.current)
+      sheetAnimFrameRef.current = null
+    }
+    const pendingTarget = sheetAnimTargetRef.current
+    sheetAnimTargetRef.current = null
+    if (pendingTarget != null) {
+      updateSheetTransformDom(pendingTarget)
+    }
+
+    sheetDragLastSampleTimeRef.current = null
+    sheetDragLastSampleProgressRef.current = null
+    sheetDragVelocityRef.current = 0
+
+    if (sheetDeferredRecomputeRef.current) {
+      sheetDeferredRecomputeRef.current = false
+      window.requestAnimationFrame(() => {
+        recomputeSheetMaxOffsetPx()
+      })
+    }
+
+    if (axis === 'y' || axis === 'pending') {
+      const targetProgress = isRouteSheetOpen ? 1 : 0
+      startSheetSpring(targetProgress, 0)
+    }
+  }
+
   const handleSelectToSuggestion = (stationId: string) => {
     const station = stationById.get(stationId)
     if (!station) return
@@ -2858,6 +3306,77 @@ function App() {
 
     if (fromId) {
       buildRouteByIds(fromId, stationId)
+    }
+  }
+
+  const closeStationPickPopoverImmediate = useCallback(() => {
+    if (stationPickPopoverCloseTimeoutRef.current != null) {
+      window.clearTimeout(stationPickPopoverCloseTimeoutRef.current)
+      stationPickPopoverCloseTimeoutRef.current = null
+    }
+    setStationPickPopoverClosing(false)
+    setStationPickPopoverPressed(null)
+    setStationPickPopover(null)
+    setStationPickPopoverPos(null)
+  }, [])
+
+  const closeStationPickPopoverAnimated = useCallback(
+    ({ delayMs }: { delayMs?: number } = {}) => {
+      const exitMs = 160
+      const delay = delayMs ?? 0
+      if (stationPickPopoverCloseTimeoutRef.current != null) {
+        window.clearTimeout(stationPickPopoverCloseTimeoutRef.current)
+        stationPickPopoverCloseTimeoutRef.current = null
+      }
+
+      stationPickPopoverCloseTimeoutRef.current = window.setTimeout(() => {
+        setStationPickPopoverClosing(true)
+        stationPickPopoverCloseTimeoutRef.current = window.setTimeout(() => {
+          closeStationPickPopoverImmediate()
+        }, exitMs)
+      }, delay)
+    },
+    [closeStationPickPopoverImmediate],
+  )
+
+  const applyStationToField = (mode: 'from' | 'to', stationId: string, stationName: string) => {
+    if (mode === 'from') {
+      const toId = toStationId
+      if (toId && stationId === toId) {
+        return
+      }
+
+      setFromStation(stationName)
+      setFromFixed(true)
+      setFromStationId(stationId)
+      setFromSuggestionIndex(-1)
+      setErrorMessage(null)
+
+      if (toId) {
+        buildRouteByIds(stationId, toId)
+      } else {
+        clearRoutes()
+        setRouteSheetOpenState(false)
+      }
+      return
+    }
+
+    const fromId = fromStationId
+    if (fromId && stationId === fromId) {
+      return
+    }
+
+    setToStation(stationName)
+    setToFixed(true)
+    setToStationId(stationId)
+    setToSuggestionIndex(-1)
+    setErrorMessage(null)
+
+    if (fromId) {
+      buildRouteByIds(fromId, stationId)
+    } else {
+      clearRoutes()
+      setRouteSheetOpenState(false)
     }
   }
 
@@ -3021,49 +3540,113 @@ function App() {
     }
   }
 
-  const handleMapSelect = (id: string, name: string) => {
-    const hasFrom = !!fromStationId
-    const hasTo = !!toStationId
+  const handleMapSelect = useCallback((
+    id: string,
+    name: string,
+    clientPoint?: { x: number; y: number; t?: number },
+  ) => {
+    if (!clientPoint) {
+      return
+    }
+    if (import.meta.env.DEV) {
+      stationPickPopoverPerfRef.current = { openedAt: performance.now(), tapAt: clientPoint.t }
+      console.log(`[perf][popover] open station=${id} tapAt=${clientPoint.t != null ? clientPoint.t.toFixed(1) : 'n/a'}`)
+    }
+    if (stationPickPopoverCloseTimeoutRef.current != null) {
+      window.clearTimeout(stationPickPopoverCloseTimeoutRef.current)
+      stationPickPopoverCloseTimeoutRef.current = null
+    }
+    startTransition(() => {
+      setStationPickPopoverClosing(false)
+      setStationPickPopoverPressed(null)
+      setStationPickPopover({ stationId: id, stationName: name, clientPoint })
+    })
+  }, [])
 
-    // Первая выбранная станция — всегда "Откуда"
-    if (!hasFrom) {
-      setFromStation(name)
-      setFromFixed(true)
-      setFromStationId(id)
-      clearRoutes()
-      setErrorMessage(null)
+  const handleMapInteraction = useCallback(() => {
+    markPerfInteraction()
+    if (!isDesktop && routeResult && !errorMessage) {
       setRouteSheetOpenState(false)
-      return
+    }
+  }, [markPerfInteraction, isDesktop, routeResult, errorMessage, setRouteSheetOpenState])
+
+  useEffect(() => {
+    if (!stationPickPopover) return
+    if (typeof window === 'undefined') return
+
+    let rafId = 0
+    rafId = window.requestAnimationFrame(() => {
+      const el = stationPickPopoverRef.current
+      if (!el) return
+
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const rect = el.getBoundingClientRect()
+
+      const margin = 8
+      const gap = 20
+      const nudgeX = 10
+
+      const preferTop = stationPickPopover.clientPoint.y - gap - rect.height
+      const top = preferTop < margin ? stationPickPopover.clientPoint.y + gap : preferTop
+      const left = stationPickPopover.clientPoint.x - rect.width / 2 + nudgeX
+
+      const clampedLeft = Math.min(vw - margin - rect.width, Math.max(margin, left))
+      const clampedTop = Math.min(vh - margin - rect.height, Math.max(margin, top))
+
+      setStationPickPopoverPos({ left: clampedLeft, top: clampedTop })
+
+      if (import.meta.env.DEV) {
+        const perf = stationPickPopoverPerfRef.current
+        if (perf) {
+          const now = performance.now()
+          const openLatency = now - perf.openedAt
+          const tapLatency = perf.tapAt != null ? now - perf.tapAt : null
+          console.log(
+            `[perf][popover] positioned openLatency=${openLatency.toFixed(1)}ms tapLatency=${tapLatency != null ? tapLatency.toFixed(1) : 'n/a'}ms`,
+          )
+          stationPickPopoverPerfRef.current = null
+        }
+      }
+    })
+
+    return () => {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId)
+      }
+    }
+  }, [stationPickPopover])
+
+  useEffect(() => {
+    if (!stationPickPopover) return
+    if (typeof window === 'undefined') return
+    if (typeof document === 'undefined') return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeStationPickPopoverAnimated()
+      }
     }
 
-    // Вторая — "Куда" и сразу строим маршрут
-    if (!hasTo) {
-      if (fromStationId && fromStationId === id) {
-        clearRoutes()
-        setRouteSheetOpenState(false)
-        return
-      }
-
-      setToStation(name)
-      setToFixed(true)
-      setToStationId(id)
-      if (fromStationId) {
-        buildRouteByIds(fromStationId, id)
-      }
-      return
+    const onPointerDown = (event: PointerEvent) => {
+      const el = stationPickPopoverRef.current
+      if (!el) return
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (el.contains(target)) return
+      closeStationPickPopoverAnimated()
     }
 
-    // Третье и последующие нажатия: сброс и начало с новой "Откуда"
-    setFromStation(name)
-    setFromFixed(true)
-    setFromStationId(id)
-    setToStation('')
-    setToFixed(false)
-    setToStationId(null)
-    clearRoutes()
-    setErrorMessage(null)
-    setRouteSheetOpenState(false)
-  }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', closeStationPickPopoverImmediate)
+    document.addEventListener('pointerdown', onPointerDown, true)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', closeStationPickPopoverImmediate)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+    }
+  }, [stationPickPopover, closeStationPickPopoverAnimated, closeStationPickPopoverImmediate])
 
   const currentSelectionMode: 'from' | 'to' = !fromStationId
     ? 'from'
@@ -3125,6 +3708,7 @@ function App() {
 
   return (
     <div className={`app-root${isSplashActive ? ' app-root--splash-active' : ''}`}>
+      <div className="app-status-bar-fill" aria-hidden="true" />
       {isSplashMounted && (
         <SplashScreen
           isDone={isSplashDone && isMapReady}
@@ -3149,17 +3733,14 @@ function App() {
           editorLayoutOverrides={lastLayoutOverrides}
           editorLayoutApplyToken={editorLayoutApplyToken}
           collisionDebug={EDITOR_ENABLED && collisionDebug}
-          onMapInteraction={() => {
-            if (!isDesktop && routeResult && !errorMessage) {
-              setRouteSheetOpenState(false)
-            }
-          }}
+          onMapInteraction={handleMapInteraction}
           onEditStationInspect={handleInspectStation}
           stationHubOverrides={stationHubOverrides}
           hiddenStationIds={hiddenStationIdSet}
           visibleInsets={mapVisibleInsets}
+          getBottomInsetPx={getBottomInsetPx}
           stationTitleOverrides={stationTitleOverridesForMap}
-          extraStations={Object.values(manualStations)}
+          extraStations={extraStationsForMap}
           hubRotateCommand={hubRotateCommand}
           hubMirrorCommand={hubMirrorCommand}
           editorFocusCommand={editorFocusCommand}
@@ -3168,6 +3749,78 @@ function App() {
           routeSheetOpen={isRouteSheetOpen}
         />
       </div>
+
+      {!effectiveEditMode && stationPickPopover && (
+        <div
+          ref={stationPickPopoverRef}
+          className={`station-pick-popover${stationPickPopoverClosing ? ' station-pick-popover--closing' : ''}`}
+          style={
+            stationPickPopoverPos
+              ? { left: stationPickPopoverPos.left, top: stationPickPopoverPos.top }
+              : { left: 0, top: 0, visibility: 'hidden' }
+          }
+          role="dialog"
+          aria-label="Выбор поля для станции"
+        >
+          {(() => {
+            const st = stationById.get(stationPickPopover.stationId)
+            const override = stationOverrides[stationPickPopover.stationId]
+            const lineNumericId = (override?.lineNumericId ?? st?.lineNumericId) ?? null
+            const line = lineNumericId != null ? lineByNumericId.get(lineNumericId) : undefined
+            const lineColor = line?.colorHex
+
+            return (
+              <div className="station-pick-popover-header">
+                <span
+                  className="station-pick-popover-line-dot"
+                  style={{ backgroundColor: lineColor ?? 'var(--color-accent)' }}
+                  aria-hidden="true"
+                />
+                <div className="station-pick-popover-title">{stationPickPopover.stationName}</div>
+              </div>
+            )
+          })()}
+
+          <div className="station-pick-popover-actions">
+            <button
+              type="button"
+              className="station-pick-popover-button"
+              data-pressed={stationPickPopoverPressed === 'from' ? 'true' : undefined}
+              onClick={(event) => {
+                event.preventDefault()
+                if (import.meta.env.DEV) {
+                  console.log(`[perf][popover] button=from station=${stationPickPopover.stationId}`)
+                }
+                startTransition(() => {
+                  setStationPickPopoverPressed('from')
+                  applyStationToField('from', stationPickPopover.stationId, stationPickPopover.stationName)
+                })
+                closeStationPickPopoverAnimated({ delayMs: 120 })
+              }}
+            >
+              Откуда
+            </button>
+            <button
+              type="button"
+              className="station-pick-popover-button"
+              data-pressed={stationPickPopoverPressed === 'to' ? 'true' : undefined}
+              onClick={(event) => {
+                event.preventDefault()
+                if (import.meta.env.DEV) {
+                  console.log(`[perf][popover] button=to station=${stationPickPopover.stationId}`)
+                }
+                startTransition(() => {
+                  setStationPickPopoverPressed('to')
+                  applyStationToField('to', stationPickPopover.stationId, stationPickPopover.stationName)
+                })
+                closeStationPickPopoverAnimated({ delayMs: 120 })
+              }}
+            >
+              Куда
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="app-overlay">
         {!effectiveEditMode && isPrimaryUiReady && (
@@ -3268,6 +3921,7 @@ function App() {
               onTouchStart={handleSheetTouchStart}
               onTouchMove={handleSheetTouchMove}
               onTouchEnd={handleSheetTouchEnd}
+              onTouchCancel={handleSheetTouchCancel}
             >
               <div ref={sheetMinVisibleRef} className="bottom-sheet-min">
                 {routeResult && !errorMessage && !isDesktop && (
@@ -3440,6 +4094,29 @@ function App() {
                     </section>
                   )}
 
+                <RouteForm
+                  fromStation={fromStation}
+                  toStation={toStation}
+                  fromSuggestions={fromSuggestions}
+                  toSuggestions={toSuggestions}
+                  fromSuggestionIndex={fromSuggestionIndex}
+                  toSuggestionIndex={toSuggestionIndex}
+                  fromSelectedColor={fromSelectedColor}
+                  toSelectedColor={toSelectedColor}
+                  fromInputRef={fromInputRef}
+                  toInputRef={toInputRef}
+                  onFromChange={handleFromChange}
+                  onToChange={handleToChange}
+                  onFromKeyDown={handleFromKeyDown}
+                  onToKeyDown={handleToKeyDown}
+                  onSelectFromSuggestion={handleSelectFromSuggestion}
+                  onSelectToSuggestion={handleSelectToSuggestion}
+                  onSwap={handleSwapStations}
+                  onClearFrom={() => handleFromChange('')}
+                  onClearTo={() => handleToChange('')}
+                  isDesktop={isDesktop}
+                />
+
                 {routeAlternatives.length > 1 && !errorMessage && !isDesktop && (
                   <div className="bottom-route-summary-wrapper">
                     <div className="bottom-route-summary-scroll">
@@ -3468,7 +4145,7 @@ function App() {
                             aria-label={`Выбрать маршрут: ${label}, ~${route.totalMinutes} мин, пересадок ${route.transfersCount}`}
                           >
                             <div className="bottom-route-chip-main">
-                              {label} • ⏱ {route.totalMinutes} мин
+                              <span className="bottom-route-chip-time">⏱ {route.totalMinutes} мин</span>
                             </div>
                             <div className="bottom-route-chip-sub">
                               Пересадок: {route.transfersCount}
@@ -3479,28 +4156,6 @@ function App() {
                     </div>
                   </div>
                 )}
-
-                <RouteForm
-                  fromStation={fromStation}
-                  toStation={toStation}
-                  fromSuggestions={fromSuggestions}
-                  toSuggestions={toSuggestions}
-                  fromSuggestionIndex={fromSuggestionIndex}
-                  toSuggestionIndex={toSuggestionIndex}
-                  fromSelectedColor={fromSelectedColor}
-                  toSelectedColor={toSelectedColor}
-                  fromInputRef={fromInputRef}
-                  toInputRef={toInputRef}
-                  onFromChange={handleFromChange}
-                  onToChange={handleToChange}
-                  onFromKeyDown={handleFromKeyDown}
-                  onToKeyDown={handleToKeyDown}
-                  onSelectFromSuggestion={handleSelectFromSuggestion}
-                  onSelectToSuggestion={handleSelectToSuggestion}
-                  onSwap={handleSwapStations}
-                  onClearFrom={() => handleFromChange('')}
-                  onClearTo={() => handleToChange('')}
-                />
               </div>
 
               <RouteDetailsSheet
@@ -3512,7 +4167,6 @@ function App() {
                 isDesktop={isDesktop}
                 isRouteSheetOpen={isRouteSheetOpen}
                 decoratedSegments={decoratedSegments}
-                getRouteVariantLabel={getRouteVariantLabel}
                 arrivalTimeLabel={routeArrivalTimeLabel}
                 detailsRef={routeDetailsRef}
                 isFavoriteRoute={isActiveRouteFavorite}
@@ -3527,7 +4181,7 @@ function App() {
             <button
               type="button"
               className={`editor-fab${effectiveEditMode ? ' editor-fab--active' : ''}`}
-              onClick={() => setEditMode((prev) => !prev)}
+              onClick={() => setEditMode((prev: boolean) => !prev)}
               aria-label={
                 effectiveEditMode ? 'Выключить режим редактора' : 'Включить режим редактора'
               }
@@ -3550,7 +4204,7 @@ function App() {
                   className={`editor-fab editor-fab--small${
                     collisionDebug ? ' editor-fab--active' : ''
                   }`}
-                  onClick={() => setCollisionDebug((prev) => !prev)}
+                  onClick={() => setCollisionDebug((prev: boolean) => !prev)}
                   aria-label={
                     collisionDebug
                       ? 'Выключить отладку коллизий подписей'

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, Ref } from 'react'
 import type { RouteResult } from '../metro/types'
 
@@ -34,7 +35,6 @@ interface RouteDetailsSheetProps {
   isRouteSheetOpen: boolean
   detailsStyle?: CSSProperties
   decoratedSegments: DecoratedSegment[]
-  getRouteVariantLabel: (index: number, routes: RouteResult[]) => string
   arrivalTimeLabel?: string | null
   detailsRef?: Ref<HTMLDivElement>
   isFavoriteRoute?: boolean
@@ -51,13 +51,28 @@ export function RouteDetailsSheet({
   isRouteSheetOpen,
   detailsStyle,
   decoratedSegments,
-  getRouteVariantLabel,
   arrivalTimeLabel,
   detailsRef,
   isFavoriteRoute,
   onToggleFavoriteRoute,
 }: RouteDetailsSheetProps) {
   const hasAlternatives = routeAlternatives.length > 1
+
+  const [stepsAnimToken, setStepsAnimToken] = useState(0)
+  const prevOpenRef = useRef<boolean>(false)
+
+  useEffect(() => {
+    const wasOpen = prevOpenRef.current
+    prevOpenRef.current = isRouteSheetOpen
+    if (isRouteSheetOpen && !wasOpen) {
+      setStepsAnimToken((v) => v + 1)
+    }
+  }, [isRouteSheetOpen])
+
+  useEffect(() => {
+    if (!isRouteSheetOpen) return
+    setStepsAnimToken((v) => v + 1)
+  }, [activeRouteIndex, isRouteSheetOpen])
 
   return (
     <>
@@ -75,7 +90,6 @@ export function RouteDetailsSheet({
                 <div className="route-choices-desktop-track">
                   {routeAlternatives.map((route, index) => {
                     const isActive = index === activeRouteIndex
-                    const label = getRouteVariantLabel(index, routeAlternatives)
                     return (
                       <button
                         key={index}
@@ -87,9 +101,11 @@ export function RouteDetailsSheet({
                           onChangeActiveRoute(index)
                         }}
                       >
-                        <div className="bottom-route-chip-main">{label}</div>
+                        <div className="bottom-route-chip-main">
+                          <span className="bottom-route-chip-time">⏱ {route.totalMinutes} мин</span>
+                        </div>
                         <div className="bottom-route-chip-sub">
-                          ⏱ {route.totalMinutes} мин • Пересадок: {route.transfersCount}
+                          Пересадок: {route.transfersCount}
                         </div>
                       </button>
                     )
@@ -130,11 +146,18 @@ export function RouteDetailsSheet({
                   </button>
                 )}
               </div>
-              <ol className="route-steps">
-                {decoratedSegments.map((segment) => {
+              <ol
+                key={stepsAnimToken}
+                className={`route-steps${isRouteSheetOpen ? ' route-steps--animate' : ''}`}
+              >
+                {decoratedSegments.map((segment, index) => {
                   if (segment.type === 'transfer') {
                     return (
-                      <li key={segment.key} className="route-step route-step--transfer">
+                      <li
+                        key={segment.key}
+                        className="route-step route-step--transfer"
+                        style={{ ['--stagger-index' as never]: index } as CSSProperties}
+                      >
                         <div className="line-pill line-pill--dual">
                           <span
                             className="line-pill-half"
@@ -168,7 +191,11 @@ export function RouteDetailsSheet({
                   }
 
                   return (
-                    <li key={segment.key} className="route-step">
+                    <li
+                      key={segment.key}
+                      className="route-step"
+                      style={{ ['--stagger-index' as never]: index } as CSSProperties}
+                    >
                       <div
                         className="line-pill"
                         style={

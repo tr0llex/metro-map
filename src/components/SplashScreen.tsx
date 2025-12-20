@@ -37,9 +37,10 @@ export function SplashScreen({ isDone, onDone, onHidden }: SplashScreenProps) {
       onClick={handleRootClick}
       onKeyDown={handleRootKeyDown}
       onTransitionEnd={handleTransitionEnd}
-      role="button"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Заставка приложения"
       tabIndex={0}
-      aria-label="Закрыть заставку"
     >
       <div className="app-splash-orbit">
         <div className="app-splash-orbit-inner" />
