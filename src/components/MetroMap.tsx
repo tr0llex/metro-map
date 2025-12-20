@@ -107,6 +107,80 @@ const LABEL_TEXT_COLOR = '#4b5563'
 const HUB_GROUPS_MIN_ZOOM = 0
 const FAR_TRANSFERS_MIN_ZOOM = 0
 
+type RingShape =
+  | { kind: 'circle'; cx: number; cy: number; r: number }
+  | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
+
+const getRingShapeForLine = (
+  lineId: number,
+  lineStationIds: string[],
+  positionedById: Map<string, PositionedStation>,
+): RingShape | null => {
+  const pts: { x: number; y: number }[] = []
+  for (const id of lineStationIds) {
+    const st = positionedById.get(id)
+    if (!st) continue
+    pts.push({ x: st.x, y: st.y })
+  }
+  if (pts.length < 3) return null
+
+  let cx = 0
+  let cy = 0
+  for (const p of pts) {
+    cx += p.x
+    cy += p.y
+  }
+  cx /= pts.length
+  cy /= pts.length
+
+  let rSum = 0
+  let sumDx2 = 0
+  let sumDy2 = 0
+  for (const p of pts) {
+    const dx = p.x - cx
+    const dy = p.y - cy
+    rSum += Math.hypot(dx, dy)
+    sumDx2 += dx * dx
+    sumDy2 += dy * dy
+  }
+  const baseR = rSum / pts.length
+  if (!Number.isFinite(baseR) || baseR <= 0) return null
+
+  if (lineId === 97) {
+    const varX = sumDx2 / pts.length
+    const varY = sumDy2 / pts.length
+    if (Number.isFinite(varX) && Number.isFinite(varY) && varX > 0 && varY > 0) {
+      let ratio = Math.sqrt(varX / varY)
+      if (ratio < 1.1) ratio = 1.1
+      else if (ratio > 3.0) ratio = 3.0
+
+      const den = Math.sqrt((ratio * ratio + 1) / 2)
+      if (!Number.isFinite(den) || den <= 0) return null
+      const s = baseR / den
+      const rx = ratio * s
+      const ry = s
+      if (!Number.isFinite(rx) || !Number.isFinite(ry) || rx <= 0 || ry <= 0) return null
+      return { kind: 'ellipse', cx, cy, rx, ry }
+    }
+  }
+
+  return { kind: 'circle', cx, cy, r: baseR }
+}
+
+const projectPointToRingShape = (shape: RingShape, x: number, y: number) => {
+  if (shape.kind === 'circle') {
+    const dx = x - shape.cx
+    const dy = y - shape.cy
+    const ang = Math.atan2(dy, dx)
+    return { x: shape.cx + shape.r * Math.cos(ang), y: shape.cy + shape.r * Math.sin(ang) }
+  }
+
+  const dx = x - shape.cx
+  const dy = y - shape.cy
+  const ang = Math.atan2(dy / shape.ry, dx / shape.rx)
+  return { x: shape.cx + shape.rx * Math.cos(ang), y: shape.cy + shape.ry * Math.sin(ang) }
+}
+
 // Внутренний флаг по умолчанию: отладочный режим коллизий подписей.
 // Управляется извне через prop collisionDebug, это значение используется как дефолт.
 const LABEL_COLLISION_DEBUG_DEFAULT = false
@@ -337,7 +411,7 @@ function computeStationLabelPlacements(
 
     const lines = splitLabelToLines(label, info.r)
     const lineHeight = labelFontPx + 2
-    const lineSpacing = labelFontPx * 0.25
+    const lineSpacing = labelFontPx * 0.12
     let maxLineWidth = 0
     for (const ln of lines) {
       const w = ctx.measureText(ln).width
@@ -534,10 +608,10 @@ function computeStationLabelPlacements(
             }
           }
 
-          const preferredMaxDist = isCenterZone ? 52 : isMiddleZone ? 72 : 96
+          const preferredMaxDist = isCenterZone ? 44 : isMiddleZone ? 60 : 84
           if (distToStation > preferredMaxDist) {
             const extra = distToStation - preferredMaxDist
-            score += extra * 12
+            score += extra * 16
           }
 
           if (Number.isFinite(nearestOtherDist2) && nearestOtherDist2 + 1e-3 < ownDist2) {
@@ -967,6 +1041,7 @@ export const MetroMap = memo(function MetroMap({
   const [dragStationIds, setDragStationIds] = useState<string[] | null>(null)
   const dragStartWorldRef = useRef<{ x: number; y: number } | null>(null)
   const dragInitialPositionsRef = useRef<Record<string, { x: number; y: number }>>({})
+  const dragRingShapesByLineIdRef = useRef<Map<number, RingShape>>(new Map())
 
   const positionedStations = useMemo(() => {
     const hidden = hiddenStationIds
@@ -1037,12 +1112,34 @@ export const MetroMap = memo(function MetroMap({
 
       // Применяем оверрайды из редактора, если они есть
       const overrideEntries = Object.entries(stationOverrides)
-      if (overrideEntries.length === 0) return base
-
       const overridesMap = new Map<string, { x: number; y: number }>(overrideEntries)
-      return base.map((st) => {
-        const ov = overridesMap.get(st.id)
-        return ov ? { ...st, x: ov.x, y: ov.y } : st
+
+      const withOverrides =
+        overrideEntries.length === 0
+          ? base
+          : base.map((st) => {
+              const ov = overridesMap.get(st.id)
+              return ov ? { ...st, x: ov.x, y: ov.y } : st
+            })
+
+      const byId = new Map<string, PositionedStation>()
+      for (const st of withOverrides) byId.set(st.id, st)
+
+      const ringShapesByLineId = new Map<number, RingShape>()
+      for (const line of fullGraphLines) {
+        if (!RING_LINE_IDS.has(line.id)) continue
+        const shape = getRingShapeForLine(line.id, line.stationIds, byId)
+        if (shape) ringShapesByLineId.set(line.id, shape)
+      }
+
+      if (ringShapesByLineId.size === 0) return withOverrides
+
+      return withOverrides.map((st) => {
+        if (typeof st.lineId !== 'number') return st
+        const shape = ringShapesByLineId.get(st.lineId)
+        if (!shape) return st
+        const p = projectPointToRingShape(shape, st.x, st.y)
+        return { ...st, x: p.x, y: p.y }
       })
     }
 
@@ -2111,6 +2208,39 @@ export const MetroMap = memo(function MetroMap({
       const baseWidth = isRing ? BASE_RING_LINE_WIDTH : BASE_LINE_WIDTH
       const baseAlpha = hasRoute ? BASE_LINE_ALPHA_WITH_ROUTE : BASE_LINE_ALPHA_NO_ROUTE
 
+      if (isRing) {
+        const shape = getRingShapeForLine(line.id, ids, positionedById)
+        if (shape) {
+          // Halo
+          ctx.save()
+          ctx.strokeStyle = lineHaloColor
+          ctx.lineWidth = baseWidth + 2.4
+          ctx.globalAlpha = Math.min(1, baseAlpha * 1.35)
+          ctx.beginPath()
+          if (shape.kind === 'circle') {
+            ctx.arc(shape.cx, shape.cy, shape.r, 0, Math.PI * 2)
+          } else {
+            ctx.ellipse(shape.cx, shape.cy, shape.rx, shape.ry, 0, 0, Math.PI * 2)
+          }
+          ctx.stroke()
+          ctx.restore()
+
+          // Main stroke
+          ctx.strokeStyle = line.colorHex
+          ctx.lineWidth = baseWidth
+          ctx.globalAlpha = baseAlpha
+          ctx.beginPath()
+          if (shape.kind === 'circle') {
+            ctx.arc(shape.cx, shape.cy, shape.r, 0, Math.PI * 2)
+          } else {
+            ctx.ellipse(shape.cx, shape.cy, shape.rx, shape.ry, 0, 0, Math.PI * 2)
+          }
+          ctx.stroke()
+
+          continue
+        }
+      }
+
       const segmentCount = isRing ? ids.length : ids.length - 1
 
       for (let i = 0; i < segmentCount; i += 1) {
@@ -2705,7 +2835,7 @@ export const MetroMap = memo(function MetroMap({
       labelCtx.scale(viewport.scale, viewport.scale)
 
       const lineHeight = labelFontPx + 2
-      const lineSpacing = labelFontPx * 0.25
+      const lineSpacing = labelFontPx * 0.12
 
       for (const placement of labelPlacements) {
         const text = placement.text
@@ -3211,6 +3341,19 @@ export const MetroMap = memo(function MetroMap({
           setDragStationIds(idsToDrag)
           dragInitialPositionsRef.current = initialPositions
           dragStartWorldRef.current = world
+
+          const nextRingShapes = new Map<number, RingShape>()
+          for (const id of idsToDrag) {
+            const st = positionedById.get(id)
+            if (!st || typeof st.lineId !== 'number' || !RING_LINE_IDS.has(st.lineId)) continue
+            if (nextRingShapes.has(st.lineId)) continue
+            const line = fullGraphLines.find((l) => l.id === st.lineId)
+            if (!line) continue
+            const shape = getRingShapeForLine(st.lineId, line.stationIds, positionedById)
+            if (shape) nextRingShapes.set(st.lineId, shape)
+          }
+          dragRingShapesByLineIdRef.current = nextRingShapes
+
           return
         }
       }
@@ -3245,6 +3388,17 @@ export const MetroMap = memo(function MetroMap({
         for (const id of dragStationIds) {
           const base = initial[id]
           if (!base) continue
+
+          const st = positionedById.get(id)
+          if (st && typeof st.lineId === 'number') {
+            const shape = dragRingShapesByLineIdRef.current.get(st.lineId)
+            if (shape) {
+              const p = projectPointToRingShape(shape, base.x + dxWorld, base.y + dyWorld)
+              next[id] = { x: p.x, y: p.y }
+              continue
+            }
+          }
+
           next[id] = { x: base.x + dxWorld, y: base.y + dyWorld }
         }
         return next
@@ -3297,6 +3451,7 @@ export const MetroMap = memo(function MetroMap({
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
+      dragRingShapesByLineIdRef.current = new Map()
     }
     setIsPanning(false)
     lastPointRef.current = null
@@ -3310,6 +3465,7 @@ export const MetroMap = memo(function MetroMap({
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
+      dragRingShapesByLineIdRef.current = new Map()
     }
     setIsPanning(false)
     lastPointRef.current = null
@@ -3390,6 +3546,19 @@ export const MetroMap = memo(function MetroMap({
           setDragStationIds(idsToDrag)
           dragInitialPositionsRef.current = initialPositions
           dragStartWorldRef.current = world
+
+          const nextRingShapes = new Map<number, RingShape>()
+          for (const id of idsToDrag) {
+            const st = positionedById.get(id)
+            if (!st || typeof st.lineId !== 'number' || !RING_LINE_IDS.has(st.lineId)) continue
+            if (nextRingShapes.has(st.lineId)) continue
+            const line = fullGraphLines.find((l) => l.id === st.lineId)
+            if (!line) continue
+            const shape = getRingShapeForLine(st.lineId, line.stationIds, positionedById)
+            if (shape) nextRingShapes.set(st.lineId, shape)
+          }
+          dragRingShapesByLineIdRef.current = nextRingShapes
+
           return
         }
       }
@@ -3491,6 +3660,17 @@ export const MetroMap = memo(function MetroMap({
         for (const id of dragStationIds) {
           const base = initial[id]
           if (!base) continue
+
+          const st = positionedById.get(id)
+          if (st && typeof st.lineId === 'number') {
+            const shape = dragRingShapesByLineIdRef.current.get(st.lineId)
+            if (shape) {
+              const p = projectPointToRingShape(shape, base.x + dxWorld, base.y + dyWorld)
+              next[id] = { x: p.x, y: p.y }
+              continue
+            }
+          }
+
           next[id] = { x: base.x + dxWorld, y: base.y + dyWorld }
         }
         return next
@@ -3598,6 +3778,7 @@ export const MetroMap = memo(function MetroMap({
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
+      dragRingShapesByLineIdRef.current = new Map()
     }
 
     if (isPanning) {

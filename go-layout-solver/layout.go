@@ -48,11 +48,14 @@ func ApplyLayout(graph *FullGraphExport) error {
 		st.LayoutY = (1 - ny) * baseHeight
 	}
 
+	enforceRing(&graph.Lines, stationMap)
+
 	// 1b. Если есть координаты Яндекса, используем их как основной якорь для layout:
 	// подбираем глобальный scale + сдвиг из системы Яндекса в текущие layout-координаты
 	// и жёстко (alpha=1) переносим станции с Яндекс-координатами в эти позиции.
 	if hasYandex {
 		applyYandexAnchors(stationMap, 1.0)
+		enforceRing(&graph.Lines, stationMap)
 		// Даже в Яндекс-режиме слегка уплотняем пересадочные хабы: все станции
 		// внутри одного хаба должны оказаться в одной точке, чтобы визуально
 		// восприниматься как единый пересадочный узел.
@@ -71,14 +74,19 @@ func ApplyLayout(graph *FullGraphExport) error {
 		// 2. Компактизируем хабы, отдавая приоритет станциям на кольцах
 		snapAllTransferHubs(graph.TransferHubs, stationMap)
 
-		// 3. Лёгкое сглаживание не-кольцевых линий
-		smoothNonRingLines(&graph.Lines, stationMap, 3)
+		explodeInnerStationsAroundRing(&graph.Lines, stationMap)
 
-		// 4. Мягкое раздвижение слишком близких станций
-		optimizeDistances(stationMap, 35, 45, 6)
+		applyOctilinearCorridors(&graph.Lines, stationMap)
 
-		// 5. Повторный снап хабов после смещений
+		applyOctilinearLayout(&graph.Lines, stationMap)
+
+		smoothNonRingLines(&graph.Lines, stationMap, 12)
+
+		optimizeDistances(stationMap, 30, 50, 50)
+
 		snapAllTransferHubs(graph.TransferHubs, stationMap)
+
+		smoothNonRingLines(&graph.Lines, stationMap, 10)
 	}
 
 	// 6. Масштабируем под целевой размер (только центрирование)
@@ -674,36 +682,54 @@ func snapAllTransferHubs(hubs []FullGraphTransferHub, stationMap map[string]*Ful
 			continue
 		}
 
-		// Все станции хаба размещаем на небольшой окружности вокруг центра так,
-		// чтобы соседние кружки соприкасались, но не перекрывались.
 		validStations := make([]*FullGraphStation, 0, len(hub.StationIDs))
+		ringStations := make([]*FullGraphStation, 0, 2)
+		otherStations := make([]*FullGraphStation, 0, len(hub.StationIDs))
 		for _, sid := range hub.StationIDs {
 			st := stationMap[sid]
-			if st != nil {
-				validStations = append(validStations, st)
+			if st == nil {
+				continue
+			}
+			validStations = append(validStations, st)
+			if _, isRing := ringLineIDs[st.LineNumericID]; isRing {
+				ringStations = append(ringStations, st)
+			} else {
+				otherStations = append(otherStations, st)
 			}
 		}
 		if len(validStations) == 0 {
 			continue
 		}
-		if len(validStations) == 1 {
-			st := validStations[0]
-			st.LayoutX = cx
-			st.LayoutY = cy
+
+		if len(ringStations) > 0 {
+			cx = 0
+			cy = 0
+			for _, st := range ringStations {
+				cx += st.LayoutX
+				cy += st.LayoutY
+			}
+			cx /= float64(len(ringStations))
+			cy /= float64(len(ringStations))
+		}
+
+		if len(otherStations) == 0 {
 			continue
 		}
 
-		n := len(validStations)
+		n := len(otherStations)
 		dMin := 16.0
 		var radius float64
-		if n == 2 {
+		if n == 1 {
+			radius = dMin
+		} else if n == 2 {
 			radius = dMin / 2
 		} else {
 			radius = dMin / (2 * math.Sin(math.Pi/float64(n)))
 		}
 
-		for idx, st := range validStations {
-			angle := 2 * math.Pi * float64(idx) / float64(n)
+		baseAngle := math.Atan2(cy, cx) + math.Pi/2
+		for idx, st := range otherStations {
+			angle := baseAngle + 2*math.Pi*float64(idx)/float64(n)
 			st.LayoutX = cx + radius*math.Cos(angle)
 			st.LayoutY = cy + radius*math.Sin(angle)
 		}

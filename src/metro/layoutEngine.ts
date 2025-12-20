@@ -32,12 +32,13 @@ export const defaultLayoutParams: LayoutParams = {
 }
 
 // Идентификаторы кольцевых линий во fullGraph: Кольцевая (id=5) и МЦК (id=12)
-const RING_LINE_IDS = new Set<number>([5, 12])
+const RING_LINE_IDS = new Set<number>([5, 95, 97])
 
 const RING_BASE_START_ANGLE = -Math.PI / 2
 const RING_ANGLE_OFFSETS = new Map<number, number>([
   [5, 0],
-  [12, 0],
+  [95, 0],
+  [97, 0],
 ])
 
 const RADIAL_SNAP_STEP = Math.PI / 4
