@@ -40,6 +40,9 @@ import type {
   EdgeOverride,
   FullGraphStation,
   EditorOverrides,
+  EditorOverridesGrid,
+  EditorOverridesRingShape,
+  EditorOverridesStationLayoutParams,
 } from './metro/types.ts'
 import { MetroMap } from './components/MetroMap.tsx'
 import { useRegisterSW } from 'virtual:pwa-register/react'
@@ -84,6 +87,10 @@ type EditorSnapshot = {
   hiddenStations: Record<string, true>
   lastLayoutOverrides: Record<string, { x: number; y: number }>
   hubRotationOverrides: Record<string, number>
+
+  canonicalGrid: EditorOverridesGrid
+  canonicalRingShapes: Record<string, EditorOverridesRingShape>
+  canonicalStationParams: Record<string, EditorOverridesStationLayoutParams>
 }
 
 type EditorHistoryState = {
@@ -104,7 +111,10 @@ function areEditorSnapshotsShallowEqual(a: EditorSnapshot | undefined, b: Editor
     a.manualEdges === b.manualEdges &&
     a.hiddenStations === b.hiddenStations &&
     a.lastLayoutOverrides === b.lastLayoutOverrides &&
-    a.hubRotationOverrides === b.hubRotationOverrides
+    a.hubRotationOverrides === b.hubRotationOverrides &&
+    a.canonicalGrid === b.canonicalGrid &&
+    a.canonicalRingShapes === b.canonicalRingShapes &&
+    a.canonicalStationParams === b.canonicalStationParams
   )
 }
 
@@ -178,6 +188,11 @@ function App() {
   >({})
   const [hubMinOverrides, setHubMinOverrides] = useState<Record<string, number>>({})
   const [hubRotationOverrides, setHubRotationOverrides] = useState<Record<string, number>>({})
+  const [canonicalGrid, setCanonicalGrid] = useState<EditorOverridesGrid>({ stepPx: 8 })
+  const [canonicalRingShapes, setCanonicalRingShapes] = useState<Record<string, EditorOverridesRingShape>>({})
+  const [canonicalStationParams, setCanonicalStationParams] = useState<
+    Record<string, EditorOverridesStationLayoutParams>
+  >({})
   const [manualStations, setManualStations] = useState<Record<string, FullGraphStation>>({})
   const [manualEdges, setManualEdges] = useState<Record<string, FullGraphEdge>>({})
   const [newEdgeTarget, setNewEdgeTarget] = useState('')
@@ -433,6 +448,10 @@ function App() {
       hiddenStations,
       lastLayoutOverrides,
       hubRotationOverrides,
+
+      canonicalGrid,
+      canonicalRingShapes,
+      canonicalStationParams,
     }
   }, [
     stationOverrides,
@@ -444,6 +463,10 @@ function App() {
     hiddenStations,
     lastLayoutOverrides,
     hubRotationOverrides,
+
+    canonicalGrid,
+    canonicalRingShapes,
+    canonicalStationParams,
   ])
 
   const pushEditorHistory = useCallback(() => {
@@ -479,7 +502,24 @@ function App() {
     setLastLayoutOverrides(snapshot.lastLayoutOverrides)
     setEditorLayoutApplyToken((prev: number) => prev + 1)
     setHubRotationOverrides(snapshot.hubRotationOverrides)
+
+    setCanonicalGrid(snapshot.canonicalGrid)
+    setCanonicalRingShapes(snapshot.canonicalRingShapes)
+    setCanonicalStationParams(snapshot.canonicalStationParams)
   }, [])
+
+  const handleCanonicalLayoutChange = useCallback(
+    (payload: {
+      grid: { stepPx: number }
+      ringShapes: Record<string, EditorOverridesRingShape>
+      stationParams: Record<string, EditorOverridesStationLayoutParams>
+    }) => {
+      setCanonicalGrid(payload.grid)
+      setCanonicalRingShapes(payload.ringShapes)
+      setCanonicalStationParams(payload.stationParams)
+    },
+    [],
+  )
 
   const handleEditorUndo = useCallback(() => {
     setEditorHistory((prev: EditorHistoryState) => {
@@ -3730,6 +3770,7 @@ function App() {
           routeLongTransferEdgeKeys={routeLongTransferEdgeKeys}
           editMode={effectiveEditMode}
           onLayoutChange={handleLayoutChange}
+          onCanonicalLayoutChange={handleCanonicalLayoutChange}
           editorLayoutOverrides={lastLayoutOverrides}
           editorLayoutApplyToken={editorLayoutApplyToken}
           collisionDebug={EDITOR_ENABLED && collisionDebug}
@@ -4435,6 +4476,10 @@ function App() {
                         lines,
                         edges,
                         hubs,
+
+                        grid: canonicalGrid,
+                        ringShapes: canonicalRingShapes,
+                        stationParams: canonicalStationParams,
                       }
 
                       const json = JSON.stringify(editorOverrides, null, 2)

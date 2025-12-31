@@ -39,6 +39,12 @@ func main() {
 		log.Fatalf("apply layout: %v", err)
 	}
 
+	// Канонические оверрайды (октосетка, формы колец/эллипса, theta для кольцевых станций)
+	// должны попадать в итоговый fullGraph.json, поэтому применяем их после layout.
+	if editorOv != nil {
+		ApplyCanonicalLayoutOverrides(&graph, editorOv)
+	}
+
 	if editorOv != nil && len(editorOv.Layout) > 0 {
 		ApplyLayoutOverrides(&graph, editorOv.Layout)
 	}

@@ -157,10 +157,46 @@ export interface EditorOverridesHub {
   rotationDeg?: number;
 }
 
+export interface EditorOverridesGrid {
+  stepPx?: number;
+}
+
+export type EditorOverridesRingShape =
+  | {
+      kind: 'circle';
+      cx?: number;
+      cy?: number;
+      r?: number;
+      thickness?: number;
+      rotateDeg?: number;
+      clockwise?: boolean;
+      thetaShift?: number;
+    }
+  | {
+      kind: 'superellipse';
+      cx?: number;
+      cy?: number;
+      rx?: number;
+      ry?: number;
+      n?: number;
+      thickness?: number;
+      rotateDeg?: number;
+      clockwise?: boolean;
+      thetaShift?: number;
+    };
+
+export interface EditorOverridesStationLayoutParams {
+  gridPos?: { gx: number; gy: number };
+  theta?: number;
+}
+
 export interface EditorOverrides {
   layout: Record<string, { x: number; y: number }>;
   stations: Record<string, EditorOverridesStation>;
   lines: Record<string, EditorOverridesLine>;
   edges: Record<string, EditorOverridesEdge>;
   hubs: Record<string, EditorOverridesHub>;
+  grid?: EditorOverridesGrid;
+  ringShapes?: Record<string, EditorOverridesRingShape>;
+  stationParams?: Record<string, EditorOverridesStationLayoutParams>;
 }

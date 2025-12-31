@@ -27,6 +27,13 @@ interface MetroMapProps {
   collisionDebug?: boolean
   /** Колбэк для передачи наружу текущих оверрайдов координат станций */
   onLayoutChange?: (overrides: Record<string, { x: number; y: number }>) => void
+
+  /** Канонические данные редактора для пайплайна (grid/ringShapes/theta), опционально */
+  onCanonicalLayoutChange?: (payload: {
+    grid: { stepPx: number }
+    ringShapes: Record<string, CanonicalRingShape>
+    stationParams: Record<string, CanonicalStationParams>
+  }) => void
   editorLayoutOverrides?: Record<string, { x: number; y: number }>
   editorLayoutApplyToken?: number
   /** Колбэк при взаимодействии с картой (pan/zoom), например, чтобы сворачивать UI-шторки */
@@ -90,6 +97,8 @@ const HUB_DIM_ALPHA_WHEN_ROUTE = 0.35
 
 const HUB_ROTATE_STEP_RAD = (Math.PI / 180) * 15
 
+const EDITOR_GRID_STEP_PX = 8
+
 const ROUTE_PULSE_DURATION_MS = 1500
 const ROUTE_BUILD_DELAY_MS = 180
 const ROUTE_BUILD_DURATION_MS = 2100
@@ -110,6 +119,12 @@ const FAR_TRANSFERS_MIN_ZOOM = 0
 type RingShape =
   | { kind: 'circle'; cx: number; cy: number; r: number }
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
+
+type CanonicalRingShape =
+  | { kind: 'circle'; cx: number; cy: number; r: number }
+  | { kind: 'superellipse'; cx: number; cy: number; rx: number; ry: number; n: number }
+
+type CanonicalStationParams = { gridPos?: { gx: number; gy: number }; theta?: number }
 
 const getRingShapeForLine = (
   lineId: number,
@@ -179,6 +194,20 @@ const projectPointToRingShape = (shape: RingShape, x: number, y: number) => {
   const dy = y - shape.cy
   const ang = Math.atan2(dy / shape.ry, dx / shape.rx)
   return { x: shape.cx + shape.rx * Math.cos(ang), y: shape.cy + shape.ry * Math.sin(ang) }
+}
+
+const thetaForRingShape = (shape: RingShape, x: number, y: number) => {
+  if (shape.kind === 'circle') {
+    return Math.atan2(y - shape.cy, x - shape.cx)
+  }
+  return Math.atan2((y - shape.cy) / shape.ry, (x - shape.cx) / shape.rx)
+}
+
+const canonicalRingShapeFromRingShape = (shape: RingShape): CanonicalRingShape => {
+  if (shape.kind === 'circle') {
+    return { kind: 'circle', cx: shape.cx, cy: shape.cy, r: shape.r }
+  }
+  return { kind: 'superellipse', cx: shape.cx, cy: shape.cy, rx: shape.rx, ry: shape.ry, n: 2 }
 }
 
 // Внутренний флаг по умолчанию: отладочный режим коллизий подписей.
@@ -681,6 +710,7 @@ export const MetroMap = memo(function MetroMap({
   editMode = false,
   collisionDebug,
   onLayoutChange,
+  onCanonicalLayoutChange,
   editorLayoutOverrides,
   editorLayoutApplyToken,
   onMapInteraction,
@@ -1027,6 +1057,8 @@ export const MetroMap = memo(function MetroMap({
   const [stationOverrides, setStationOverrides] = useState<Record<string, { x: number; y: number }>>(
     {},
   )
+
+  const lastCanonicalSnapshotRef = useRef<string | null>(null)
   const lastEditorLayoutApplyTokenRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -1510,7 +1542,48 @@ export const MetroMap = memo(function MetroMap({
 
     lastLayoutSnapshotRef.current = snapshot
     onLayoutChange(snapshot)
-  }, [positionedStations, onLayoutChange])
+
+    if (onCanonicalLayoutChange) {
+      const stationParams: Record<string, CanonicalStationParams> = {}
+      for (const [id, p] of Object.entries(snapshot)) {
+        const gx = Math.round(p.x / EDITOR_GRID_STEP_PX)
+        const gy = Math.round(p.y / EDITOR_GRID_STEP_PX)
+        const params: CanonicalStationParams = { gridPos: { gx, gy } }
+
+        const st = positionedById.get(id)
+        if (st && typeof st.lineId === 'number') {
+          const shape = dragRingShapesByLineIdRef.current.get(st.lineId)
+          if (shape) {
+            params.theta = thetaForRingShape(shape, p.x, p.y)
+            delete params.gridPos
+          }
+        }
+
+        stationParams[id] = params
+      }
+
+      const ringShapes: Record<string, CanonicalRingShape> = {}
+      for (const [lineId, shape] of dragRingShapesByLineIdRef.current.entries()) {
+        ringShapes[String(lineId)] = canonicalRingShapeFromRingShape(shape)
+      }
+
+      const payload = {
+        grid: { stepPx: EDITOR_GRID_STEP_PX },
+        ringShapes,
+        stationParams,
+      }
+      const key = JSON.stringify(payload)
+      if (lastCanonicalSnapshotRef.current !== key) {
+        lastCanonicalSnapshotRef.current = key
+        onCanonicalLayoutChange(payload)
+      }
+    }
+  }, [
+    positionedStations,
+    onLayoutChange,
+    onCanonicalLayoutChange,
+    positionedById,
+  ])
 
   useEffect(() => {
     if (!editMode) {
@@ -3399,7 +3472,11 @@ export const MetroMap = memo(function MetroMap({
             }
           }
 
-          next[id] = { x: base.x + dxWorld, y: base.y + dyWorld }
+          const x = base.x + dxWorld
+          const y = base.y + dyWorld
+          const sx = Math.round(x / EDITOR_GRID_STEP_PX) * EDITOR_GRID_STEP_PX
+          const sy = Math.round(y / EDITOR_GRID_STEP_PX) * EDITOR_GRID_STEP_PX
+          next[id] = { x: sx, y: sy }
         }
         return next
       })
