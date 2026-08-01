@@ -58,8 +58,9 @@ ssh ubuntu@<host> 'sudo rm -rf /var/www/metro && sudo mv /var/www/metro.prev /va
 Настройки переопределяются переменными окружения: `METRO_SSH_HOST`, `METRO_SSH_KEY`,
 `METRO_DOMAIN`.
 
-> Автоматизировать деплой в GitHub Actions можно тем же скриптом — нужен секрет с приватным
-> SSH-ключом. Секреты задаёт владелец репозитория, поэтому workflow здесь не заведён намеренно.
+> Деплой из GitHub Actions заведён: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml),
+> запуск только вручную (workflow_dispatch) с выбором цели. Чтобы он заработал, владельцу
+> репозитория нужно добавить секрет `METRO_SSH_KEY` с приватным SSH-ключом.
 
 ### Требования к конфигу
 

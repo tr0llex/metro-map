@@ -257,8 +257,22 @@ export function findRouteAlternativesFullGraph(
   pushUnique(fewestTransfers);
 
   // Остальные маршруты сортируем по возрастанию времени.
+  //
+  // И отсекаем заведомо бессмысленные. Альтернативы получаются накопительным
+  // штрафованием уже найденных путей, поэтому после двух-трёх осмысленных
+  // вариантов поиск начинает возвращать крюки через полгорода. На соседних
+  // станциях это выглядело дико: Сокол → Аэропорт (один перегон, 3 минуты)
+  // предлагал ещё 54, 56, 57, 67 и 71 минуту.
+  //
+  // Порог держит и абсолютный, и относительный запас: короткие маршруты
+  // сравнивать в разах нельзя (3 → 6 минут это +100%, но всего 3 минуты
+  // разницы), длинные — в минутах.
+  const fastestMinutes = fastest.route.totalMinutes;
+  const worstAcceptableMinutes = Math.max(fastestMinutes + 12, fastestMinutes * 1.6);
+
   const others = candidates
     .filter((c) => c !== fastest && c !== fewestTransfers)
+    .filter((c) => c.route.totalMinutes <= worstAcceptableMinutes)
     .sort((a, b) => a.route.totalMinutes - b.route.totalMinutes);
 
   for (const c of others) {
