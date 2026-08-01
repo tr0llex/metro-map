@@ -133,6 +133,13 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    test: {
+      // .claude/worktrees — временные копии репозитория, которые создают
+      // фоновые агенты. Vitest подхватывал оттуда УСТАРЕВШИЕ копии тестов:
+      // 88 из 219 «пройденных» тестов приходили из чужого worktree, то есть
+      // число было завышено, а зелёный статус частично относился к старому коду.
+      exclude: ['**/node_modules/**', '**/dist/**', '**/dist-editor/**', '.claude/**'],
+    },
     build: {
       outDir: isEditorBuild ? 'dist-editor' : 'dist',
       rollupOptions: {
