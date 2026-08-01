@@ -16,7 +16,7 @@ import type {
 } from 'react'
 import './App.css'
 import './theme.css'
-import helloKittyIcon from './assets/kitty-metro-logo.svg'
+import appLogo from './assets/metro-logo.svg'
 import { InstallGuideCard } from './components/InstallGuideCard.tsx'
 import { UpdateBanner } from './components/UpdateBanner.tsx'
 import { SplashScreen } from './components/SplashScreen.tsx'
@@ -2944,8 +2944,8 @@ function App() {
         {!effectiveEditMode && isPrimaryUiReady && (
           <>
             <RouteHeader
-              logoSrc={helloKittyIcon}
-              logoAlt="Hello Kitty"
+              logoSrc={appLogo}
+              logoAlt="Метро Москвы"
               headerTitle={headerTitle}
               headerChipClassName={headerChipClassName}
               onChipClick={() => {

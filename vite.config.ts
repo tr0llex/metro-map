@@ -68,8 +68,8 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'prompt',
         includeAssets: [
-          'kitty-metro-icon-hello-kitty.svg',
-          'kitty-metro-icon-maskable.svg',
+          'metro-icon.svg',
+          'metro-icon-maskable.svg',
           'apple-touch-icon-180x180.png',
           'pwa-64x64.png',
           'pwa-192x192.png',
@@ -86,10 +86,10 @@ export default defineConfig(({ mode }) => {
         manifest: {
           id: '/',
           scope: '/',
-          name: 'Hello Kitty Метро Москва',
-          short_name: 'Kitty Metro',
+          name: 'Метро Москвы — схема и маршруты',
+          short_name: 'Метро Москвы',
           description:
-            'Розовое офлайн-приложение для построения маршрутов в московском метро во вселенной Hello Kitty.',
+            'Офлайн-схема московского метро: маршруты, пересадки и время в пути. Работает без интернета.',
           theme_color: '#f5f5f7',
           background_color: '#ffe4f1',
           display: 'standalone',
