@@ -1,10 +1,13 @@
-import { fullGraphEdges, fullGraphLines, fullGraphStations } from '../metro/fullGraph.ts'
+import {
+  fullGraphEdges,
+  fullGraphLines,
+  fullGraphStations,
+  fullGraphTransferHubs,
+} from '../metro/fullGraph.ts'
 import type {
   EdgeOverride,
   EditorOverrides,
-  EditorOverridesGrid,
   EditorOverridesRingShape,
-  EditorOverridesStationLayoutParams,
   FullGraphEdge,
   FullGraphStation,
 } from '../metro/types.ts'
@@ -20,10 +23,35 @@ export type BuildEditorOverridesInput = {
   edgeOverrides: Record<string, EdgeOverride>
   hubMinOverrides: Record<string, number>
   effectiveLineStationIdsById: Map<number, string[]>
-  canonicalGrid: EditorOverridesGrid
   canonicalRingShapes: Record<string, EditorOverridesRingShape>
-  canonicalStationParams: Record<string, EditorOverridesStationLayoutParams>
+  /**
+   * Зафиксировать формы колец в файле. По умолчанию false — см. комментарий
+   * к `buildEditorOverrides`. Вызывающий обязан спросить это у человека явно.
+   */
+  includeRingShapes?: boolean
   edgeKey: (a: string, b: string) => string
+}
+
+/**
+ * Сравнение строк по кодовым точкам — ровно то, что делает `sort.Strings` в Go
+ * (там сравниваются байты UTF-8, а их порядок совпадает с порядком кодовых
+ * точек). Штатный `Array.prototype.sort()` сортирует по кодовым ЕДИНИЦАМ UTF-16
+ * и на суррогатных парах расходится с Go. Для нынешних ASCII-идентификаторов
+ * разницы нет, но якорь обязан совпадать с Go по построению, а не по удаче.
+ */
+function compareByCodePoints(a: string, b: string): number {
+  const ac = Array.from(a)
+  const bc = Array.from(b)
+  const n = Math.min(ac.length, bc.length)
+  for (let i = 0; i < n; i += 1) {
+    const diff = ac[i].codePointAt(0)! - bc[i].codePointAt(0)!
+    if (diff !== 0) return diff
+  }
+  return ac.length - bc.length
+}
+
+export function sortStationIdsForAnchor(ids: readonly string[]): string[] {
+  return [...ids].sort(compareByCodePoints)
 }
 
 type StationEntry = {
@@ -38,6 +66,22 @@ type StationEntry = {
  * Собирает содержимое normalized/editor_overrides.json из текущего состояния
  * редактора. Правило одно: в файл попадает только то, что отличается от
  * базового графа (ручные станции/рёбра выгружаются целиком).
+ *
+ * ЧТО НАМЕРЕННО НЕ ЭКСПОРТИРУЕТСЯ
+ *
+ * `grid` и `stationParams` (в том числе `theta` — угол станции на кольце).
+ * В структуре `GraphOverrides` на стороне Go (`go-layout-solver/graph_overrides.go`)
+ * полей `Grid` и `StationParams` нет вообще, а `json.Decoder` молча игнорирует
+ * неизвестные ключи. То есть эти данные физически не могли доехать до солвера:
+ * человек задавал угол станции, ничего не менялось, диагностики не было.
+ * Пока Go их не читает, писать их в файл — значит держать ручку, не
+ * подключённую ни к чему.
+ *
+ * `ringShapes` — только по явному запросу (`includeRingShapes`). Ключ Go читает,
+ * но сейчас в `editor_overrides.json` его НЕТ, и формы колец подбираются
+ * автоматически (`fitBestRingShape` по станциям). Автоматический экспорт добавил
+ * бы ключ и молча переключил кольца с автоподгонки на жёстко заданную форму —
+ * геометрия поехала бы без единого следа в выводе.
  */
 export function buildEditorOverrides(input: BuildEditorOverridesInput): EditorOverrides {
   const {
@@ -50,9 +94,8 @@ export function buildEditorOverrides(input: BuildEditorOverridesInput): EditorOv
     edgeOverrides,
     hubMinOverrides,
     effectiveLineStationIdsById,
-    canonicalGrid,
     canonicalRingShapes,
-    canonicalStationParams,
+    includeRingShapes,
     edgeKey,
   } = input
 
@@ -206,25 +249,81 @@ export function buildEditorOverrides(input: BuildEditorOverridesInput): EditorOv
     }
   }
 
-  const hubs: Record<string, { minTransferSeconds?: number }> = {}
+  const hubs: Record<string, { stationIds?: string[]; minTransferSeconds?: number }> = {}
+
+  // ЯКОРЬ ХАБА. Ключ "hub-N" привязкой не является: номер выдаётся порядком
+  // обхода компонент связности при сборке графа, и любая дедупликация станций
+  // его сдвигает. Однажды так и вышло — 15 оверрайдов молча осиротели, а в
+  // файле не было ни одной улики о том, к какому узлу они относились.
+  // Поэтому к каждому оверрайду пишется состав узла (`stationIds`), по нему
+  // солвер и ищет хаб (`hubAnchorKey` в go-layout-solver/graph_overrides.go).
+  //
+  // Состав берётся из БАЗОВОГО графа, а не из «эффективного» состояния
+  // редактора: Go сопоставляет якорь с `graph.TransferHubs`, построенным из
+  // connections.json ДО применения оверрайдов. Переназначение станции в другой
+  // узел (`stations[].hubId`) состав `TransferHubs` на стороне Go не меняет
+  // вообще, а скрытие станций происходит уже ПОСЛЕ поиска по якорю. То есть
+  // базовый состав — единственное, что Go в этот момент видит.
+  const baseHubStationIds = new Map<string, readonly string[]>()
+  for (const hub of fullGraphTransferHubs) {
+    baseHubStationIds.set(hub.id, hub.stationIds)
+  }
+
+  // Запасной вариант — для узлов, которых в базовом графе нет (id придуман
+  // редактором). Совпасть с якорем в Go он не сможет, но зато в файле остаётся
+  // след состава, а солвер честно скажет «якорь не найден» вместо тихой
+  // привязки по нестабильному номеру.
+  const effectiveHubStationIds = () => {
+    const byHub = new Map<string, string[]>()
+    const add = (s: FullGraphStation) => {
+      if (hiddenStations[s.id]) return
+      const override = stationHubOverrides[s.id]
+      let hubId: string | null
+      if (override === null) hubId = null
+      else if (override !== undefined) hubId = override
+      else hubId = s.hubId ?? null
+      if (!hubId) return
+      const list = byHub.get(hubId)
+      if (list) list.push(s.id)
+      else byHub.set(hubId, [s.id])
+    }
+    for (const s of fullGraphStations) add(s)
+    for (const s of Object.values(manualStations)) add(s)
+    return byHub
+  }
+  let effectiveHubs: Map<string, string[]> | null = null
 
   for (const [hubId, seconds] of Object.entries(hubMinOverrides)) {
     if (!Number.isFinite(seconds)) continue
-    hubs[hubId] = {
-      ...(hubs[hubId] || {}),
-      minTransferSeconds: seconds,
+
+    let anchor = baseHubStationIds.get(hubId)
+    if (!anchor) {
+      effectiveHubs = effectiveHubs ?? effectiveHubStationIds()
+      anchor = effectiveHubs.get(hubId)
     }
+
+    const entry: { stationIds?: string[]; minTransferSeconds?: number } = {
+      ...(hubs[hubId] || {}),
+    }
+    if (anchor && anchor.length > 0) {
+      entry.stationIds = sortStationIdsForAnchor(anchor)
+    }
+    entry.minTransferSeconds = seconds
+
+    hubs[hubId] = entry
   }
 
-  return {
+  const result: EditorOverrides = {
     layout,
     stations,
     lines,
     edges,
     hubs,
-
-    grid: canonicalGrid,
-    ringShapes: canonicalRingShapes,
-    stationParams: canonicalStationParams,
   }
+
+  if (includeRingShapes && Object.keys(canonicalRingShapes).length > 0) {
+    result.ringShapes = canonicalRingShapes
+  }
+
+  return result
 }

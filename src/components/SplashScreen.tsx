@@ -1,6 +1,9 @@
 import type { KeyboardEvent, TransitionEvent } from 'react'
 import appLogo from '../assets/metro-logo.svg'
 
+/** Позиции и тайминги каждого узла заданы в стилях (.app-splash-node--N). */
+const NODE_INDEXES = [1, 2, 3, 4, 5, 6, 7, 8] as const
+
 interface SplashScreenProps {
   isDone: boolean
   onDone: () => void
@@ -42,45 +45,19 @@ export function SplashScreen({ isDone, onDone, onHidden }: SplashScreenProps) {
       aria-label="Заставка приложения"
       tabIndex={0}
     >
-      <div className="app-splash-orbit">
-        <div className="app-splash-orbit-inner" />
-      </div>
+      {/* Фоновый мотив: восемь «узлов» из фирменного знака (src/assets/splash-node.svg,
+          подключён маской в стилях — цвет берёт тема). Прежняя версия рендерила
+          шестнадцать сердец старого бренда, две звезды, орбиту и десять искр;
+          половина была скрыта стилями, остальное к новому знаку отношения не имеет,
+          поэтому из разметки убрано, а не спрятано. */}
       <div className="app-splash-floaters" aria-hidden="true">
-        <span className="app-splash-heart app-splash-heart--1" />
-        <span className="app-splash-heart app-splash-heart--2" />
-        <span className="app-splash-heart app-splash-heart--3" />
-        <span className="app-splash-heart app-splash-heart--4" />
-        <span className="app-splash-heart app-splash-heart--5" />
-        <span className="app-splash-heart app-splash-heart--6" />
-        <span className="app-splash-heart app-splash-heart--7" />
-        <span className="app-splash-heart app-splash-heart--8" />
-        <span className="app-splash-heart app-splash-heart--9" />
-        <span className="app-splash-heart app-splash-heart--10" />
-        <span className="app-splash-heart app-splash-heart--11" />
-        <span className="app-splash-heart app-splash-heart--12" />
-        <span className="app-splash-heart app-splash-heart--13" />
-        <span className="app-splash-heart app-splash-heart--14" />
-        <span className="app-splash-heart app-splash-heart--15" />
-        <span className="app-splash-heart app-splash-heart--16" />
-        <span className="app-splash-star app-splash-star--1" />
-        <span className="app-splash-star app-splash-star--2" />
-        <div className="app-splash-sparkles">
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-          <span className="app-splash-sparkle" />
-        </div>
+        {NODE_INDEXES.map((n) => (
+          <span key={n} className={`app-splash-node app-splash-node--${n}`} />
+        ))}
       </div>
       <div className="app-splash-card">
         <div className="app-splash-hero">
           <div className="app-splash-hero-avatar" aria-hidden="true">
-            <div className="app-splash-hero-avatar-ring" />
             <img src={appLogo} alt="Метро Москвы" className="app-splash-logo-img" />
           </div>
         </div>

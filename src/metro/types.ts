@@ -169,6 +169,13 @@ export interface EditorOverridesEdge {
 }
 
 export interface EditorOverridesHub {
+  /**
+   * Якорь: состав узла, отсортированный по кодовым точкам (как `sort.Strings`
+   * в Go). Именно по нему солвер находит хаб — ключ вида "hub-N" нестабилен,
+   * его сдвигает любая дедупликация станций. См. `hubAnchorKey`
+   * в `go-layout-solver/graph_overrides.go` и `buildEditorOverrides`.
+   */
+  stationIds?: string[];
   minTransferSeconds?: number;
 }
 
@@ -211,7 +218,16 @@ export interface EditorOverrides {
   lines: Record<string, EditorOverridesLine>;
   edges: Record<string, EditorOverridesEdge>;
   hubs: Record<string, EditorOverridesHub>;
-  grid?: EditorOverridesGrid;
   ringShapes?: Record<string, EditorOverridesRingShape>;
+
+  /**
+   * ВНИМАНИЕ: `grid` и `stationParams` (включая `theta`) солвер НЕ читает —
+   * в структуре `GraphOverrides` (`go-layout-solver/graph_overrides.go`) таких
+   * полей нет, а `json.Decoder` молча игнорирует неизвестные ключи. Поля
+   * оставлены в типе только для разбора уже существующих файлов; редактор их
+   * больше не экспортирует (см. `src/editor/exportOverrides.ts`). Прежде чем
+   * возвращать экспорт, нужно добавить соответствующие поля в Go.
+   */
+  grid?: EditorOverridesGrid;
   stationParams?: Record<string, EditorOverridesStationLayoutParams>;
 }

@@ -1,0 +1,3700 @@
+[
+ {
+  "touch": [
+   {
+    "tag": "canvas",
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "w": 390,
+    "h": 844
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "app-header-chip app-header-chip--has-route",
+    "label": "Планерная → Бунинская алле",
+    "w": 328,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-sheet-handle",
+    "label": "Раскрыть детали маршрута",
+    "w": 56,
+    "h": 44
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "w": 155.8,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "w": 155.8,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: Самый быс",
+    "w": 106.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 2",
+    "w": 104.9,
+    "h": 69.5
+   }
+  ],
+  "contrast": [
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "+",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "−",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "app-header-chip-title",
+    "txt": "Планерная → Бунинская алле",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 21,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 15.11,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "2 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 6.44,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "93 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "3 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "95 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "99 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "4 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "114 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "5 пересадок",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "137 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   }
+  ],
+  "focus": [
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: Самый быс",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 107,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 2",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 3",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 4",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 106,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 5",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 6",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "app-skip-link",
+    "label": "Перейти к вводу маршрута",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 239,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 390,
+    "h": 844,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "app-header-chip app-header-chip--has-route",
+    "label": "Планерная → Бунинская алле",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 328,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-sheet-handle",
+    "label": "Раскрыть детали маршрута",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 56,
+    "h": 6,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 156,
+    "h": 45,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 34,
+    "h": 34,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 156,
+    "h": 45,
+    "hasRing": true
+   }
+  ],
+  "name": "mobile-light"
+ },
+ {
+  "touch": [
+   {
+    "tag": "canvas",
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "w": 390,
+    "h": 844
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "app-header-chip app-header-chip--has-route",
+    "label": "Планерная → Бунинская алле",
+    "w": 328,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-sheet-handle",
+    "label": "Раскрыть детали маршрута",
+    "w": 56,
+    "h": 44
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "w": 155.8,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "w": 155.8,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: Самый быс",
+    "w": 106.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 2",
+    "w": 104.9,
+    "h": 69.5
+   }
+  ],
+  "contrast": [
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "+",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "−",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "app-header-chip-title",
+    "txt": "Планерная → Бунинская алле",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 15.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 9.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "2 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.18,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "93 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "3 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "95 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "99 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "4 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "114 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "5 пересадок",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "137 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   }
+  ],
+  "focus": [
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: Самый быс",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 107,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 2",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 3",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 4",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 106,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 5",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: Маршрут 6",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "app-skip-link",
+    "label": "Перейти к вводу маршрута",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 239,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 390,
+    "h": 844,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "app-header-chip app-header-chip--has-route",
+    "label": "Планерная → Бунинская алле",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 328,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-sheet-handle",
+    "label": "Раскрыть детали маршрута",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 56,
+    "h": 6,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 156,
+    "h": 45,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 34,
+    "h": 34,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 156,
+    "h": 45,
+    "hasRing": true
+   }
+  ],
+  "name": "mobile-dark"
+ },
+ {
+  "touch": [
+   {
+    "tag": "canvas",
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "w": 1440,
+    "h": 900
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "app-header-chip app-header-chip--has-route app",
+    "label": "Планерная → Бунинская алле",
+    "w": 296,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать недавние маршруты",
+    "w": 99.5,
+    "h": 30
+   },
+   {
+    "tag": "button",
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать станции рядом",
+    "w": 80.3,
+    "h": 30
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "w": 345.2,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "w": 345.2,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: ~89 мин, ",
+    "w": 106.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~93 мин, ",
+    "w": 104.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~95 мин, ",
+    "w": 104.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~99 мин, ",
+    "w": 106,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~114 мин,",
+    "w": 108.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~137 мин,",
+    "w": 108.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "route-share-button",
+    "label": "Поделиться ссылкой на марш",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "button",
+    "cls": "route-favorite-button",
+    "label": "Добавить маршрут в избранн",
+    "w": 46,
+    "h": 46
+   }
+  ],
+  "contrast": [
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "+",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "−",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "app-header-chip-title",
+    "txt": "Планерная → Бунинская алле",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 21,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "txt": "Недавние",
+    "size": 12,
+    "weight": 500,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "txt": "Рядом",
+    "size": 12,
+    "weight": 500,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 15.11,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "2 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 6.44,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "93 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "3 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "95 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "99 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "4 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "114 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "5 пересадок",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "137 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-arrival",
+    "txt": "Прибытие ~22:43",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-transfers",
+    "txt": "2 пересадки",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Планерная → Пушкинс",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 11 станций • ~31",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Планерная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Сходненская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Тушинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Спартак",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Щукинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Октябрьское поле",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Полежаевская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Беговая",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица 1905 года",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Баррикадная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Пушкинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Пересадка: Пушкинская → Че",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Переход • ~3 мин",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Чеховская → Бульвар",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 15 станций • ~41",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Чеховская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Боровицкая",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Полянка",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Серпуховская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Тульская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нагатинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нагорная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нахимовский проспект",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Севастопольская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Чертановская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Южная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Пражская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Академика Янгеля",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Аннино",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бульвар Дмитрия Донского",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Пересадка: Бульвар Дмитрия",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Улица Старокачаловс",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 5 станций • ~10 ",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Старокачаловская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Скобелевская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бульвар Адмирала Ушакова",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Горчакова",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бунинская аллея",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   }
+  ],
+  "focus": [
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: ~89 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 107,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~93 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~95 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~99 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 106,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~114 мин,",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~137 мин,",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "route-share-button",
+    "label": "Поделиться ссылкой на марш",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 32,
+    "h": 32,
+    "hasRing": true
+   },
+   {
+    "cls": "route-favorite-button",
+    "label": "Добавить маршрут в избранн",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 32,
+    "h": 32,
+    "hasRing": true
+   },
+   {
+    "cls": "app-skip-link",
+    "label": "Перейти к вводу маршрута",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 239,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 1440,
+    "h": 900,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "app-header-chip app-header-chip--has-route app",
+    "label": "Планерная → Бунинская алле",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 296,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать недавние маршруты",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 100,
+    "h": 30,
+    "hasRing": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать станции рядом",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 80,
+    "h": 30,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 345,
+    "h": 45,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 33,
+    "h": 33,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 345,
+    "h": 45,
+    "hasRing": true
+   }
+  ],
+  "name": "desktop-light"
+ },
+ {
+  "touch": [
+   {
+    "tag": "canvas",
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "w": 1440,
+    "h": 900
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "app-header-chip app-header-chip--has-route app",
+    "label": "Планерная → Бунинская алле",
+    "w": 296,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать недавние маршруты",
+    "w": 99.5,
+    "h": 30
+   },
+   {
+    "tag": "button",
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать станции рядом",
+    "w": 80.3,
+    "h": 30
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "w": 345.2,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "w": 345.2,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: ~89 мин, ",
+    "w": 106.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~93 мин, ",
+    "w": 104.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~95 мин, ",
+    "w": 104.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~99 мин, ",
+    "w": 106,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~114 мин,",
+    "w": 108.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~137 мин,",
+    "w": 108.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "route-share-button",
+    "label": "Поделиться ссылкой на марш",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "button",
+    "cls": "route-favorite-button",
+    "label": "Добавить маршрут в избранн",
+    "w": 46,
+    "h": 46
+   }
+  ],
+  "contrast": [
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "+",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "−",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "app-header-chip-title",
+    "txt": "Планерная → Бунинская алле",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 15.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "txt": "Недавние",
+    "size": 12,
+    "weight": 500,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "txt": "Рядом",
+    "size": 12,
+    "weight": 500,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 9.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "2 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.18,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "93 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "3 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "95 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "99 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "4 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "114 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "5 пересадок",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "137 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-arrival",
+    "txt": "Прибытие ~22:43",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 10.52,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-transfers",
+    "txt": "2 пересадки",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 7.14,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Планерная → Пушкинс",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 11 станций • ~31",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.14,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Планерная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Сходненская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Тушинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Спартак",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Щукинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Октябрьское поле",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Полежаевская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Беговая",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица 1905 года",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Баррикадная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Пушкинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Пересадка: Пушкинская → Че",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Переход • ~3 мин",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.14,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Чеховская → Бульвар",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 15 станций • ~41",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.14,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Чеховская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Боровицкая",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Полянка",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Серпуховская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Тульская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нагатинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нагорная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нахимовский проспект",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Севастопольская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Чертановская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Южная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Пражская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Академика Янгеля",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Аннино",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бульвар Дмитрия Донского",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Пересадка: Бульвар Дмитрия",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Улица Старокачаловс",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 13.72,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 5 станций • ~10 ",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.14,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Старокачаловская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Скобелевская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бульвар Адмирала Ушакова",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Горчакова",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бунинская аллея",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 12.36,
+    "need": 4.5,
+    "ok": true
+   }
+  ],
+  "focus": [
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: ~89 мин, ",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 107,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~93 мин, ",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~95 мин, ",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~99 мин, ",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 106,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~114 мин,",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~137 мин,",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "route-share-button",
+    "label": "Поделиться ссылкой на марш",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 32,
+    "h": 32,
+    "hasRing": true
+   },
+   {
+    "cls": "route-favorite-button",
+    "label": "Добавить маршрут в избранн",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 32,
+    "h": 32,
+    "hasRing": true
+   },
+   {
+    "cls": "app-skip-link",
+    "label": "Перейти к вводу маршрута",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 239,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 1440,
+    "h": 900,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "app-header-chip app-header-chip--has-route app",
+    "label": "Планерная → Бунинская алле",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 296,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать недавние маршруты",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 100,
+    "h": 30,
+    "hasRing": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать станции рядом",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 80,
+    "h": 30,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 345,
+    "h": 45,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 33,
+    "h": 33,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "outline": "solid 3px rgb(255, 170, 236)",
+    "outlineColor": "rgb(255, 170, 236)",
+    "w": 345,
+    "h": 45,
+    "hasRing": true
+   }
+  ],
+  "name": "desktop-dark"
+ },
+ {
+  "touch": [
+   {
+    "tag": "canvas",
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "w": 1440,
+    "h": 900
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "w": 44,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "app-header-chip app-header-chip--has-route app",
+    "label": "Планерная → Бунинская алле",
+    "w": 296,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать недавние маршруты",
+    "w": 99.5,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать станции рядом",
+    "w": 80.3,
+    "h": 44
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "w": 345.2,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "input",
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "w": 345.2,
+    "h": 45.2
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "w": 34,
+    "h": 44
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: ~89 мин, ",
+    "w": 106.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~93 мин, ",
+    "w": 104.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~95 мин, ",
+    "w": 104.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~99 мин, ",
+    "w": 106,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~114 мин,",
+    "w": 108.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~137 мин,",
+    "w": 108.9,
+    "h": 69.5
+   },
+   {
+    "tag": "button",
+    "cls": "route-share-button",
+    "label": "Поделиться ссылкой на марш",
+    "w": 46,
+    "h": 46
+   },
+   {
+    "tag": "button",
+    "cls": "route-favorite-button",
+    "label": "Добавить маршрут в избранн",
+    "w": 46,
+    "h": 46
+   }
+  ],
+  "contrast": [
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "+",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "txt": "−",
+    "size": 20,
+    "weight": 400,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "app-header-chip-title",
+    "txt": "Планерная → Бунинская алле",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 21,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "txt": "Недавние",
+    "size": 12,
+    "weight": 500,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "txt": "Рядом",
+    "size": 12,
+    "weight": 500,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 15.11,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "2 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 6.44,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "93 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "3 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "95 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "99 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "4 пересадки",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "114 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-sub",
+    "txt": "5 пересадок",
+    "size": 12,
+    "weight": 400,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "bottom-route-chip-time",
+    "txt": "137 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-time",
+    "txt": "89 мин",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-arrival",
+    "txt": "Прибытие ~22:43",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 7.56,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "summary-transfers",
+    "txt": "2 пересадки",
+    "size": 14,
+    "weight": 500,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Планерная → Пушкинс",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 11 станций • ~31",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Планерная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Сходненская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Тушинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Спартак",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Щукинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Октябрьское поле",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Полежаевская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Беговая",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица 1905 года",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Баррикадная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Пушкинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Пересадка: Пушкинская → Че",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Переход • ~3 мин",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Чеховская → Бульвар",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 15 станций • ~41",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Чеховская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Боровицкая",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Полянка",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Серпуховская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Тульская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нагатинская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нагорная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Нахимовский проспект",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Севастопольская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Чертановская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Южная",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Пражская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Академика Янгеля",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Аннино",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бульвар Дмитрия Донского",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Пересадка: Бульвар Дмитрия",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-title",
+    "txt": "Поезд: Улица Старокачаловс",
+    "size": 14,
+    "weight": 600,
+    "large": false,
+    "ratio": 17.74,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-meta",
+    "txt": "Поездка • 5 станций • ~10 ",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 4.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Старокачаловская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Скобелевская",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бульвар Адмирала Ушакова",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Улица Горчакова",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   },
+   {
+    "cls": "step-station-name",
+    "txt": "Бунинская аллея",
+    "size": 14,
+    "weight": 400,
+    "large": false,
+    "ratio": 13.83,
+    "need": 4.5,
+    "ok": true
+   }
+  ],
+  "focus": [
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Куда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip bottom-rou",
+    "label": "Выбрать маршрут: ~89 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 107,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~93 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~95 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 105,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~99 мин, ",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 106,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~114 мин,",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-route-chip route-choice-chip",
+    "label": "Выбрать маршрут: ~137 мин,",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 109,
+    "h": 69,
+    "hasRing": true
+   },
+   {
+    "cls": "route-share-button",
+    "label": "Поделиться ссылкой на марш",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 32,
+    "h": 32,
+    "hasRing": true
+   },
+   {
+    "cls": "route-favorite-button",
+    "label": "Добавить маршрут в избранн",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 32,
+    "h": 32,
+    "hasRing": true
+   },
+   {
+    "cls": "app-skip-link",
+    "label": "Перейти к вводу маршрута",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 239,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-svg",
+    "label": "Схема метро Москвы, откуда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 1440,
+    "h": 900,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Приблизить карту",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "metro-map-zoom-button",
+    "label": "Отдалить карту",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: как в системе",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: светлая",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "theme-toggle-option",
+    "label": "Тема: тёмная",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 44,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "app-header-chip app-header-chip--has-route app",
+    "label": "Планерная → Бунинская алле",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 296,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать недавние маршруты",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 100,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "smart-suggestions-inline-chip",
+    "label": "Показать станции рядом",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 80,
+    "h": 44,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция отправления",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 345,
+    "h": 45,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input-clear",
+    "label": "Очистить поле Откуда",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 24,
+    "h": 24,
+    "hasRing": true
+   },
+   {
+    "cls": "swap-button",
+    "label": "Поменять местами станции О",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 33,
+    "h": 33,
+    "hasRing": true
+   },
+   {
+    "cls": "bottom-input bottom-input--with-line-dot",
+    "label": "Станция назначения",
+    "outline": "solid 3px rgb(127, 17, 75)",
+    "outlineColor": "rgb(127, 17, 75)",
+    "w": 345,
+    "h": 45,
+    "hasRing": true
+   }
+  ],
+  "name": "desktop-touch-light"
+ }
+]

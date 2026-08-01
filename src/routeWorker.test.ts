@@ -146,6 +146,52 @@ describe('routeWorker — загрузка графа', () => {
     if (response.type !== 'routeError') return
     expect(response.errorMessage).toContain('404')
   })
+
+  it('после провала загрузки СЛЕДУЮЩИЙ запрос пробует скачать граф заново', async () => {
+    // Раньше отклонённый промис жил до конца жизни воркера: кнопка «Попробовать
+    // ещё раз» слала запрос в тот же воркер и получала ту же ошибку навсегда.
+    let attempt = 0
+    await loadWorker(() => {
+      attempt += 1
+      // 1 — попытка на загрузке модуля, 2 — первый запрос маршрута, 3 — повтор.
+      if (attempt <= 2) return Promise.reject(new Error('сеть моргнула'))
+      return okGraphResponse()
+    })
+
+    await send({ type: 'route', requestId: 1, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    expect(posted[0].type).toBe('routeError')
+
+    await send({ type: 'route', requestId: 2, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    expect(posted[1].type).toBe('routeResult')
+    expect(posted[1].requestId).toBe(2)
+    expect(fetchedUrls.length).toBe(3)
+  })
+
+  it('после успешной загрузки повторных попыток не делает', async () => {
+    await send({ type: 'route', requestId: 1, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 2, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 3, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    expect(fetchedUrls.length).toBe(1)
+    expect(posted.every((m) => m.type === 'routeResult')).toBe(true)
+  })
+
+  it('HTML вместо JSON (SPA-фолбэк) даёт понятную ошибку, а не «Unexpected token»', async () => {
+    await loadWorker(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: (name: string) => (name === 'content-type' ? 'text/html' : null) },
+        json: () => Promise.reject(new SyntaxError("Unexpected token '<'")),
+      }),
+    )
+
+    await send({ type: 'route', requestId: 4, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+
+    const response = posted[0]
+    expect(response.type).toBe('routeError')
+    if (response.type !== 'routeError') return
+    expect(response.errorMessage).toContain('text/html')
+  })
 })
 
 describe('routeWorker — протокол сообщений', () => {

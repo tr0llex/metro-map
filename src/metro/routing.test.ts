@@ -13,9 +13,10 @@ import {
   buildAdjacencyListFromFullGraph,
   buildEdgeByKey,
   buildRouteResultFromPath,
+  findParallelEdgeKeys,
   undirectedEdgeKey,
 } from './graphCore'
-import type { RouteResult } from './types'
+import type { FullGraphEdge, RouteResult } from './types'
 
 // ---------------------------------------------------------------------------
 // Реальные пары станций (id из normalized/fullGraph.json).
@@ -486,6 +487,52 @@ describe('graphCore — вспомогательные структуры', () =
   it('undirectedEdgeKey не зависит от порядка станций', () => {
     expect(undirectedEdgeKey('a', 'b')).toBe(undirectedEdgeKey('b', 'a'))
     expect(undirectedEdgeKey('a', 'b')).not.toBe(undirectedEdgeKey('a', 'c'))
+  })
+
+  // -------------------------------------------------------------------------
+  // ИНВАРИАНТ «пара станций → одно ребро».
+  //
+  // Путь Дейкстры — это список ВЕРШИН; тип и время шага восстанавливаются потом
+  // по паре станций (`buildEdgeByKey`). Появись между парой два ребра — перегон
+  // и пересадка, — поиск пошёл бы по одному, а нарисовалось бы другое: чужое
+  // время, чужой тип, лишняя пересадка в счётчике. Сейчас таких рёбер нет;
+  // тесты ниже существуют, чтобы это оставалось проверяемым фактом.
+  // -------------------------------------------------------------------------
+  it('в графе нет параллельных рёбер между одной парой станций', () => {
+    expect(findParallelEdgeKeys(fullGraphEdges)).toEqual([])
+  })
+
+  it('findParallelEdgeKeys ловит подсунутую параллель', () => {
+    const base = fullGraphEdges.find((e) => !e.isTransfer)!
+    const parallel: FullGraphEdge = {
+      ...base,
+      isTransfer: true,
+      medianTravelSeconds: base.medianTravelSeconds + 600,
+    }
+    expect(findParallelEdgeKeys([...fullGraphEdges, parallel])).toEqual([
+      undirectedEdgeKey(base.fromStationId, base.toStationId),
+    ])
+  })
+
+  it('ручное ребро вытесняет базовое, а не встаёт параллельно ему', () => {
+    // Единственный способ добавить ребро из TS — extraEdges редактора.
+    // findRouteAlternativesFullGraph выбрасывает базовое ребро той же пары,
+    // поэтому инвариант держится и в редакторской сборке.
+    const base = fullGraphEdges.find((e) => !e.isTransfer)!
+    const manual: FullGraphEdge = {
+      ...base,
+      isTransfer: true,
+      medianTravelSeconds: base.medianTravelSeconds + 600,
+    }
+
+    const route = findRouteAlternativesFullGraph(base.fromStationId, base.toStationId, {
+      extraEdges: [manual],
+    })[0]
+
+    expect(route.steps.length).toBe(1)
+    expect(route.steps[0].travelMinutes).toBe(manual.medianTravelSeconds / 60)
+    expect(route.steps[0].isTransfer).toBe(true)
+    expect(route.transfersCount).toBe(1)
   })
 
   it('buildRouteResultFromPath на пустом/одиночном пути даёт нулевой маршрут', () => {
