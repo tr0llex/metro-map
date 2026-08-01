@@ -1,0 +1,88 @@
+name: Deploy
+
+# Выкладка на metro.samoy.love.
+#
+# Запускается ТОЛЬКО вручную (workflow_dispatch). Автодеплой на каждый push
+# сюда сознательно не заведён: на сервере живут другие проекты, а сама выкладка
+# меняет боевой nginx — такое должно происходить по осознанному решению, а не
+# как побочный эффект коммита в main.
+#
+# ТРЕБУЕТСЯ СЕКРЕТ (задаётся владельцем репозитория:
+# Settings -> Secrets and variables -> Actions -> New repository secret):
+#   METRO_SSH_KEY   — приватный SSH-ключ для доступа к серверу (весь файл целиком,
+#                     включая строки BEGIN/END)
+#
+# Опционально, если параметры сервера изменятся, — через переменные (Variables):
+#   METRO_SSH_HOST  — по умолчанию ubuntu@207.127.93.34
+#   METRO_DOMAIN    — по умолчанию metro.samoy.love
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Что выкладывать'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, app, config, dry-run]
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    # Один деплой за раз: параллельные выкладки могут переставить каталоги
+    # /var/www/metro друг у друга под ногами.
+    concurrency:
+      group: deploy-metro
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Полный набор гейтов перед выкладкой: на прод не должно уезжать то,
+      # что не проходит проверки локально.
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+      - name: Check editor is absent from production bundle
+        run: node scripts/check-prod-bundle.mjs
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.METRO_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Deploy
+        env:
+          METRO_SSH_KEY: ~/.ssh/deploy_key
+          METRO_SSH_HOST: ${{ vars.METRO_SSH_HOST || 'ubuntu@207.127.93.34' }}
+          METRO_DOMAIN: ${{ vars.METRO_DOMAIN || 'metro.samoy.love' }}
+        run: |
+          case "${{ inputs.target }}" in
+            app)     bash scripts/deploy.sh --app ;;
+            config)  bash scripts/deploy.sh --config ;;
+            dry-run) bash scripts/deploy.sh --dry-run ;;
+            *)       bash scripts/deploy.sh ;;
+          esac
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
