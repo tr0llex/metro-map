@@ -1,0 +1,678 @@
+{
+  "startedAt": "2026-08-01T16:11:54.671Z",
+  "appDir": "/app/dist",
+  "baseUrl": "http://127.0.0.1:4173/",
+  "route": {
+    "from": "Планерная",
+    "to": "Бунинская аллея"
+  },
+  "shots": [
+    {
+      "profile": "mobile",
+      "name": "01-splash",
+      "file": "mobile-01-splash.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "02-install-guide",
+      "file": "mobile-02-install-guide.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "03-onboarding-hint",
+      "file": "mobile-03-onboarding-hint.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "04-map-full",
+      "file": "mobile-04-map-full.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "05-map-zoom-center",
+      "file": "mobile-05-map-zoom-center.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "06-map-zoom-center-deep",
+      "file": "mobile-06-map-zoom-center-deep.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "07-suggestions",
+      "file": "mobile-07-suggestions.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "08-route-built",
+      "file": "mobile-08-route-built.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "09-route-alternatives",
+      "file": "mobile-09-route-alternatives.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "10-route-details",
+      "file": "mobile-10-route-details.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "11-route-zoom",
+      "file": "mobile-11-route-zoom.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "12-route-details-bottom",
+      "file": "mobile-12-route-details-bottom.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "01-splash",
+      "file": "desktop-01-splash.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "02-install-guide",
+      "file": "desktop-02-install-guide.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "03-onboarding-hint",
+      "file": "desktop-03-onboarding-hint.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "04-map-full",
+      "file": "desktop-04-map-full.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "05-map-zoom-center",
+      "file": "desktop-05-map-zoom-center.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "06-map-zoom-center-deep",
+      "file": "desktop-06-map-zoom-center-deep.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "07-suggestions",
+      "file": "desktop-07-suggestions.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "08-route-built",
+      "file": "desktop-08-route-built.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "09-route-alternatives",
+      "file": "desktop-09-route-alternatives.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "10-route-details",
+      "file": "desktop-10-route-details.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "11-route-zoom",
+      "file": "desktop-11-route-zoom.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "12-route-details-bottom",
+      "file": "desktop-12-route-details-bottom.png"
+    }
+  ],
+  "console": [],
+  "pageErrors": [],
+  "network": [],
+  "notes": [
+    "mobile: вариантов маршрута — 6",
+    "mobile: шагов маршрута в деталях — 5",
+    {
+      "profile": "mobile",
+      "overflowCheck": {
+        "vw": 390,
+        "vh": 844,
+        "bad": [
+          {
+            "cls": "bottom-sheet-inner",
+            "tag": "DIV",
+            "rect": {
+              "x": 1,
+              "y": 185,
+              "w": 388,
+              "h": 1488
+            },
+            "overRight": -1,
+            "overLeft": -1,
+            "overBottom": 829
+          },
+          {
+            "cls": "bottom-route-chip route-choice-chip",
+            "tag": "BUTTON",
+            "rect": {
+              "x": 361,
+              "y": 309,
+              "w": 107,
+              "h": 72
+            },
+            "overRight": 77,
+            "overLeft": -361,
+            "overBottom": -463
+          },
+          {
+            "cls": "bottom-route-chip-main",
+            "tag": "DIV",
+            "rect": {
+              "x": 376,
+              "y": 319,
+              "w": 66,
+              "h": 21
+            },
+            "overRight": 52,
+            "overLeft": -376,
+            "overBottom": -504
+          },
+          {
+            "cls": "bottom-route-chip-time",
+            "tag": "SPAN",
+            "rect": {
+              "x": 376,
+              "y": 319,
+              "w": 66,
+              "h": 21
+            },
+            "overRight": 52,
+            "overLeft": -376,
+            "overBottom": -504
+          },
+          {
+            "cls": "route-line-pills",
+            "tag": "SPAN",
+            "rect": {
+              "x": 376,
+              "y": 344,
+              "w": 72,
+              "h": 4
+            },
+            "overRight": 58,
+            "overLeft": -376,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 391,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 14,
+            "overLeft": -391,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 406,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 28,
+            "overLeft": -406,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 420,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 43,
+            "overLeft": -420,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 435,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 58,
+            "overLeft": -435,
+            "overBottom": -495
+          },
+          {
+            "cls": "bottom-route-chip-sub",
+            "tag": "DIV",
+            "rect": {
+              "x": 376,
+              "y": 352,
+              "w": 76,
+              "h": 18
+            },
+            "overRight": 62,
+            "overLeft": -376,
+            "overBottom": -474
+          },
+          {
+            "cls": "bottom-route-chip route-choice-chip",
+            "tag": "BUTTON",
+            "rect": {
+              "x": 475,
+              "y": 309,
+              "w": 107,
+              "h": 72
+            },
+            "overRight": 192,
+            "overLeft": -475,
+            "overBottom": -463
+          },
+          {
+            "cls": "bottom-route-chip-main",
+            "tag": "DIV",
+            "rect": {
+              "x": 491,
+              "y": 319,
+              "w": 75,
+              "h": 21
+            },
+            "overRight": 176,
+            "overLeft": -491,
+            "overBottom": -504
+          },
+          {
+            "cls": "bottom-route-chip-time",
+            "tag": "SPAN",
+            "rect": {
+              "x": 491,
+              "y": 319,
+              "w": 75,
+              "h": 21
+            },
+            "overRight": 176,
+            "overLeft": -491,
+            "overBottom": -504
+          },
+          {
+            "cls": "[object SVGAnimatedString]",
+            "tag": "svg",
+            "rect": {
+              "x": 491,
+              "y": 323,
+              "w": 15,
+              "h": 15
+            },
+            "overRight": 115,
+            "overLeft": -491,
+            "overBottom": -507
+          },
+          {
+            "cls": "[object SVGAnimatedString]",
+            "tag": "circle",
+            "rect": {
+              "x": 493,
+              "y": 325,
+              "w": 10,
+              "h": 10
+            },
+            "overRight": 113,
+            "overLeft": -493,
+            "overBottom": -509
+          },
+          {
+            "cls": "route-line-pills",
+            "tag": "SPAN",
+            "rect": {
+              "x": 491,
+              "y": 344,
+              "w": 72,
+              "h": 4
+            },
+            "overRight": 173,
+            "overLeft": -491,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 491,
+              "y": 344,
+              "w": 10,
+              "h": 4
+            },
+            "overRight": 111,
+            "overLeft": -491,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 503,
+              "y": 344,
+              "w": 10,
+              "h": 4
+            },
+            "overRight": 123,
+            "overLeft": -503,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 515,
+              "y": 344,
+              "w": 10,
+              "h": 4
+            },
+            "overRight": 136,
+            "overLeft": -515,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 528,
+              "y": 344,
+              "w": 10,
+              "h": 4
+            },
+            "overRight": 148,
+            "overLeft": -528,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 540,
+              "y": 344,
+              "w": 10,
+              "h": 4
+            },
+            "overRight": 160,
+            "overLeft": -540,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 552,
+              "y": 344,
+              "w": 10,
+              "h": 4
+            },
+            "overRight": 173,
+            "overLeft": -552,
+            "overBottom": -495
+          },
+          {
+            "cls": "bottom-route-chip-sub",
+            "tag": "DIV",
+            "rect": {
+              "x": 491,
+              "y": 352,
+              "w": 76,
+              "h": 18
+            },
+            "overRight": 177,
+            "overLeft": -491,
+            "overBottom": -474
+          },
+          {
+            "cls": "bottom-route-chip route-choice-chip",
+            "tag": "BUTTON",
+            "rect": {
+              "x": 590,
+              "y": 309,
+              "w": 107,
+              "h": 72
+            },
+            "overRight": 307,
+            "overLeft": -590,
+            "overBottom": -463
+          },
+          {
+            "cls": "bottom-route-chip-main",
+            "tag": "DIV",
+            "rect": {
+              "x": 605,
+              "y": 319,
+              "w": 75,
+              "h": 21
+            },
+            "overRight": 290,
+            "overLeft": -605,
+            "overBottom": -504
+          },
+          {
+            "cls": "bottom-route-chip-time",
+            "tag": "SPAN",
+            "rect": {
+              "x": 605,
+              "y": 319,
+              "w": 75,
+              "h": 21
+            },
+            "overRight": 290,
+            "overLeft": -605,
+            "overBottom": -504
+          },
+          {
+            "cls": "[object SVGAnimatedString]",
+            "tag": "svg",
+            "rect": {
+              "x": 605,
+              "y": 323,
+              "w": 15,
+              "h": 15
+            },
+            "overRight": 230,
+            "overLeft": -605,
+            "overBottom": -507
+          },
+          {
+            "cls": "[object SVGAnimatedString]",
+            "tag": "circle",
+            "rect": {
+              "x": 608,
+              "y": 325,
+              "w": 10,
+              "h": 10
+            },
+            "overRight": 228,
+            "overLeft": -608,
+            "overBottom": -509
+          },
+          {
+            "cls": "route-line-pills",
+            "tag": "SPAN",
+            "rect": {
+              "x": 605,
+              "y": 344,
+              "w": 72,
+              "h": 4
+            },
+            "overRight": 287,
+            "overLeft": -605,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 605,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 228,
+            "overLeft": -605,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 620,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 243,
+            "overLeft": -620,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 635,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 258,
+            "overLeft": -635,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 650,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 273,
+            "overLeft": -650,
+            "overBottom": -495
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 665,
+              "y": 344,
+              "w": 13,
+              "h": 4
+            },
+            "overRight": 287,
+            "overLeft": -665,
+            "overBottom": -495
+          },
+          {
+            "cls": "bottom-route-chip-sub",
+            "tag": "DIV",
+            "rect": {
+              "x": 605,
+              "y": 352,
+              "w": 76,
+              "h": 18
+            },
+            "overRight": 291,
+            "overLeft": -605,
+            "overBottom": -474
+          },
+          {
+            "cls": "bottom-route-details bottom-route-details--open",
+            "tag": "DIV",
+            "rect": {
+              "x": 16,
+              "y": 393,
+              "w": 357,
+              "h": 1264
+            },
+            "overRight": -16,
+            "overLeft": -16,
+            "overBottom": 813
+          },
+          {
+            "cls": "route-result",
+            "tag": "DIV",
+            "rect": {
+              "x": 16,
+              "y": 402,
+              "w": 357,
+              "h": 1249
+            },
+            "overRight": -16,
+            "overLeft": -16,
+            "overBottom": 807
+          },
+          {
+            "cls": "route-result-scroll",
+            "tag": "DIV",
+            "rect": {
+              "x": 31,
+              "y": 416,
+              "w": 328,
+              "h": 1218
+            },
+            "overRight": -31,
+            "overLeft": -31,
+            "overBottom": 790
+          },
+          {
+            "cls": "route-steps route-steps--animate",
+            "tag": "OL",
+            "rect": {
+              "x": 31,
+              "y": 484,
+              "w": 328,
+              "h": 1138
+            },
+            "overRight": -31,
+            "overLeft": -31,
+            "overBottom": 778
+          },
+          {
+            "cls": "route-step route-step--transfer",
+            "tag": "LI",
+            "rect": {
+              "x": 31,
+              "y": 814,
+              "w": 328,
+              "h": 60
+            },
+            "overRight": -31,
+            "overLeft": -31,
+            "overBottom": 31
+          }
+        ]
+      }
+    },
+    "desktop: вариантов маршрута — 6",
+    "desktop: шагов маршрута в деталях — 5",
+    {
+      "profile": "desktop",
+      "overflowCheck": {
+        "vw": 1440,
+        "vh": 900,
+        "bad": []
+      }
+    }
+  ],
+  "finishedAt": "2026-08-01T16:12:40.660Z"
+}

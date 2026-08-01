@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+      # Редактор схемы обязан вырезаться из прод-сборки. Вырезание держится на
+      # сворачивании мёртвой ветки Rollup-ом и ломается молча — проверяем фактом.
+      - name: Check editor is absent from production bundle
+        run: node scripts/check-prod-bundle.mjs
+
+  quality:
+    name: Metro map quality check (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Анализатор качества схемы дописывается — job не должен ронять сборку.
+      - name: Check layout quality
+        run: npm run quality:check

@@ -1,0 +1,10 @@
+{
+  "name": "metromap-visual-qa",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Изолированный стенд визуальной приёмки: статик-сервер + настоящий Chromium в Docker.",
+  "dependencies": {
+    "playwright": "1.49.0"
+  }
+}
