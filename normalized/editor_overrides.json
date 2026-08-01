@@ -1227,52 +1227,5 @@
   },
   "stations": {},
   "lines": {},
-  "edges": {},
-  "hubs": {
-    "hub-15": {
-      "rotationDeg": 270
-    },
-    "hub-8": {
-      "rotationDeg": 255
-    },
-    "hub-22": {
-      "rotationDeg": 105
-    },
-    "hub-55": {
-      "rotationDeg": 255
-    },
-    "hub-32": {
-      "rotationDeg": 105
-    },
-    "hub-10": {
-      "rotationDeg": 90
-    },
-    "hub-42": {
-      "rotationDeg": 30
-    },
-    "hub-48": {
-      "rotationDeg": 315
-    },
-    "hub-53": {
-      "rotationDeg": 345
-    },
-    "hub-27": {
-      "rotationDeg": 60
-    },
-    "hub-43": {
-      "rotationDeg": 90
-    },
-    "hub-19": {
-      "rotationDeg": 270
-    },
-    "hub-37": {
-      "rotationDeg": 165
-    },
-    "hub-47": {
-      "rotationDeg": 60
-    },
-    "hub-41": {
-      "rotationDeg": 300
-    }
-  }
+  "edges": {}
 }

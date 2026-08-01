@@ -50,7 +50,6 @@ type FullGraphTransferHub struct {
 	StationIDs         []string `json:"stationIds"`
 	MinTransferSeconds int      `json:"minTransferSeconds"`
 	Source             string   `json:"source"`
-	RotationDeg        float64  `json:"rotationDeg,omitempty"`
 }
 
 // FullGraphRingShape — аналитическая форма кольцевой линии.
@@ -141,7 +140,12 @@ var (
 // BuildFullGraph читает metro.ru.csv, connections.json и, опционально, координаты Яндекс-схемы,
 // после чего возвращает полный граф.
 // yandexPath может быть пустой строкой — тогда координаты Яндекс просто игнорируются.
-func BuildFullGraph(csvPath, connPath, yandexPath string) (FullGraphExport, error) {
+//
+// times — конфиг времён (new_map_source/travel_times.json). Если он передан,
+// времена перегонов и пересадок берутся ТОЛЬКО из него (запись по ключу пары
+// либо defaults), без всякой геометрии. Если times == nil, работает старая
+// оценка по расстоянию — это запасной путь, а не режим по умолчанию.
+func BuildFullGraph(csvPath, connPath, yandexPath string, times *TravelTimes) (FullGraphExport, error) {
 	absCSV, err := resolvePath(csvPath)
 	if err != nil {
 		return FullGraphExport{}, err
@@ -265,9 +269,7 @@ func BuildFullGraph(csvPath, connPath, yandexPath string) (FullGraphExport, erro
 		for i := 0; i < len(stationIDsForLine)-1; i++ {
 			fromID := stationIDsForLine[i]
 			toID := stationIDsForLine[i+1]
-			a := stationByID[fromID]
-			b := stationByID[toID]
-			travel := estimateTravelSeconds(agg.LineID, a, b)
+			travel := rideSeconds(times, agg.LineID, stationByID, fromID, toID)
 			edges = append(edges, FullGraphEdge{
 				FromStationID:       fromID,
 				ToStationID:         toID,
@@ -281,9 +283,7 @@ func BuildFullGraph(csvPath, connPath, yandexPath string) (FullGraphExport, erro
 		if _, isRing := ringLineIDs[agg.LineID]; isRing && len(stationIDsForLine) >= 3 {
 			lastID := stationIDsForLine[len(stationIDsForLine)-1]
 			firstID := stationIDsForLine[0]
-			last := stationByID[lastID]
-			first := stationByID[firstID]
-			travel := estimateTravelSeconds(agg.LineID, last, first)
+			travel := rideSeconds(times, agg.LineID, stationByID, lastID, firstID)
 			edges = append(edges, FullGraphEdge{
 				FromStationID:       lastID,
 				ToStationID:         firstID,
@@ -309,7 +309,7 @@ func BuildFullGraph(csvPath, connPath, yandexPath string) (FullGraphExport, erro
 	}
 
 	// Пересадки и хабы
-	transferHubs, transferEdges := buildTransferHubs(absConn, lineKeyToStationName, stationByID)
+	transferHubs, transferEdges := buildTransferHubs(absConn, lineKeyToStationName, stationByID, times)
 	edges = append(edges, transferEdges...)
 
 	// Собираем итоговый граф
@@ -459,6 +459,19 @@ func groupRowsByLine(rows []csvRow) map[int]*lineAggregate {
 	return res
 }
 
+// rideSeconds — время перегона: из конфига времён, если он есть, иначе старая
+// оценка по расстоянию. Разделение вынесено сюда, чтобы вызывающий код не знал
+// о запасном пути.
+func rideSeconds(times *TravelTimes, lineID int, stationByID map[string]*FullGraphStation, fromID, toID string) int {
+	if times != nil {
+		return times.RideSeconds(fromID, toID)
+	}
+	return estimateTravelSeconds(lineID, stationByID[fromID], stationByID[toID])
+}
+
+// estimateTravelSeconds — запасная оценка времени перегона по географическому
+// расстоянию. Используется только когда конфиг времён не передан: источник
+// правды по времени — travel_times.json, а не координаты.
 func estimateTravelSeconds(lineID int, a, b *FullGraphStation) int {
 	if a == nil || b == nil {
 		return 120
@@ -554,7 +567,7 @@ func transferKindForType(connType string) string {
 }
 
 // buildTransferHubs читает connections.json, строит пересадочные хабы и рёбра пересадок.
-func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]string, stationByID map[string]*FullGraphStation) ([]FullGraphTransferHub, []FullGraphEdge) {
+func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]string, stationByID map[string]*FullGraphStation, times *TravelTimes) ([]FullGraphTransferHub, []FullGraphEdge) {
 	absConn, err := resolvePath(connPath)
 	if err != nil {
 		return nil, nil
@@ -627,8 +640,13 @@ func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]s
 		k := edgeKey(fromID, toID)
 		if _, exists := edgeKeySet[k]; !exists {
 			edgeKeySet[k] = struct{}{}
-			transferSeconds := transferSecondsForType(c.Type)
 			kind := transferKindForType(c.Type)
+			// Время пересадки — из конфига по ключу пары; тип пересадки
+			// по-прежнему из connections.json.
+			transferSeconds := transferSecondsForType(c.Type)
+			if times != nil {
+				transferSeconds = times.TransferSeconds(fromID, toID, kind)
+			}
 			transferEdges = append(transferEdges, FullGraphEdge{
 				FromStationID:       fromID,
 				ToStationID:         toID,
@@ -677,10 +695,14 @@ func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]s
 
 		if len(component) >= 2 {
 			id := fmt.Sprintf("hub-%d", len(hubs)+1)
+			hubMin := baseTransferSeconds
+			if times != nil {
+				hubMin = times.HubMinTransferSeconds()
+			}
 			hubs = append(hubs, FullGraphTransferHub{
 				ID:                 id,
 				StationIDs:         append([]string{}, component...),
-				MinTransferSeconds: baseTransferSeconds,
+				MinTransferSeconds: hubMin,
 				Source:             "manual_override",
 			})
 			for _, sid := range component {
