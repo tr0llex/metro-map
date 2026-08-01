@@ -199,13 +199,6 @@ async function pickStation(page, ariaLabel, title) {
   await page.waitForTimeout(300)
 }
 
-async function buildRoute(page) {
-  await pickStation(page, 'Станция отправления', ROUTE_FROM)
-  await pickStation(page, 'Станция назначения', ROUTE_TO)
-  await page.waitForSelector('.route-result, .bottom-route-chip', { timeout: 20000 })
-  await page.waitForTimeout(1600) // авто-подгонка вьюпорта под маршрут + анимации
-}
-
 async function zoomAtCanvasCenter(page, steps, dx = 0, dy = 0) {
   const canvas = page.locator('canvas.metro-map-svg')
   const box = await canvas.boundingBox()

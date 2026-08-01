@@ -6,7 +6,21 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'dev-dist']),
+  globalIgnores(['dist', 'dev-dist', 'dist-editor']),
+  // .mjs не линтился вообще — включая scripts/check-prod-bundle.mjs, который
+  // сторожит, что редактор не утёк в прод-бандл.
+  {
+    files: ['**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      // node + browser: часть .mjs — это Node-скрипты, но стенд визуальной
+      // приёмки уезжает кусками кода в браузер через page.evaluate(), и там
+      // законны document/window.
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
