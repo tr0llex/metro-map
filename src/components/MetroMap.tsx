@@ -1,5 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fullGraphLines, fullGraphStations, fullGraphEdges } from '../metro/fullGraph'
+import {
+  fullGraphLines,
+  fullGraphStations,
+  fullGraphEdges,
+  fullGraphRingShapes,
+} from '../metro/fullGraph'
 import type { PositionedStation, LayoutStation } from '../metro/layoutEngine'
 import { computeLayout } from '../metro/layoutEngine'
 import type { FullGraphStation } from '../metro/types'
@@ -72,12 +77,55 @@ interface ViewportState {
 // Идентификаторы кольцевых линий во fullGraph: Кольцевая (5), МЦК (95), БКЛ (97)
 const RING_LINE_IDS = new Set<number>([5, 95, 97])
 
-const MIN_SCALE = 0.35
+/**
+ * Нижняя граница зума.
+ *
+ * 0.35 не давала увидеть схему целиком: ширина раскладки ~1527px, на экране
+ * 390px это требует зума 0.255. Значение снижено так, чтобы «вся схема + поля»
+ * была достижима даже на узком телефоне; фактический предел ещё и считается
+ * динамически (см. minScaleFor) — константа задаёт лишь потолок этого предела.
+ */
+const MIN_SCALE = 0.18
 const MAX_SCALE = 3
 const ROUTE_AUTO_FIT_MAX_SCALE = 1.8
-// Какой зум считать комфортным стартовым (если auto-fit получается слишком мелким)
+/**
+ * Потолок стартового зума: на большом экране схема влезает целиком с запасом,
+ * и растягивать её до бесконечности не нужно.
+ */
 const INITIAL_PREFERRED_SCALE = 1.1
 const PAN_CLAMP_VIEWPORT_FRACTION = 0.01
+
+/**
+ * Запас по краям схемы под подписи станций, в мировых пикселях.
+ *
+ * bounding box одних только кружков — не вся нарисованная схема: подпись
+ * отходит от станции до 84px (периферийная зона раскладки) и сама имеет
+ * ширину. Замер реальной раскладки на текущих данных даёт вылет за пределы
+ * станций 121px влево, 130px вправо и ~22px по вертикали — берём 140px
+ * с небольшим запасом, иначе крайние подписи («Красногвардейская»,
+ * «Мичуринский проспект») обрезаются краем экрана на стартовом виде.
+ */
+const WORLD_LABEL_MARGIN = 140
+
+/**
+ * Зум, при котором вся схема вместе с полями под подписи влезает в
+ * прямоугольник width×height.
+ *
+ * Единая точка правды для стартового вьюпорта и для нижней границы зума:
+ * иначе «минимальный зум» снова окажется крупнее, чем нужно, чтобы увидеть
+ * схему целиком, и пользователь упрётся в предел, не досмотрев края (VQA-6).
+ */
+const fitScaleFor = (
+  worldWidth: number,
+  worldHeight: number,
+  width: number,
+  height: number,
+): number => {
+  const w = worldWidth + WORLD_LABEL_MARGIN * 2
+  const h = worldHeight + WORLD_LABEL_MARGIN * 2
+  if (w <= 0 || h <= 0 || width <= 0 || height <= 0) return MIN_SCALE
+  return Math.min(width / w, height / h)
+}
 
 // Визуальные константы схемы под светлый стеклянный/Hello Kitty UI
 const BASE_LINE_WIDTH = 6.4
@@ -116,13 +164,30 @@ const LABEL_TEXT_COLOR = '#4b5563'
 const HUB_GROUPS_MIN_ZOOM = 0
 const FAR_TRANSFERS_MIN_ZOOM = 0
 
+/**
+ * Пол читаемости подписи на экране, px. Ниже этого размера текст на схеме
+ * превращается в серую рябь (VQA-7: при автофите под длинный маршрут кегль
+ * падал до ~5px).
+ */
+const LABEL_MIN_SCREEN_FONT_PX = 8.5
+/**
+ * Насколько сильно разрешено укрупнять подписи относительно раскладки.
+ * Чем больше укрупнение, тем больше подписей приходится снять прореживанием,
+ * поэтому предел выбран так, чтобы на общем плане оставались хотя бы все узлы.
+ */
+const LABEL_MAX_RENDER_UPSCALE = 2.4
+
 type RingShape =
   | { kind: 'circle'; cx: number; cy: number; r: number }
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
 
+// Формат совпадает с контрактом `ringShapes` в fullGraph.json: ровно circle/ellipse.
+// Раньше эллипс экспортировался как `superellipse` с зашитым n=2 — это то же самое
+// по геометрии, но другое по имени, и солверу приходилось считать его псевдонимом.
+// Экспортируем честное имя, чтобы редактор и рантайм говорили на одном языке.
 type CanonicalRingShape =
   | { kind: 'circle'; cx: number; cy: number; r: number }
-  | { kind: 'superellipse'; cx: number; cy: number; rx: number; ry: number; n: number }
+  | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
 
 type CanonicalStationParams = { gridPos?: { gx: number; gy: number }; theta?: number }
 
@@ -182,6 +247,38 @@ const getRingShapeForLine = (
   return { kind: 'circle', cx, cy, r: baseR }
 }
 
+/**
+ * Формы колец из данных (fullGraph.json → ringShapes), разобранные один раз.
+ * Ключ — числовой ID линии.
+ */
+const RING_SHAPES_FROM_DATA: Map<number, RingShape> = (() => {
+  const out = new Map<number, RingShape>()
+  for (const [key, shape] of Object.entries(fullGraphRingShapes)) {
+    const lineId = Number(key)
+    if (!Number.isFinite(lineId)) continue
+    out.set(lineId, shape)
+  }
+  return out
+})()
+
+/**
+ * Форма кольцевой линии для отрисовки и снапа.
+ *
+ * Приоритет — форма из данных: солвер уже уложил станции ровно на неё, поэтому
+ * пересчитывать её по станциям нельзя (при неравномерном распределении точек
+ * центроид не совпадает с центром кривой и форма «уползает»).
+ * Фолбэк на подгонку по станциям нужен для данных без поля `ringShapes`.
+ */
+const resolveRingShapeForLine = (
+  lineId: number,
+  lineStationIds: string[],
+  positionedById: Map<string, PositionedStation>,
+): RingShape | null => {
+  const fromData = RING_SHAPES_FROM_DATA.get(lineId)
+  if (fromData) return fromData
+  return getRingShapeForLine(lineId, lineStationIds, positionedById)
+}
+
 const projectPointToRingShape = (shape: RingShape, x: number, y: number) => {
   if (shape.kind === 'circle') {
     const dx = x - shape.cx
@@ -196,6 +293,20 @@ const projectPointToRingShape = (shape: RingShape, x: number, y: number) => {
   return { x: shape.cx + shape.rx * Math.cos(ang), y: shape.cy + shape.ry * Math.sin(ang) }
 }
 
+/** Точка на кривой кольца по параметру t (0..2π). */
+const pointOnRingShape = (shape: RingShape, t: number) => {
+  if (shape.kind === 'circle') {
+    return { x: shape.cx + shape.r * Math.cos(t), y: shape.cy + shape.r * Math.sin(t) }
+  }
+  return { x: shape.cx + shape.rx * Math.cos(t), y: shape.cy + shape.ry * Math.sin(t) }
+}
+
+/** На сколько отрезков разбивается кольцо, когда его надо считать препятствием. */
+const LABEL_RING_SAMPLES = 360
+
+/** Параллельный сдвиг линий, делящих один перегон (общий коридор). */
+const CORRIDOR_OFFSET_WORLD = 3
+
 const thetaForRingShape = (shape: RingShape, x: number, y: number) => {
   if (shape.kind === 'circle') {
     return Math.atan2(y - shape.cy, x - shape.cx)
@@ -207,7 +318,7 @@ const canonicalRingShapeFromRingShape = (shape: RingShape): CanonicalRingShape =
   if (shape.kind === 'circle') {
     return { kind: 'circle', cx: shape.cx, cy: shape.cy, r: shape.r }
   }
-  return { kind: 'superellipse', cx: shape.cx, cy: shape.cy, rx: shape.rx, ry: shape.ry, n: 2 }
+  return { kind: 'ellipse', cx: shape.cx, cy: shape.cy, rx: shape.rx, ry: shape.ry }
 }
 
 // Внутренний флаг по умолчанию: отладочный режим коллизий подписей.
@@ -227,30 +338,393 @@ type StationLabelPlacement = {
   stationIds: string[]
 }
 
+/** Отрезок нарисованной линии метро (кольца — сэмплированы по своей кривой). */
+type LabelObstacleSegment = { ax: number; ay: number; bx: number; by: number; lineId: number }
+
+// ---------------------------------------------------------------------------
+// Раскладка подписей станций.
+//
+// ВНИМАНИЕ: всё, что ниже, построчно продублировано в scripts/quality/labelGeom.ts
+// и scripts/quality/labelLayout.ts — именно по этому коду считаются метрики
+// категории «Подписи» (npm run quality). Любая правка алгоритма ОБЯЗАНА быть
+// внесена в оба места, иначе отчёт о качестве начнёт врать.
+// ---------------------------------------------------------------------------
+
+/**
+ * Границы зон схемы: центр / средняя / периферия — радиус от ЦЕНТРА СХЕМЫ
+ * (см. resolveLabelZoneCenter), а не от начала координат.
+ *
+ * Значения привязаны к реальной структуре московской схемы:
+ *  · 272px = МЕНЬШАЯ полуось Кольцевой линии (ry для ringShapes["5"]), то есть
+ *    зона «центр» — это то, что строго ВНУТРИ Кольцевой. Брать средний радиус
+ *    (280px) нельзя: станции самой Кольцевой лежат на радиусах 272.5…288.0, и
+ *    такая граница рассекала кольцо пополам — Новослободская получала допуск
+ *    44px, а её соседка по тому же кольцу Комсомольская 60px. Граница зоны не
+ *    должна проходить сквозь линию, которая эту зону и определяет;
+ *  · 520px ≈ средний радиус МЦК (ringShapes["95"]), то есть «средняя» зона —
+ *    кольцо между Кольцевой и МЦК, а «периферия» — всё, что снаружи МЦК.
+ */
+const LABEL_CENTER_RADIUS = 272
+const LABEL_MIDDLE_RADIUS = 520
+
+/** По какой кольцевой линии определяется центр схемы: Кольцевая (5). */
+const LABEL_ZONE_CENTER_LINE_ID = 5
+
+/**
+ * Границы зон для ПРИОРИТЕТА подписи (кого раскладываем раньше).
+ * Совпадают с границами зон допуска: приоритет и допуск описывают одну и ту же
+ * структуру схемы (внутри Кольцевой / до МЦК / снаружи).
+ */
+const LABEL_PRIORITY_CENTER_RADIUS = LABEL_CENTER_RADIUS
+const LABEL_PRIORITY_MIDDLE_RADIUS = LABEL_MIDDLE_RADIUS
+
+/**
+ * Центр схемы для зонирования подписей.
+ *
+ * Приоритет — центр Кольцевой линии: это географически честный «центр города»,
+ * относительно которого и построены остальные кольца. Если данных о кольцах нет
+ * (старый fullGraph.json без ringShapes), берём центр bounding box станций:
+ * он считается точно (min/max), не зависит от порядка обхода и от плотности
+ * станций, поэтому одинаков в рантайме и в порте метрик.
+ *
+ * ВНИМАНИЕ: 1:1 продублировано в scripts/quality/labelGeom.ts.
+ */
+const resolveLabelZoneCenter = (
+  ringCenters: ReadonlyMap<number, { cx: number; cy: number }>,
+  stations: readonly { x: number; y: number }[],
+): { x: number; y: number } => {
+  const ring = ringCenters.get(LABEL_ZONE_CENTER_LINE_ID)
+  if (ring && Number.isFinite(ring.cx) && Number.isFinite(ring.cy)) {
+    return { x: ring.cx, y: ring.cy }
+  }
+  if (stations.length === 0) return { x: 0, y: 0 }
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  for (const st of stations) {
+    if (st.x < minX) minX = st.x
+    if (st.x > maxX) maxX = st.x
+    if (st.y < minY) minY = st.y
+    if (st.y > maxY) maxY = st.y
+  }
+  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 }
+}
+
+/**
+ * Радиусы нарисованных узлов в мировых координатах на опорном зуме.
+ * Раскладка не зависит от зума, поэтому берём фиксированные значения
+ * (STATION_RADIUS_BASE * stationScale при INITIAL_PREFERRED_SCALE).
+ */
+const LABEL_NODE_RADIUS_STATION = 5.564
+const LABEL_NODE_RADIUS_HUB = 9.459
+
+/** Веса штрафов раскладки. */
+const LABEL_W = {
+  /**
+   * Жёсткое наложение прямоугольников подписей.
+   *
+   * Самый дорогой штраф схемы: наложение делает нечитаемыми СРАЗУ ДВЕ подписи,
+   * тогда как перечёркнутая линией подпись всё-таки читается (а с вывороткой
+   * под текстом — читается нормально). Поэтому наложение стоит дороже
+   * перечёркивания в 6 раз, и оптимизатор никогда не разменивает одно на другое.
+   */
+  labelOverlap: 60000,
+  /** Подпись накрыла кружок чужой станции/хаба. */
+  coverStation: 24000,
+  /** Подпись подошла к чужому узлу ближе комфортного зазора (мягко). */
+  clearance: 900,
+  /** Комфортный зазор между подписью и чужим узлом, px. */
+  clearanceGap: 7,
+  /** Первая линия, перечёркивающая подпись. */
+  lineCrossFirst: 10000,
+  /** Каждая следующая линия. */
+  lineCrossMore: 300,
+  /**
+   * Ступенька за выход за preferredMaxDist.
+   *
+   * Метрика «оторванные подписи» — ПОРОГОВАЯ: до допуска всё одинаково хорошо,
+   * за допуском всё одинаково плохо. Поэтому и штраф сделан ступенькой одного
+   * порядка со штрафом за перечёркивание (10000): оптимизатор перестаёт
+   * «докупать» удалённость по копейке и вместо этого минимизирует само число
+   * дефектов. Квадратичная добавка оставлена крошечной — только чтобы среди
+   * заведомо оторванных позиций выбиралась менее оторванная.
+   */
+  detachedStep: 5000,
+  /** Квадратичный рост за каждый пиксель сверх preferredMaxDist. */
+  detachedQuad: 2,
+  /** Лёгкое предпочтение более близких позиций. */
+  distLinear: 1.2,
+  /** Центр подписи ближе к чужой станции, чем к своей. */
+  ambiguous: 2600,
+  /** Отклонение от «нормали к линии» (умножается на 1 - cos). */
+  angleMisfit: 110,
+  /** Отклонение от дефолтного разбиения названия на строки. */
+  lineBreakDeviation: 120,
+  /** Мягкое отталкивание по вертикали / горизонтали. */
+  softRepulsionY: 240,
+  softRepulsionX: 200,
+  /** Аура вокруг важных подписей. */
+  aura: 320,
+  /** Штраф за «колонку» — подписи друг под другом. */
+  column: 240,
+} as const
+
+/** Сколько проходов локального улучшения делать после жадной раскладки. */
+const LABEL_REFINE_PASSES = 2
+
+/**
+ * Сколько проходов «расталкивания» делать после координатного спуска.
+ * Каждый проход дорогой, а улучшения быстро заканчиваются — цикл всё равно
+ * прерывается, как только проход не дал ни одного размена.
+ */
+const LABEL_EJECT_PASSES = 2
+
+/** Комфортное расстояние от станции до центра подписи по зонам. */
+const labelPreferredMaxDist = (r: number): number =>
+  r < LABEL_CENTER_RADIUS ? 44 : r < LABEL_MIDDLE_RADIUS ? 60 : 84
+
+/**
+ * Радиальные смещения кандидатов по зонам.
+ *
+ * В центре сетка самая мелкая (шаг 2px): свободные от линий «щели» там узкие,
+ * и на прежнем шаге 3–6px оптимизатор в них просто не попадал.
+ */
+const labelRadiusOffsetsForZone = (r: number): number[] => {
+  if (r < LABEL_CENTER_RADIUS) return [12, 15, 18, 21, 24, 27, 30, 33, 36, 40, 44, 48, 52, 56]
+  if (r < LABEL_MIDDLE_RADIUS) return [12, 15, 18, 21, 25, 29, 33, 38, 43, 49, 56, 63]
+  return [12, 16, 20, 24, 29, 34, 40, 47, 55, 64, 74, 84]
+}
+
+/**
+ * Полный круговой перебор направлений с шагом 6°.
+ *
+ * Шаг 12° давал на радиусе 44px дугу почти в 9px — свободные коридоры между
+ * линиями в центре уже этого, и раскладка их пропускала.
+ */
+const LABEL_CANDIDATE_ANGLE_COUNT = 60
+const LABEL_CANDIDATE_ANGLES: number[] = (() => {
+  const out: number[] = []
+  for (let i = 0; i < LABEL_CANDIDATE_ANGLE_COUNT; i += 1) {
+    out.push((i * Math.PI * 2) / LABEL_CANDIDATE_ANGLE_COUNT)
+  }
+  return out
+})()
+
+/**
+ * Варианты горизонтальной привязки прямоугольника подписи к точке-кандидату:
+ * 0 — текст вправо от точки, 1 — влево от точки, 2 — по центру точки.
+ * Режим 2 нужен для подписей строго над/под станцией: они читаются как
+ * «принадлежат этой станции» и не тянутся вбок через соседние линии.
+ */
+const LABEL_ALIGN_MODES = [0, 1, 2] as const
+
+/** Разбиение названия на две максимально ровные строки (null, если невозможно). */
+const splitToTwoLines = (label: string): string[] | null => {
+  const words = label.split(' ').filter((w) => w.length > 0)
+  if (words.length <= 1) return null
+  let bestIndex = 1
+  let bestDiff = Infinity
+  for (let i = 1; i < words.length; i += 1) {
+    const diff = Math.abs(words.slice(0, i).join(' ').length - words.slice(i).join(' ').length)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestIndex = i
+    }
+  }
+  const first = words.slice(0, bestIndex).join(' ')
+  const second = words.slice(bestIndex).join(' ')
+  if (!first || !second) return null
+  return [first, second]
+}
+
+/** Дефолтный перенос длинного названия на две строки. */
+const splitLabelToLines = (label: string, radialDist: number): string[] => {
+  const maxSingleLineChars = radialDist < 260 ? 14 : 18
+  if (label.length <= maxSingleLineChars) return [label]
+  return splitToTwoLines(label) ?? [label]
+}
+
+/**
+ * Варианты разбиения названия: дефолтный плюс альтернативный.
+ * Оптимизатор сам выберет компактный двухстрочный вариант в тесноте
+ * и однострочный там, где место есть.
+ */
+const labelLineVariantsFor = (label: string, radialDist: number): string[][] => {
+  const base = splitLabelToLines(label, radialDist)
+  const out: string[][] = [base]
+  if (base.length === 2) {
+    if (label.length <= 24) out.push([label])
+  } else {
+    const split = splitToTwoLines(label)
+    if (split && label.length >= 9) out.push(split)
+  }
+  return out
+}
+
+/** Пересечение двух отрезков (строгое, без касаний в общих концах). */
+const labelSegmentsCross = (
+  ax: number, ay: number, bx: number, by: number,
+  cx: number, cy: number, dx: number, dy: number,
+): boolean => {
+  const o = (px: number, py: number, qx: number, qy: number, rx: number, ry: number) => {
+    const v = (qx - px) * (ry - py) - (qy - py) * (rx - px)
+    if (Math.abs(v) < 1e-9) return 0
+    return v > 0 ? 1 : -1
+  }
+  const o1 = o(ax, ay, bx, by, cx, cy)
+  const o2 = o(ax, ay, bx, by, dx, dy)
+  const o3 = o(cx, cy, dx, dy, ax, ay)
+  const o4 = o(cx, cy, dx, dy, bx, by)
+  return o1 !== 0 && o2 !== 0 && o3 !== 0 && o4 !== 0 && o1 !== o2 && o3 !== o4
+}
+
+/** Точное пересечение отрезка с прямоугольником (включая «отрезок внутри»). */
+const labelSegmentIntersectsRect = (
+  seg: { ax: number; ay: number; bx: number; by: number },
+  x1: number, y1: number, x2: number, y2: number,
+): boolean => {
+  if (Math.max(seg.ax, seg.bx) < x1 || Math.min(seg.ax, seg.bx) > x2) return false
+  if (Math.max(seg.ay, seg.by) < y1 || Math.min(seg.ay, seg.by) > y2) return false
+  const inside = (x: number, y: number) => x >= x1 && x <= x2 && y >= y1 && y <= y2
+  if (inside(seg.ax, seg.ay) || inside(seg.bx, seg.by)) return true
+  if (labelSegmentsCross(seg.ax, seg.ay, seg.bx, seg.by, x1, y1, x2, y1)) return true
+  if (labelSegmentsCross(seg.ax, seg.ay, seg.bx, seg.by, x2, y1, x2, y2)) return true
+  if (labelSegmentsCross(seg.ax, seg.ay, seg.bx, seg.by, x2, y2, x1, y2)) return true
+  if (labelSegmentsCross(seg.ax, seg.ay, seg.bx, seg.by, x1, y2, x1, y1)) return true
+  return false
+}
+
+/** Расстояние от точки до прямоугольника (0, если точка внутри). */
+const labelPointRectDistance = (
+  px: number, py: number, x1: number, y1: number, x2: number, y2: number,
+): number => {
+  const nx = Math.max(x1, Math.min(px, x2))
+  const ny = Math.max(y1, Math.min(py, y2))
+  return Math.hypot(px - nx, py - ny)
+}
+
+/**
+ * Углы-кандидаты, отсортированные по «неудобству» — отклонению от нормали к
+ * линии. Порядок влияет только на скорость (хороший кандидат находится сразу,
+ * дальше работает ранний отсев), но обязан совпадать с портом в scripts/quality:
+ * при равных штрафах побеждает первый найденный кандидат.
+ */
+const labelAnglesSortedByMisfit = (
+  angles: readonly number[], baseAngles: readonly number[],
+): { ang: number; misfit: number }[] => {
+  const out = angles.map((ang) => {
+    let misfit = Infinity
+    for (const base of baseAngles) {
+      const m = 1 - Math.cos(ang - base)
+      if (m < misfit) misfit = m
+    }
+    return { ang, misfit }
+  })
+  out.sort((a, b) => (a.misfit !== b.misfit ? a.misfit - b.misfit : a.ang - b.ang))
+  return out
+}
+
+/**
+ * Радиус префильтра «эта подпись вообще может повлиять на штраф».
+ * Заведомое надмножество: самые дальнобойные слагаемые — «колонка»
+ * (до 3 высот по вертикали) и аура (до 1.25 ширины по горизонтали).
+ */
+const labelNeighborReach = (ownReach: number, otherWidth: number, otherHeight: number): number =>
+  ownReach + otherWidth * 1.25 + otherHeight * 3 + 8
+
+/**
+ * Сегменты линий, разложенные по клеткам равномерной сетки.
+ * Запрос по клеткам даёт надмножество, точная проверка делается тут же,
+ * поэтому размер клетки влияет только на скорость, а не на результат.
+ */
+class LabelSegmentBuckets {
+  private readonly cell: number
+  private readonly buckets = new Map<number, number[]>()
+  private readonly segs: readonly LabelObstacleSegment[]
+  private readonly stamp: Int32Array
+  private tick = 0
+  private readonly hitLines: number[] = []
+
+  constructor(segments: readonly LabelObstacleSegment[], cell = 96) {
+    this.cell = cell
+    this.segs = segments
+    this.stamp = new Int32Array(segments.length)
+    for (let i = 0; i < segments.length; i += 1) {
+      const s = segments[i]
+      const minX = Math.floor(Math.min(s.ax, s.bx) / cell)
+      const maxX = Math.floor(Math.max(s.ax, s.bx) / cell)
+      const minY = Math.floor(Math.min(s.ay, s.by) / cell)
+      const maxY = Math.floor(Math.max(s.ay, s.by) / cell)
+      for (let gx = minX; gx <= maxX; gx += 1) {
+        for (let gy = minY; gy <= maxY; gy += 1) {
+          const key = gx * 100003 + gy
+          const arr = this.buckets.get(key)
+          if (arr) arr.push(i)
+          else this.buckets.set(key, [i])
+        }
+      }
+    }
+  }
+
+  /** Сколько РАЗНЫХ линий реально перечёркивают прямоугольник подписи. */
+  countCrossingLines(x1: number, y1: number, x2: number, y2: number): number {
+    const cell = this.cell
+    const minX = Math.floor(x1 / cell)
+    const maxX = Math.floor(x2 / cell)
+    const minY = Math.floor(y1 / cell)
+    const maxY = Math.floor(y2 / cell)
+    this.tick += 1
+    const tick = this.tick
+    const hit = this.hitLines
+    hit.length = 0
+    for (let gx = minX; gx <= maxX; gx += 1) {
+      for (let gy = minY; gy <= maxY; gy += 1) {
+        const arr = this.buckets.get(gx * 100003 + gy)
+        if (!arr) continue
+        for (const idx of arr) {
+          if (this.stamp[idx] === tick) continue
+          this.stamp[idx] = tick
+          const s = this.segs[idx]
+          if (hit.includes(s.lineId)) continue
+          if (labelSegmentIntersectsRect(s, x1, y1, x2, y2)) hit.push(s.lineId)
+        }
+      }
+    }
+    return hit.length
+  }
+}
+
+/** Прямоугольник уже размещённой подписи — то, что видят остальные подписи. */
+type DrawnLabelRect = {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  centerX: number
+  centerY: number
+  width: number
+  height: number
+  importance: number
+}
+
+const makeLabelStaticCache = (size: number): Float64Array => {
+  const arr = new Float64Array(size)
+  arr.fill(Number.NaN)
+  return arr
+}
+
 function computeStationLabelPlacements(
   ctx: CanvasRenderingContext2D,
   positionedStations: PositionedStation[],
   labelFontPx: number,
   segmentsByStationId: Map<string, { ax: number; ay: number; bx: number; by: number }[]>,
+  obstacleSegments: LabelObstacleSegment[],
+  ringCenters: ReadonlyMap<number, { cx: number; cy: number }>,
 ): StationLabelPlacement[] {
-  const placements: StationLabelPlacement[] = []
-
-  const segmentIntersectsRect = (
-    seg: { ax: number; ay: number; bx: number; by: number },
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-  ) => {
-    const minSegX = Math.min(seg.ax, seg.bx)
-    const maxSegX = Math.max(seg.ax, seg.bx)
-    const minSegY = Math.min(seg.ay, seg.by)
-    const maxSegY = Math.max(seg.ay, seg.by)
-    if (maxSegX < x1 || minSegX > x2 || maxSegY < y1 || minSegY > y2) {
-      return false
-    }
-    return true
-  }
+  // Зоны схемы (и вся «радиальная» геометрия раскладки) считаются от центра
+  // схемы, а не от начала координат: солвер не центрирует раскладку в (0,0).
+  const zoneCenter = resolveLabelZoneCenter(ringCenters, positionedStations)
 
   const hubCenters = new Map<string, { x: number; y: number }>()
   const hubCounts = new Map<string, number>()
@@ -259,7 +733,6 @@ function computeStationLabelPlacements(
   for (const st of positionedStations) {
     if (!st.hubId) continue
     const hubId = st.hubId
-
     const existingCenter = hubCenters.get(hubId)
     if (!existingCenter) {
       hubCenters.set(hubId, { x: st.x, y: st.y })
@@ -269,7 +742,6 @@ function computeStationLabelPlacements(
       existingCenter.y += st.y
       hubCounts.set(hubId, (hubCounts.get(hubId) ?? 0) + 1)
     }
-
     let hubStations = stationsByHubId.get(hubId)
     if (!hubStations) {
       hubStations = []
@@ -285,124 +757,68 @@ function computeStationLabelPlacements(
     hubCenters.set(hubId, center)
   }
 
-  const splitLabelToLines = (label: string, radialDist: number): string[] => {
-    const maxSingleLineChars = radialDist < 260 ? 14 : 18
-    if (label.length <= maxSingleLineChars) return [label]
-    const words = label.split(' ').filter((w) => w.length > 0)
-    if (words.length <= 1) return [label]
-    let bestIndex = 1
-    let bestDiff = Infinity
-    for (let i = 1; i < words.length; i += 1) {
-      const left = words.slice(0, i).join(' ')
-      const right = words.slice(i).join(' ')
-      const diff = Math.abs(left.length - right.length)
-      if (diff < bestDiff) {
-        bestDiff = diff
-        bestIndex = i
-      }
-    }
-    const first = words.slice(0, bestIndex).join(' ')
-    const second = words.slice(bestIndex).join(' ')
-    if (!first || !second) return [label]
-    return [first, second]
-  }
-
-  // Для подписей объединяем станции в пределах одного хаба: одна подпись на весь хаб
-  // для каждого уникального названия, при этом внутри хаба выбираем одно
-  // "главное" имя с более высоким приоритетом.
+  // Для подписей объединяем станции в пределах одного хаба: одна подпись на весь
+  // хаб для каждого уникального названия, при этом внутри хаба выбираем одно
+  // «главное» имя с более высоким приоритетом.
   const labelStations: PositionedStation[] = []
   const hubRepresentative = new Map<string, PositionedStation>()
   for (const st of positionedStations) {
     if (st.hubId != null) {
       const key = `${st.hubId}|${st.title.toLowerCase()}`
-      if (!hubRepresentative.has(key)) {
-        hubRepresentative.set(key, st)
-      }
+      if (!hubRepresentative.has(key)) hubRepresentative.set(key, st)
     } else {
       labelStations.push(st)
     }
   }
-  for (const st of hubRepresentative.values()) {
-    labelStations.push(st)
-  }
+  for (const st of hubRepresentative.values()) labelStations.push(st)
 
-  // Для каждого hubId выбираем один главный stationId по простому эвристическому правилу:
-  // ближе к центру схемы (меньше расстояние до (0,0)).
+  // Главная станция хаба — ближайшая к центру схемы.
   const hubMainStationId = new Map<string, string>()
   for (const st of labelStations) {
     if (st.hubId == null) continue
-    const hubId = st.hubId
-    const r = Math.sqrt(st.x * st.x + st.y * st.y)
-    const existingId = hubMainStationId.get(hubId)
+    const r = Math.hypot(st.x - zoneCenter.x, st.y - zoneCenter.y)
+    const existingId = hubMainStationId.get(st.hubId)
     if (!existingId) {
-      hubMainStationId.set(hubId, st.id)
-    } else {
-      const existing = labelStations.find((s) => s.id === existingId)
-      if (!existing) {
-        hubMainStationId.set(hubId, st.id)
-      } else {
-        const er = Math.sqrt(existing.x * existing.x + existing.y * existing.y)
-        if (r < er) hubMainStationId.set(hubId, st.id)
-      }
+      hubMainStationId.set(st.hubId, st.id)
+      continue
+    }
+    const existing = labelStations.find((s) => s.id === existingId)
+    if (!existing || r < Math.hypot(existing.x - zoneCenter.x, existing.y - zoneCenter.y)) {
+      hubMainStationId.set(st.hubId, st.id)
     }
   }
 
-  const drawnLabels: {
-    x1: number
-    y1: number
-    x2: number
-    y2: number
-    centerX: number
-    centerY: number
-    width: number
-    height: number
-    importance: number
-  }[] = []
-  // Запретная зона вокруг станций и хабов: радиус зависит от размера шрифта и
-  // типа узла, чтобы подписи не касались кругов станций/хабов и ближайших линий.
   const stationInfos = labelStations.map((st) => {
     const isHub = st.hubId != null
     const hubCenter = isHub && st.hubId ? hubCenters.get(st.hubId) : undefined
     const anchorX = hubCenter ? hubCenter.x : st.x
     const anchorY = hubCenter ? hubCenter.y : st.y
-    const r = Math.sqrt(anchorX * anchorX + anchorY * anchorY)
-
+    const r = Math.hypot(anchorX - zoneCenter.x, anchorY - zoneCenter.y)
     let priority = 0
-    let baseRadius = 10
-
     if (isHub && st.hubId != null) {
-      const mainId = hubMainStationId.get(st.hubId)
-      const isMain = mainId === st.id
-      priority = isMain ? 3 : 2
-      baseRadius = isMain ? 16 : 13
-    } else {
-      if (r < 220) priority = 2
-      else if (r < 420) priority = 1
-      baseRadius = 10
-    }
-    const marginFromFont = labelFontPx * 0.45
-    const diskRadius = baseRadius + marginFromFont
-    return { st, priority, r, diskRadius, anchorX, anchorY, isHub }
+      priority = hubMainStationId.get(st.hubId) === st.id ? 3 : 2
+    } else if (r < LABEL_PRIORITY_CENTER_RADIUS) priority = 2
+    else if (r < LABEL_PRIORITY_MIDDLE_RADIUS) priority = 1
+    return { st, priority, r, anchorX, anchorY }
   })
 
-  const stationDisks = stationInfos.map((info) => ({
-    x: info.anchorX,
-    y: info.anchorY,
-    r: info.diskRadius,
+  // Кружки всех нарисованных станций: подпись не должна накрывать чужой узел.
+  const nodes = positionedStations.map((st) => ({
+    id: st.id,
+    x: st.x,
+    y: st.y,
+    radius: st.hubId != null ? LABEL_NODE_RADIUS_HUB : LABEL_NODE_RADIUS_STATION,
   }))
 
-  const stationsForLabels = [...stationInfos].sort((a, b) => {
-    if (b.priority !== a.priority) return b.priority - a.priority
-    return a.r - b.r
-  })
+  const ordered = [...stationInfos].sort((a, b) =>
+    b.priority !== a.priority ? b.priority - a.priority : a.r - b.r,
+  )
 
   const getSegmentsForLabelStation = (st: PositionedStation) => {
     const direct = segmentsByStationId.get(st.id) ?? []
     if (!st.hubId) return direct
-
     const hubStations = stationsByHubId.get(st.hubId)
     if (!hubStations || hubStations.length <= 1) return direct
-
     const result = [...direct]
     for (const hubSt of hubStations) {
       if (hubSt.id === st.id) continue
@@ -413,49 +829,59 @@ function computeStationLabelPlacements(
     return result
   }
 
-  const CENTER_RADIUS = 240
-  const MIDDLE_RADIUS = 520
+  const segmentBuckets = new LabelSegmentBuckets(obstacleSegments)
 
-  for (const info of stationsForLabels) {
+  type PreparedLabel = {
+    info: (typeof stationInfos)[number]
+    stationIds: string[]
+    variants: { lines: string[]; width: number; height: number; deviation: number }[]
+    /** Углы-кандидаты, отсортированные по «неудобству». */
+    angles: { ang: number; misfit: number }[]
+    radialAngle: number | null
+    isRing: boolean
+    radiusOffsets: number[]
+    preferred: number
+    nearNodes: { x: number; y: number; radius: number }[]
+    nearAnchors: { x: number; y: number }[]
+    /** Насколько далеко от станции вообще может оказаться прямоугольник подписи. */
+    reach: number
+    /**
+     * Кеш «статических» штрафов кандидата (узлы, неоднозначность, пересечения с
+     * линиями). Геометрия кандидата от прохода к проходу не меняется, а линии и
+     * станции неподвижны — значит эти слагаемые считаются один раз. NaN = ещё не
+     * считали.
+     */
+    staticCache: Float64Array
+  }
+
+  const lineHeight = labelFontPx + 2
+  const lineSpacing = labelFontPx * 0.12
+
+  const prepared: PreparedLabel[] = []
+  for (const info of ordered) {
     const st = info.st
-    const anchorX = info.anchorX
-    const anchorY = info.anchorY
+    if (!st.title) continue
 
-    const stationIdsForLabel: string[] = []
-    if (st.hubId != null) {
-      const hubStations = stationsByHubId.get(st.hubId)
-      if (hubStations && hubStations.length > 0) {
-        for (const hs of hubStations) {
-          stationIdsForLabel.push(hs.id)
-        }
-      } else {
-        stationIdsForLabel.push(st.id)
-      }
-    } else {
-      stationIdsForLabel.push(st.id)
-    }
+    const hubStations = st.hubId != null ? stationsByHubId.get(st.hubId) : undefined
+    const stationIds =
+      hubStations && hubStations.length > 0 ? hubStations.map((s) => s.id) : [st.id]
+    const ownNodeIds = new Set(stationIds)
 
-    const label = st.title
-    if (!label) continue
-
-    const lines = splitLabelToLines(label, info.r)
-    const lineHeight = labelFontPx + 2
-    const lineSpacing = labelFontPx * 0.12
-    let maxLineWidth = 0
-    for (const ln of lines) {
-      const w = ctx.measureText(ln).width
-      if (w > maxLineWidth) maxLineWidth = w
-    }
-    const textWidth = maxLineWidth
-    const textHeight = lineHeight * lines.length + lineSpacing * Math.max(0, lines.length - 1)
+    const defaultLines = splitLabelToLines(st.title, info.r)
+    const variants = labelLineVariantsFor(st.title, info.r).map((lines) => {
+      let width = 0
+      for (const ln of lines) width = Math.max(width, ctx.measureText(ln).width)
+      const height = lineHeight * lines.length + lineSpacing * Math.max(0, lines.length - 1)
+      const deviation = lines.length === defaultLines.length ? 0 : LABEL_W.lineBreakDeviation
+      return { lines, width, height, deviation }
+    })
 
     const segmentsForStation = getSegmentsForLabelStation(st)
-
-    const isRingStation = typeof st.lineId === 'number' && RING_LINE_IDS.has(st.lineId)
+    const isRing = typeof st.lineId === 'number' && RING_LINE_IDS.has(st.lineId)
     const baseAngles: number[] = []
-    let radialAngleForStation: number | null = null
+    let radialAngle: number | null = null
 
-    if (!isRingStation && segmentsForStation.length > 0) {
+    if (!isRing && segmentsForStation.length > 0) {
       let sumDx = 0
       let sumDy = 0
       for (const seg of segmentsForStation) {
@@ -466,234 +892,338 @@ function computeStationLabelPlacements(
         sumDy += dy / len
       }
       if (sumDx !== 0 || sumDy !== 0) {
-        const tangentAngle = Math.atan2(sumDy, sumDx)
-        const normalAngle = tangentAngle + Math.PI / 2
+        const normalAngle = Math.atan2(sumDy, sumDx) + Math.PI / 2
         baseAngles.push(normalAngle, normalAngle + Math.PI)
       }
     }
-
     if (baseAngles.length === 0) {
-      const radialAngle = Math.atan2(anchorY, anchorX || 1e-6)
+      radialAngle = Math.atan2(
+        info.anchorY - zoneCenter.y,
+        info.anchorX - zoneCenter.x || 1e-6,
+      )
       baseAngles.push(radialAngle)
-      radialAngleForStation = radialAngle
     }
 
-    const isCenterZone = info.r < CENTER_RADIUS
-    const isMiddleZone = !isCenterZone && info.r < MIDDLE_RADIUS
+    // Насколько далеко от якоря может уехать прямоугольник подписи:
+    // максимум радиального смещения плюс габариты самого широкого варианта.
+    const radiusOffsets = labelRadiusOffsetsForZone(info.r)
+    let maxWidth = 0
+    let maxHeight = 0
+    for (const v of variants) {
+      if (v.width > maxWidth) maxWidth = v.width
+      if (v.height > maxHeight) maxHeight = v.height
+    }
+    const reach = radiusOffsets[radiusOffsets.length - 1] + maxWidth + maxHeight
 
-    const radiusOffsets = isCenterZone
-      ? [16, 22, 28, 34, 42]
-      : isMiddleZone
-      ? [18, 24, 30, 38, 48, 60, 72]
-      : [18, 24, 30, 38, 48, 60, 74, 92]
+    // Префильтры-надмножества: всё, что дальше, на штраф повлиять не может.
+    const nodeReach = reach + LABEL_NODE_RADIUS_HUB + LABEL_W.clearanceGap
+    const nearNodes: { x: number; y: number; radius: number }[] = []
+    for (const n of nodes) {
+      if (ownNodeIds.has(n.id)) continue
+      if (Math.abs(n.x - info.anchorX) > nodeReach) continue
+      if (Math.abs(n.y - info.anchorY) > nodeReach) continue
+      nearNodes.push({ x: n.x, y: n.y, radius: n.radius })
+    }
+    const anchorReach = 2 * reach
+    const nearAnchors: { x: number; y: number }[] = []
+    for (const o of stationInfos) {
+      if (o.st.id === st.id) continue
+      if (Math.abs(o.anchorX - info.anchorX) > anchorReach) continue
+      if (Math.abs(o.anchorY - info.anchorY) > anchorReach) continue
+      nearAnchors.push({ x: o.anchorX, y: o.anchorY })
+    }
 
-    // Набор радиальных и угловых смещений даёт десятки возможных позиций
-    // (16+ уникальных направлений относительно станции), что позволяет
-    // практически всегда найти вариант без пересечений.
-    const angleOffsets = [
-      0,
-      Math.PI / 20,
-      -Math.PI / 20,
-      Math.PI / 10,
-      -Math.PI / 10,
-      Math.PI / 6,
-      -Math.PI / 6,
-      Math.PI / 4,
-      -Math.PI / 4,
-    ]
+    prepared.push({
+      info,
+      stationIds,
+      variants,
+      angles: labelAnglesSortedByMisfit(LABEL_CANDIDATE_ANGLES, baseAngles),
+      radialAngle,
+      isRing,
+      radiusOffsets,
+      preferred: labelPreferredMaxDist(info.r),
+      nearNodes,
+      nearAnchors,
+      reach,
+      staticCache: makeLabelStaticCache(
+        variants.length *
+          radiusOffsets.length *
+          LABEL_CANDIDATE_ANGLES.length *
+          LABEL_ALIGN_MODES.length,
+      ),
+    })
+  }
 
-    let bestCandidate:
-      | {
-          x1: number
-          y1: number
-          x2: number
-          y2: number
-          labelX: number
-          labelY: number
-          alignRight: boolean
-          score: number
-          centerX: number
-          centerY: number
-          width: number
-          height: number
-          lines: string[]
-        }
-      | null = null
+  type BestCandidate = StationLabelPlacement & { score: number; drawn: DrawnLabelRect }
 
-    for (const baseAngle of baseAngles) {
-      for (const rOffset of radiusOffsets) {
-        for (const dAngle of angleOffsets) {
-          const ang = baseAngle + dAngle
+  const slots: (DrawnLabelRect | null)[] = prepared.map(() => null)
+  const chosen: (StationLabelPlacement | null)[] = prepared.map(() => null)
 
-          if (isRingStation && radialAngleForStation != null) {
-            const dirDot = Math.cos(ang - radialAngleForStation)
-            if (dirDot < 0) continue
+  /** Зафиксировать выбранную позицию подписи. */
+  const finish = (index: number, best: BestCandidate): void => {
+    const { score: _score, drawn, ...rest } = best
+    void _score
+    slots[index] = drawn
+    chosen[index] = rest
+  }
+
+  /** Подбор лучшей позиции подписи с учётом всех уже размещённых, кроме себя. */
+  const placeOne = (index: number): void => {
+    const p = prepared[index]
+    const info = p.info
+    const anchorX = info.anchorX
+    const anchorY = info.anchorY
+
+    const neighbors: DrawnLabelRect[] = []
+    for (let j = 0; j < slots.length; j += 1) {
+      if (j === index) continue
+      const s = slots[j]
+      if (!s) continue
+      const reach = labelNeighborReach(p.reach, s.width, s.height)
+      if (Math.abs(s.centerX - anchorX) < reach && Math.abs(s.centerY - anchorY) < reach) {
+        neighbors.push(s)
+      }
+    }
+
+    let best: BestCandidate | null = null
+
+    const nAngles = p.angles.length
+    const nModes = LABEL_ALIGN_MODES.length
+
+    for (let vi = 0; vi < p.variants.length; vi += 1) {
+      const variant = p.variants[vi]
+      const textWidth = variant.width
+      const textHeight = variant.height
+      const softGapYThreshold = textHeight * 0.5
+      const softGapXThreshold = textWidth * 0.5
+
+      for (let ri = 0; ri < p.radiusOffsets.length; ri += 1) {
+        const rOffset = p.radiusOffsets[ri]
+        for (let ai = 0; ai < nAngles; ai += 1) {
+          const candidate = p.angles[ai]
+          const ang = candidate.ang
+          if (p.isRing && p.radialAngle != null) {
+            if (Math.cos(ang - p.radialAngle) < 0) continue
           }
+
+          const angleCost = candidate.misfit * LABEL_W.angleMisfit + variant.deviation
 
           const px = anchorX + Math.cos(ang) * rOffset
           const py = anchorY + Math.sin(ang) * rOffset
 
-          const alignRight = Math.cos(ang) < 0
-          const labelX = px
-          const labelY = py
+          const candidateBase = ((vi * p.radiusOffsets.length + ri) * nAngles + ai) * nModes
 
-          const x1 = alignRight ? labelX - textWidth : labelX
-          const y1 = labelY - textHeight / 2
-          const x2 = x1 + textWidth
-          const y2 = y1 + textHeight
+          for (const mode of LABEL_ALIGN_MODES) {
+            const x1 = mode === 0 ? px : mode === 1 ? px - textWidth : px - textWidth / 2
+            const y1 = py - textHeight / 2
+            const x2 = x1 + textWidth
+            const y2 = y1 + textHeight
+            const cx = (x1 + x2) / 2
+            const cy = (y1 + y2) / 2
 
-          const cx = (x1 + x2) / 2
-          const cy = (y1 + y2) / 2
-          const dx = cx - anchorX
-          const dy = cy - anchorY
-          const distToStation = Math.sqrt(dx * dx + dy * dy)
+            const distToStation = Math.hypot(cx - anchorX, cy - anchorY)
+            let score = angleCost + distToStation * LABEL_W.distLinear
+            if (distToStation > p.preferred) {
+              const over = distToStation - p.preferred
+              score += LABEL_W.detachedStep + over * over * LABEL_W.detachedQuad
+            }
+            // Ранний отсев: остальные слагаемые неотрицательны, поэтому кандидат
+            // с таким «дешёвым» счётом уже не может обойти найденный лучший.
+            if (best && score >= best.score) continue
 
-          let nearestOtherDist2 = Infinity
-          for (const other of stationInfos) {
-            if (other.st.id === st.id) continue
-            const odx = other.anchorX - cx
-            const ody = other.anchorY - cy
-            const d2 = odx * odx + ody * ody
-            if (d2 < nearestOtherDist2) nearestOtherDist2 = d2
-          }
-          const ownDist2 = distToStation * distToStation
-
-          let overlaps = false
-          let softRepulsionPenalty = 0
-          let columnPenalty = 0
-
-          const softGapYThreshold = textHeight * 0.5
-          const softGapXThreshold = textWidth * 0.5
-
-          for (const r of drawnLabels) {
-            const xOverlap = !(x2 < r.x1 || x1 > r.x2)
-            const yOverlap = !(y2 < r.y1 || y1 > r.y2)
-
-            if (xOverlap && yOverlap) {
-              overlaps = true
-            } else {
-              if (xOverlap) {
-                const gapY = y1 > r.y2 ? y1 - r.y2 : r.y1 - y2
-                if (gapY < softGapYThreshold) {
-                  const t = (softGapYThreshold - gapY) / Math.max(softGapYThreshold, 1)
-                  softRepulsionPenalty += 260 * t
+            let overlaps = false
+            let soft = 0
+            for (const r of neighbors) {
+              const xOverlap = !(x2 < r.x1 || x1 > r.x2)
+              const yOverlap = !(y2 < r.y1 || y1 > r.y2)
+              if (xOverlap && yOverlap) {
+                overlaps = true
+              } else {
+                if (xOverlap) {
+                  const gapY = y1 > r.y2 ? y1 - r.y2 : r.y1 - y2
+                  if (gapY < softGapYThreshold) {
+                    soft +=
+                      LABEL_W.softRepulsionY *
+                      ((softGapYThreshold - gapY) / Math.max(softGapYThreshold, 1))
+                  }
+                }
+                if (yOverlap) {
+                  const gapX = x1 > r.x2 ? x1 - r.x2 : r.x1 - x2
+                  if (gapX < softGapXThreshold) {
+                    soft +=
+                      LABEL_W.softRepulsionX *
+                      ((softGapXThreshold - gapX) / Math.max(softGapXThreshold, 1))
+                  }
                 }
               }
+              if (r.importance >= 2) {
+                const auraPadX = r.width * 0.25
+                const auraPadY = r.height * 0.35
+                const inAura = !(
+                  x2 < r.x1 - auraPadX ||
+                  x1 > r.x2 + auraPadX ||
+                  y2 < r.y1 - auraPadY ||
+                  y1 > r.y2 + auraPadY
+                )
+                if (inAura) soft += LABEL_W.aura
+              }
+              const columnWidth = Math.max(textWidth, r.width) * 0.35
+              if (Math.abs(cx - r.centerX) < columnWidth) {
+                const normDy = Math.abs(cy - r.centerY) / Math.max(textHeight, r.height)
+                if (normDy < 3) soft += LABEL_W.column * ((3 - normDy) / 3)
+              }
+            }
+            if (overlaps) score += LABEL_W.labelOverlap
+            score += soft
+            if (best && score >= best.score) continue
 
-              if (yOverlap) {
-                const gapX = x1 > r.x2 ? x1 - r.x2 : r.x1 - x2
-                if (gapX < softGapXThreshold) {
-                  const t = (softGapXThreshold - gapX) / Math.max(softGapXThreshold, 1)
-                  softRepulsionPenalty += 220 * t
+            const cacheKey = candidateBase + mode
+            let staticCost = p.staticCache[cacheKey]
+            if (Number.isNaN(staticCost)) {
+              staticCost = 0
+              for (const n of p.nearNodes) {
+                const d = labelPointRectDistance(n.x, n.y, x1, y1, x2, y2) - n.radius
+                if (d <= 0) {
+                  staticCost += LABEL_W.coverStation
+                  break
+                }
+                if (d < LABEL_W.clearanceGap) {
+                  staticCost +=
+                    LABEL_W.clearance * ((LABEL_W.clearanceGap - d) / LABEL_W.clearanceGap)
                 }
               }
-            }
-
-            if (r.importance >= 2) {
-              const auraPadX = r.width * 0.25
-              const auraPadY = r.height * 0.35
-              const ax1 = r.x1 - auraPadX
-              const ay1 = r.y1 - auraPadY
-              const ax2 = r.x2 + auraPadX
-              const ay2 = r.y2 + auraPadY
-              const inAura = !(x2 < ax1 || x1 > ax2 || y2 < ay1 || y1 > ay2)
-              if (inAura) {
-                softRepulsionPenalty += 900
+              for (const a of p.nearAnchors) {
+                const d2 = (a.x - cx) ** 2 + (a.y - cy) ** 2
+                if (d2 + 1e-3 < distToStation * distToStation) {
+                  staticCost += LABEL_W.ambiguous
+                  break
+                }
               }
-            }
-
-            const dxCenter = Math.abs(cx - r.centerX)
-            const dyCenter = Math.abs(cy - r.centerY)
-            const columnWidth = Math.max(textWidth, r.width) * 0.35
-            if (dxCenter < columnWidth) {
-              const normDy = dyCenter / Math.max(textHeight, r.height)
-              if (normDy < 3) {
-                const t = (3 - normDy) / 3
-                columnPenalty += 520 * t
+              const crossing = segmentBuckets.countCrossingLines(x1, y1, x2, y2)
+              if (crossing > 0) {
+                staticCost += LABEL_W.lineCrossFirst + (crossing - 1) * LABEL_W.lineCrossMore
               }
+              p.staticCache[cacheKey] = staticCost
             }
-          }
+            score += staticCost
+            if (best && score >= best.score) continue
 
-          const overlapsStation = stationDisks.some((d) => {
-            const sx1 = d.x - d.r
-            const sy1 = d.y - d.r
-            const sx2 = d.x + d.r
-            const sy2 = d.y + d.r
-            return !(x2 < sx1 || x1 > sx2 || y2 < sy1 || y1 > sy2)
-          })
-
-          let score = rOffset
-          if (overlaps) score += 8000
-          if (overlapsStation) score += 8000
-          if (softRepulsionPenalty > 0) score += softRepulsionPenalty
-          if (columnPenalty > 0) score += columnPenalty
-
-          // Мягкий штраф за прохождение локальных сегментов линии через прямоугольник подписи.
-          if (segmentsForStation.length > 0) {
-            for (const seg of segmentsForStation) {
-              if (segmentIntersectsRect(seg, x1, y1, x2, y2)) {
-                score += 140
-              }
-            }
-          }
-
-          const preferredMaxDist = isCenterZone ? 44 : isMiddleZone ? 60 : 84
-          if (distToStation > preferredMaxDist) {
-            const extra = distToStation - preferredMaxDist
-            score += extra * 16
-          }
-
-          if (Number.isFinite(nearestOtherDist2) && nearestOtherDist2 + 1e-3 < ownDist2) {
-            score += 4000
-          }
-
-          if (!bestCandidate || score < bestCandidate.score) {
-            bestCandidate = {
-              x1,
-              y1,
-              x2,
-              y2,
-              labelX,
-              labelY,
-              alignRight,
+            best = {
               score,
-              centerX: cx,
-              centerY: cy,
+              text: info.st.title,
+              x: mode === 1 ? px : x1,
+              y: py,
+              alignRight: mode === 1,
+              importance: info.priority,
               width: textWidth,
               height: textHeight,
-              lines,
+              lines: variant.lines,
+              stationIds: p.stationIds,
+              drawn: {
+                x1,
+                y1,
+                x2,
+                y2,
+                centerX: cx,
+                centerY: cy,
+                width: textWidth,
+                height: textHeight,
+                importance: info.priority,
+              },
             }
           }
         }
       }
     }
 
-    if (bestCandidate) {
-      drawnLabels.push({
-        x1: bestCandidate.x1,
-        y1: bestCandidate.y1,
-        x2: bestCandidate.x2,
-        y2: bestCandidate.y2,
-        centerX: bestCandidate.centerX,
-        centerY: bestCandidate.centerY,
-        width: bestCandidate.width,
-        height: bestCandidate.height,
-        importance: info.priority,
-      })
-      placements.push({
-        text: label,
-        x: bestCandidate.labelX,
-        y: bestCandidate.labelY,
-        alignRight: bestCandidate.alignRight,
-        importance: info.priority,
-        width: bestCandidate.width,
-        height: bestCandidate.height,
-        lines: bestCandidate.lines,
-        stationIds: stationIdsForLabel,
-      })
-    }
+    if (best) finish(index, best)
   }
 
+  // Фаза 1 — жадная раскладка в порядке приоритета.
+  for (let i = 0; i < prepared.length; i += 1) placeOne(i)
+
+  // Фаза 2 — координатный спуск: каждая подпись перекладывается заново, уже
+  // видя ВСЕ остальные (а не только более приоритетные). Позиция из фазы 1
+  // всегда входит в набор кандидатов, поэтому её штраф не может вырасти.
+  for (let pass = 0; pass < LABEL_REFINE_PASSES; pass += 1) {
+    for (let i = 0; i < prepared.length; i += 1) placeOne(i)
+  }
+
+  // Фаза 3 — «расталкивание». Координатный спуск двигает подписи по одной и
+  // потому не умеет разменивать: подпись-дефект не может занять чистое место
+  // просто потому, что там уже стоит сосед, которому это место не нужно.
+  // Здесь дефектная подпись пробует ВЫСЕЛИТЬ ровно одного соседа: сосед
+  // снимается, обе подписи перекладываются обычным placeOne, и размен
+  // принимается, только если суммарное число дефектов строго уменьшилось.
+  // Порядок обхода фиксирован, случайности нет — результат детерминирован.
+  //
+  // Дефект здесь — ровно то, что считают метрики labels.detached и
+  // labels.crossedByLines: подпись дальше допуска своей зоны или перечёркнута
+  // хотя бы одной линией. Наложения подписей в этот счёт не входят: они и так
+  // стоят 24000 и ни один кандидат с наложением не выигрывает у обычного.
+  const isDefect = (index: number): boolean => {
+    const s = slots[index]
+    if (!s) return true
+    const p = prepared[index]
+    const dx = s.centerX - p.info.anchorX
+    const dy = s.centerY - p.info.anchorY
+    if (Math.hypot(dx, dy) > p.preferred) return true
+    return segmentBuckets.countCrossingLines(s.x1, s.y1, s.x2, s.y2) > 0
+  }
+
+  for (let pass = 0; pass < LABEL_EJECT_PASSES; pass += 1) {
+    let improved = false
+    for (let i = 0; i < prepared.length; i += 1) {
+      if (!isDefect(i)) continue
+      const p = prepared[i]
+      const anchorX = p.info.anchorX
+      const anchorY = p.info.anchorY
+      let maxWidth = 0
+      let maxHeight = 0
+      for (const v of p.variants) {
+        if (v.width > maxWidth) maxWidth = v.width
+        if (v.height > maxHeight) maxHeight = v.height
+      }
+      for (let j = 0; j < prepared.length; j += 1) {
+        if (j === i) continue
+        const s = slots[j]
+        if (!s) continue
+        // Выселять имеет смысл только тех, кто реально мешает: чей прямоугольник
+        // вообще способен пересечься с подписью i, поставленной В ДОПУСКЕ.
+        // Более широкий neighborReach() дал бы в центре по сотне кандидатов на
+        // подпись и на порядок больше работы без единого лишнего размена.
+        if (Math.abs(s.centerX - anchorX) >= p.preferred + (maxWidth + s.width) / 2) continue
+        if (Math.abs(s.centerY - anchorY) >= p.preferred + (maxHeight + s.height) / 2) continue
+
+        // Двигаются только i и j, остальные подписи стоят на месте — значит
+        // изменение общего числа дефектов равно изменению по этой паре.
+        const before = 1 + (isDefect(j) ? 1 : 0)
+        const slotI = slots[i]
+        const slotJ = slots[j]
+        const chosenI = chosen[i]
+        const chosenJ = chosen[j]
+
+        slots[j] = null
+        chosen[j] = null
+        placeOne(i)
+        placeOne(j)
+
+        if ((isDefect(i) ? 1 : 0) + (isDefect(j) ? 1 : 0) < before) {
+          improved = true
+          if (!isDefect(i)) break
+        } else {
+          slots[i] = slotI
+          slots[j] = slotJ
+          chosen[i] = chosenI
+          chosen[j] = chosenJ
+        }
+      }
+    }
+    if (!improved) break
+  }
+
+  const placements: StationLabelPlacement[] = []
+  for (const c of chosen) if (c) placements.push(c)
   return placements
 }
 
@@ -740,6 +1270,14 @@ export const MetroMap = memo(function MetroMap({
       routeFallbackColor: '#ec4899',
       endpointColorA: '#22c1b4',
       endpointColorB: '#ef4444',
+      stationSelectedHalo: 'rgba(255, 182, 193, 0.45)',
+      labelHaloColor: 'rgba(255, 255, 255, 0.92)',
+      hubCapsuleFillColor: 'rgba(255, 255, 255, 0.82)',
+      hubCapsuleStrokeColor: 'rgba(100, 116, 139, 0.45)',
+      routeBuildOverlayColor: '#f3f4f6',
+      routeBuildGlowColor: 'rgba(148, 163, 184, 0.35)',
+      endpointShadowColor: 'rgba(15, 23, 42, 0.25)',
+      endpointStrokeColor: 'rgba(15, 23, 42, 0.18)',
     }
   })
 
@@ -845,6 +1383,28 @@ export const MetroMap = memo(function MetroMap({
         routeFallbackColor: readToken(rootStyle, '--map-route-fallback-color', '#ec4899'),
         endpointColorA: readToken(rootStyle, '--map-endpoint-a', '#22c1b4'),
         endpointColorB: readToken(rootStyle, '--map-endpoint-b', '#ef4444'),
+        stationSelectedHalo: readToken(
+          rootStyle, '--map-station-selected-halo', 'rgba(255, 182, 193, 0.45)',
+        ),
+        labelHaloColor: readToken(
+          rootStyle, '--map-label-halo', 'rgba(255, 255, 255, 0.92)',
+        ),
+        hubCapsuleFillColor: readToken(
+          rootStyle, '--map-hub-capsule-fill', 'rgba(255, 255, 255, 0.82)',
+        ),
+        hubCapsuleStrokeColor: readToken(
+          rootStyle, '--map-hub-capsule-stroke', 'rgba(100, 116, 139, 0.45)',
+        ),
+        routeBuildOverlayColor: readToken(rootStyle, '--map-route-build-overlay', '#f3f4f6'),
+        routeBuildGlowColor: readToken(
+          rootStyle, '--map-route-build-glow', 'rgba(148, 163, 184, 0.35)',
+        ),
+        endpointShadowColor: readToken(
+          rootStyle, '--map-endpoint-shadow', 'rgba(15, 23, 42, 0.25)',
+        ),
+        endpointStrokeColor: readToken(
+          rootStyle, '--map-endpoint-stroke', 'rgba(15, 23, 42, 0.18)',
+        ),
       })
     }
 
@@ -1154,25 +1714,10 @@ export const MetroMap = memo(function MetroMap({
               return ov ? { ...st, x: ov.x, y: ov.y } : st
             })
 
-      const byId = new Map<string, PositionedStation>()
-      for (const st of withOverrides) byId.set(st.id, st)
-
-      const ringShapesByLineId = new Map<number, RingShape>()
-      for (const line of fullGraphLines) {
-        if (!RING_LINE_IDS.has(line.id)) continue
-        const shape = getRingShapeForLine(line.id, line.stationIds, byId)
-        if (shape) ringShapesByLineId.set(line.id, shape)
-      }
-
-      if (ringShapesByLineId.size === 0) return withOverrides
-
-      return withOverrides.map((st) => {
-        if (typeof st.lineId !== 'number') return st
-        const shape = ringShapesByLineId.get(st.lineId)
-        if (!shape) return st
-        const p = projectPointToRingShape(shape, st.x, st.y)
-        return { ...st, x: p.x, y: p.y }
-      })
+      // Никакой проекции станций на форму кольца: координаты из данных —
+      // это ровно то, что видит пользователь. Проекцию делает оффлайн-солвер,
+      // иначе хабы, снапнутые в одну точку, разъезжаются на экране.
+      return withOverrides
     }
 
     // Теоретический fallback: если по какой-то причине нет layoutX/layoutY —
@@ -1281,6 +1826,23 @@ export const MetroMap = memo(function MetroMap({
     return segmentsByStationId
   }, [visibleLineStationIdsByLineId, positionedById])
 
+  /**
+   * Центры кольцевых линий — вход для зонирования подписей.
+   * Резолвятся ровно тем же resolveRingShapeForLine, что и при отрисовке колец,
+   * поэтому «центр схемы» у раскладки тот же, что у нарисованной Кольцевой.
+   */
+  const labelRingCenters = useMemo(() => {
+    const out = new Map<number, { cx: number; cy: number }>()
+    for (const line of fullGraphLines) {
+      if (!RING_LINE_IDS.has(line.id)) continue
+      const ids = line.stationIds.filter((sid) => positionedById.has(sid))
+      if (ids.length < 2) continue
+      const shape = resolveRingShapeForLine(line.id, ids, positionedById)
+      if (shape) out.set(line.id, { cx: shape.cx, cy: shape.cy })
+    }
+    return out
+  }, [positionedById])
+
   const teatralnayaWorld = useMemo(() => {
     if (positionedStations.length === 0) return null
     const byId = positionedStations.find((st) => st.id === 'mos-2-2.99')
@@ -1346,6 +1908,67 @@ export const MetroMap = memo(function MetroMap({
 
     return { corridorEdgeUsage, corridorEdgeKey }
   }, [visibleLineStationIdsByLineId])
+
+  /**
+   * Все нарисованные сегменты линий — препятствия для подписей.
+   * Строится ровно так же, как рисуется базовый слой линий в drawFrame:
+   * кольца берутся аналитической кривой (сэмплируем её ломаной), обычные
+   * перегоны — с параллельным сдвигом на общих коридорах.
+   * Порт-двойник: scripts/quality/render.ts → model.segments.
+   */
+  const labelObstacleSegments = useMemo(() => {
+    const out: LabelObstacleSegment[] = []
+    const { corridorEdgeUsage, corridorEdgeKey } = corridorEdgeData
+
+    for (const line of fullGraphLines) {
+      const ids = visibleLineStationIdsByLineId.get(line.id) ?? []
+      if (ids.length < 2) continue
+      const isRing = RING_LINE_IDS.has(line.id)
+
+      if (isRing) {
+        const shape = resolveRingShapeForLine(line.id, ids, positionedById)
+        if (shape) {
+          for (let i = 0; i < LABEL_RING_SAMPLES; i += 1) {
+            const t0 = (i / LABEL_RING_SAMPLES) * Math.PI * 2
+            const t1 = ((i + 1) / LABEL_RING_SAMPLES) * Math.PI * 2
+            const a = pointOnRingShape(shape, t0)
+            const b = pointOnRingShape(shape, t1)
+            out.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y, lineId: line.id })
+          }
+          continue
+        }
+      }
+
+      const segmentCount = isRing ? ids.length : ids.length - 1
+      for (let i = 0; i < segmentCount; i += 1) {
+        const a = positionedById.get(ids[i])
+        const b = positionedById.get(ids[(i + 1) % ids.length])
+        if (!a || !b) continue
+        let offsetX = 0
+        let offsetY = 0
+        const usage = corridorEdgeUsage.get(corridorEdgeKey(a.id, b.id))
+        if (usage && usage.lineIds.length > 1) {
+          const dx = b.x - a.x
+          const dy = b.y - a.y
+          const len = Math.hypot(dx, dy)
+          const index = usage.lineIds.indexOf(line.id)
+          if (len > 1e-3 && index !== -1) {
+            const offsetIndex = index - (usage.lineIds.length - 1) / 2
+            offsetX = (-dy / len) * CORRIDOR_OFFSET_WORLD * offsetIndex
+            offsetY = (dx / len) * CORRIDOR_OFFSET_WORLD * offsetIndex
+          }
+        }
+        out.push({
+          ax: a.x + offsetX,
+          ay: a.y + offsetY,
+          bx: b.x + offsetX,
+          by: b.y + offsetY,
+          lineId: line.id,
+        })
+      }
+    }
+    return out
+  }, [visibleLineStationIdsByLineId, positionedById, corridorEdgeData])
 
   const hubGroups = useMemo(() => {
     const groups = new Map<string, PositionedStation[]>()
@@ -1593,9 +2216,17 @@ export const MetroMap = memo(function MetroMap({
   }, [editMode])
 
   const clampViewport = useCallback((vp: ViewportState): ViewportState => {
-    // Ограничиваем масштаб
+    // Ограничиваем масштаб. Нижняя граница — не только константа: если на этом
+    // экране даже MIN_SCALE не даёт увидеть схему целиком, разрешаем отдалиться
+    // ровно до «вся схема в кадре».
+    const fitScale =
+      worldBounds && canvasSize.width && canvasSize.height
+        ? fitScaleFor(worldBounds.width, worldBounds.height, canvasSize.width, canvasSize.height)
+        : MIN_SCALE
+    const minScale = Math.min(MIN_SCALE, fitScale)
+
     let scale = vp.scale
-    scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale))
+    scale = Math.min(MAX_SCALE, Math.max(minScale, scale))
 
     // Если ещё не знаем границы мира или размера canvas — не трогаем pan
     if (!worldBounds || !canvasSize.width || !canvasSize.height) {
@@ -2137,32 +2768,41 @@ export const MetroMap = memo(function MetroMap({
 
     const worldWidth = worldBounds.width
     const worldHeight = worldBounds.height
-    const padding = 160
 
-    const scaleX = (displayWidth - padding * 2) / worldWidth
-    const scaleY = (displayHeight - padding * 2) / worldHeight
-    const baseScale = Math.min(scaleX, scaleY)
-    if (!Number.isFinite(baseScale) || baseScale <= 0) return
-
-    const initialScale = Math.min(MAX_SCALE, Math.max(baseScale, INITIAL_PREFERRED_SCALE))
-
-    const headerInsetPx = Math.min(120, displayHeight * 0.16)
-    const bottomInsetPx = Math.min(320, displayHeight * 0.35)
-    const insetTop = headerInsetPx
-    const insetBottom = bottomInsetPx
+    // Свободная зона между шапкой и нижней шторкой/панелью. На широком экране
+    // (≥1024px) вместо шторки сбоку висит панель, и резервировать треть высоты
+    // под неё не нужно — раньше из-за этого схема на десктопе сжималась зря.
+    const isWidePanelLayout = displayWidth >= 1024
+    const insetTop = Math.min(96, displayHeight * 0.12)
+    const insetBottom = isWidePanelLayout
+      ? Math.min(56, displayHeight * 0.07)
+      : Math.min(210, displayHeight * 0.25)
     const insetLeft = 0
     const insetRight = 0
 
     const visibleWidth = Math.max(50, displayWidth - insetLeft - insetRight)
     const visibleHeight = Math.max(50, displayHeight - insetTop - insetBottom)
 
+    // Стартуем с «вся схема в кадре»: раньше здесь стоял
+    // max(baseScale, INITIAL_PREFERRED_SCALE), из-за чего фит всегда
+    // проигрывал 1.1 и приложение открывалось в куске центра (VQA-3).
+    const fitScale = fitScaleFor(worldWidth, worldHeight, visibleWidth, visibleHeight)
+    if (!Number.isFinite(fitScale) || fitScale <= 0) return
+
+    const initialScale = Math.min(MAX_SCALE, INITIAL_PREFERRED_SCALE, fitScale)
+
     const screenCenterX = displayWidth / 2
     const screenCenterY = displayHeight / 2
     const visibleCenterX = insetLeft + visibleWidth / 2
     const visibleCenterY = insetTop + visibleHeight / 2
 
-    const centerWorldX = teatralnayaWorld ? teatralnayaWorld.x : worldBounds.centerX
-    const centerWorldY = teatralnayaWorld ? teatralnayaWorld.y : worldBounds.centerY
+    // Если схема влезла целиком — центрируем её саму. Если экран так велик,
+    // что фит упёрся в потолок зума, показываем центр города.
+    const showsWholeMap = initialScale >= fitScale - 1e-6
+    const centerWorldX =
+      showsWholeMap || !teatralnayaWorld ? worldBounds.centerX : teatralnayaWorld.x
+    const centerWorldY =
+      showsWholeMap || !teatralnayaWorld ? worldBounds.centerY : teatralnayaWorld.y
 
     const offsetX = visibleCenterX - screenCenterX - centerWorldX * initialScale
     const offsetY = visibleCenterY - screenCenterY - centerWorldY * initialScale
@@ -2265,6 +2905,14 @@ export const MetroMap = memo(function MetroMap({
       routeFallbackColor,
       endpointColorA,
       endpointColorB,
+      stationSelectedHalo,
+      labelHaloColor,
+      hubCapsuleFillColor,
+      hubCapsuleStrokeColor,
+      routeBuildOverlayColor,
+      routeBuildGlowColor,
+      endpointShadowColor,
+      endpointStrokeColor,
     } = mapThemeTokens
 
     // Общие коридоры: используем уже подготовленный кеш, чтобы знать, какие рёбра делят несколько линий.
@@ -2282,7 +2930,7 @@ export const MetroMap = memo(function MetroMap({
       const baseAlpha = hasRoute ? BASE_LINE_ALPHA_WITH_ROUTE : BASE_LINE_ALPHA_NO_ROUTE
 
       if (isRing) {
-        const shape = getRingShapeForLine(line.id, ids, positionedById)
+        const shape = resolveRingShapeForLine(line.id, ids, positionedById)
         if (shape) {
           // Halo
           ctx.save()
@@ -2340,9 +2988,8 @@ export const MetroMap = memo(function MetroMap({
             if (index !== -1) {
               const nLines = usage.lineIds.length
               const offsetIndex = index - (nLines - 1) / 2
-              const corridorOffsetWorld = 3
-              offsetX = nx * corridorOffsetWorld * offsetIndex
-              offsetY = ny * corridorOffsetWorld * offsetIndex
+              offsetX = nx * CORRIDOR_OFFSET_WORLD * offsetIndex
+              offsetY = ny * CORRIDOR_OFFSET_WORLD * offsetIndex
             }
           }
         }
@@ -2491,7 +3138,6 @@ export const MetroMap = memo(function MetroMap({
       }
 
       if (buildOverlayAlphaMul > 0) {
-        const routeBuildOverlayColor = '#f3f4f6'
         const orderedIds = (() => {
           if (!routeStationIds || routeStationIds.length < 2) return [] as string[]
           const ids = routeStationIds.filter((id) => positionedById.has(id))
@@ -2524,7 +3170,7 @@ export const MetroMap = memo(function MetroMap({
             const headLen = Math.max(0, Math.min(totalLen, totalLen * Math.max(0, Math.min(1, buildProgressT))))
 
             ctx.save()
-            ctx.shadowColor = 'rgba(148, 163, 184, 0.35)'
+            ctx.shadowColor = routeBuildGlowColor
             ctx.shadowBlur = 10 + routeShadowExtra
             ctx.setLineDash([26, 18])
             ctx.lineDashOffset = buildDashOffset
@@ -2647,7 +3293,10 @@ export const MetroMap = memo(function MetroMap({
           continue
         }
 
-        const pad = stationRadius * 1.6
+        // Паддинг подобран так, чтобы плашка была заметно больше самих кружков:
+        // при разбросе 16px (hub-6) кружки дотягиваются до 17px от центра, и на
+        // прежних 1.6 радиуса капсула вплотную обрезала их по краю.
+        const pad = stationRadius * 2.1
         const w = maxX - minX + pad * 2
         const h = maxY - minY + pad * 2
         const x = minX - pad
@@ -2658,14 +3307,22 @@ export const MetroMap = memo(function MetroMap({
         const cornerRadius =
           size === 2 ? baseRadius : size === 3 ? baseRadius * 0.8 : baseRadius * 0.6
 
-        ctx.globalAlpha = 0
-        ctx.fillStyle = 'rgba(244, 114, 182, 0.35)'
-        drawRoundedRect(ctx, x, y, w, h, cornerRadius)
+        // Капсула гасится вместе с остальной схемой, когда построен маршрут,
+        // но не полностью: узел должен оставаться узлом.
+        const isActiveHub = !hasRoute || group.some((st) => routeStationIdSet.has(st.id))
+        ctx.globalAlpha = !hasRoute ? 1 : isActiveHub ? 1 : HUB_DIM_ALPHA_WHEN_ROUTE
 
-        ctx.globalAlpha = 0
-        ctx.strokeStyle = 'rgba(244, 114, 182, 0.65)'
-        ctx.lineWidth = 0.8
+        // Плашка-подложка: приглушает линии под узлом, за счёт чего разнесённые
+        // кружки читаются как один пересадочный комплекс, а не как несколько
+        // независимых станций на своих линиях.
+        ctx.fillStyle = hubCapsuleFillColor
         drawRoundedRect(ctx, x, y, w, h, cornerRadius)
+        ctx.fill()
+
+        ctx.strokeStyle = hubCapsuleStrokeColor
+        ctx.lineWidth = 1.4
+        drawRoundedRect(ctx, x, y, w, h, cornerRadius)
+        ctx.stroke()
       }
       ctx.restore()
     }
@@ -2679,7 +3336,10 @@ export const MetroMap = memo(function MetroMap({
       const innerPieRadius = stationRadius * 0.65
 
       for (const group of hubGroups.values()) {
-        if (!group || group.length === 0) continue
+        // Хаб из одной станции — не пересадка: «пирог» вместо обычного кружка
+        // рисовал бы пересадочный узел там, где его нет. Обводка-капсула выше
+        // такие группы уже пропускает, поэтому пропускаем и здесь.
+        if (!group || group.length < 2) continue
 
         const isActiveHub =
           !hasRoute || group.some((st) => routeStationIdSet.has(st.id))
@@ -2831,6 +3491,15 @@ export const MetroMap = memo(function MetroMap({
           ? baseBorderWidth + 0.8
           : baseBorderWidth
 
+      // Мягкий ореол под выбранной конечной станцией: подсказывает, какой
+      // кружок сейчас выбран, ещё до того как пользователь найдёт бабл A/B.
+      if (isEndpointSelected || isEditorSelected) {
+        ctx.beginPath()
+        ctx.arc(st.x, st.y, stationSelectedRadius, 0, Math.PI * 2)
+        ctx.fillStyle = stationSelectedHalo
+        ctx.fill()
+      }
+
       ctx.beginPath()
       ctx.arc(st.x, st.y, baseRadius, 0, Math.PI * 2)
       ctx.fillStyle = stationFillColor
@@ -2894,6 +3563,8 @@ export const MetroMap = memo(function MetroMap({
           positionedStations,
           labelFontPx,
           labelSegmentsByStationId,
+          labelObstacleSegments,
+          labelRingCenters,
         )
         labelPlacementsRef.current.stationsRef = positionedStations
       }
@@ -2907,10 +3578,38 @@ export const MetroMap = memo(function MetroMap({
       labelCtx.translate(centerX + viewport.offsetX, centerY + viewport.offsetY)
       labelCtx.scale(viewport.scale, viewport.scale)
 
-      const lineHeight = labelFontPx + 2
-      const lineSpacing = labelFontPx * 0.12
+      // Подписи лежат в мировых координатах фиксированным кеглем, поэтому на
+      // малом зуме они физически схлопываются: 16px × 0.22 ≈ 3.5px на экране —
+      // текст виден, но не читается (VQA-7). Ниже порога читаемости кегль
+      // отматывается обратно так, чтобы на экране держался пол в
+      // LABEL_MIN_SCREEN_FONT_PX.
+      //
+      // Раскладка при этом НЕ пересчитывается (иначе разъедется с портом в
+      // scripts/quality/labelLayout.ts): увеличенные подписи начинают налезать
+      // друг на друга, и лишние снимаются жадным прореживанием по важности —
+      // ровно как на бумажных схемах, где на общем плане подписаны только узлы.
+      const renderFontScale = Math.min(
+        LABEL_MAX_RENDER_UPSCALE,
+        Math.max(1, LABEL_MIN_SCREEN_FONT_PX / (labelFontPx * zoom)),
+      )
+      const shouldDeclutterLabels = renderFontScale > 1.001
+      const drawFontPx = labelFontPx * renderFontScale
 
-      for (const placement of labelPlacements) {
+      if (shouldDeclutterLabels) {
+        labelCtx.font = `${LABEL_FONT_WEIGHT} ${drawFontPx.toFixed(1)}px ${LABEL_FONT_FAMILY}`
+      }
+
+      const lineHeight = drawFontPx + 2
+      const lineSpacing = drawFontPx * 0.12
+
+      // Важные подписи (узлы, центр) занимают место первыми.
+      const orderedForDraw = shouldDeclutterLabels
+        ? [...labelPlacements].sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
+        : labelPlacements
+      const keptRects: { x1: number; y1: number; x2: number; y2: number }[] = []
+      const declutterGap = 2 * renderFontScale
+
+      for (const placement of orderedForDraw) {
         const text = placement.text
         if (!text) continue
 
@@ -2920,6 +3619,26 @@ export const MetroMap = memo(function MetroMap({
 
         if (sx < -margin || sx > displayWidth + margin || sy < -margin || sy > displayHeight + margin) {
           continue
+        }
+
+        if (shouldDeclutterLabels) {
+          // Прямоугольник подписи в мировых координатах с учётом укрупнения.
+          const w = (placement.width ?? labelCtx.measureText(text).width) * renderFontScale
+          const h = (placement.height ?? lineHeight) * renderFontScale
+          const x1 = (placement.alignRight ? placement.x - w : placement.x) - declutterGap
+          const y1 = placement.y - h / 2 - declutterGap
+          const x2 = x1 + w + declutterGap * 2
+          const y2 = y1 + h + declutterGap * 2
+
+          let blocked = false
+          for (const r of keptRects) {
+            if (x1 < r.x2 && x2 > r.x1 && y1 < r.y2 && y2 > r.y1) {
+              blocked = true
+              break
+            }
+          }
+          if (blocked) continue
+          keptRects.push({ x1, y1, x2, y2 })
         }
 
         const importance = placement.importance ?? 0
@@ -2951,14 +3670,29 @@ export const MetroMap = memo(function MetroMap({
         let currentY = placement.y - totalHeight / 2 + lineHeight / 2
 
         labelCtx.textAlign = placement.alignRight ? 'right' : 'left'
+
+        // Выворотка под текстом (VQA-2). В плотном центре подпись физически
+        // некуда убрать так, чтобы её не пересекала ни одна линия: часть
+        // пересечений неустранима геометрически. Контрастная обводка цветом
+        // полотна возвращает тексту читаемость поверх линии — ровно так же
+        // сделано на бумажных схемах метро.
+        const haloWidth = 3.2 * renderFontScale
+        labelCtx.strokeStyle = labelHaloColor
+        labelCtx.lineWidth = haloWidth
+        labelCtx.lineJoin = 'round'
+        labelCtx.miterLimit = 2
+
+        const fillColor = labelCtx.fillStyle
         for (const ln of lines) {
           if (!ln) {
             currentY += lineHeight + lineSpacing
             continue
           }
+          labelCtx.strokeText(ln, placement.x, currentY)
           labelCtx.fillText(ln, placement.x, currentY)
           currentY += lineHeight + lineSpacing
         }
+        labelCtx.fillStyle = fillColor
       }
 
       if (shouldShowCollisionDebug) {
@@ -2975,23 +3709,25 @@ export const MetroMap = memo(function MetroMap({
           labelCtx.strokeRect(x1, y1, width, height)
         }
 
-        // Приближённые диски вокруг станций, показывающие запретные зоны.
+        // Запретные зоны вокруг станций: кружок узла плюс комфортный зазор.
         labelCtx.strokeStyle = 'rgba(220, 38, 38, 0.7)'
         labelCtx.lineWidth = 0.8
         for (const st of positionedStations) {
-          const isHub = st.hubId != null
-          const baseRadius = isHub ? 14 : 10
-          const radius = baseRadius + labelFontPx * 0.45
+          const nodeRadius =
+            st.hubId != null ? LABEL_NODE_RADIUS_HUB : LABEL_NODE_RADIUS_STATION
           labelCtx.beginPath()
-          labelCtx.arc(st.x, st.y, radius, 0, Math.PI * 2)
+          labelCtx.arc(st.x, st.y, nodeRadius + LABEL_W.clearanceGap, 0, Math.PI * 2)
           labelCtx.stroke()
         }
       }
 
       // Баблы A/B для выбранных конечных станций маршрута поверх всех слоёв,
       // включая подписи
-      const endpointBubbleRadius = stationRadius * 2.7
-      const endpointPointerLength = stationRadius * 1.4
+      // VQA-9: пины A/B перекрывали соседние подписи. Уменьшены до размера,
+      // при котором буква внутри всё ещё читается, но пин перестаёт быть
+      // самым крупным объектом на схеме.
+      const endpointBubbleRadius = stationRadius * 2.15
+      const endpointPointerLength = stationRadius * 1.1
 
       const drawEndpointBubbleOnLabels = (st: PositionedStation, label: 'A' | 'B') => {
         const baseColor = st.lineColor || (label === 'A' ? endpointColorA : endpointColorB)
@@ -3016,12 +3752,12 @@ export const MetroMap = memo(function MetroMap({
         labelCtx.closePath()
 
         labelCtx.fillStyle = baseColor
-        labelCtx.shadowColor = 'rgba(15, 23, 42, 0.25)'
+        labelCtx.shadowColor = endpointShadowColor
         labelCtx.shadowBlur = 4
         labelCtx.fill()
 
         labelCtx.lineWidth = 1.4
-        labelCtx.strokeStyle = 'rgba(15, 23, 42, 0.18)'
+        labelCtx.strokeStyle = endpointStrokeColor
         labelCtx.stroke()
 
         labelCtx.shadowColor = 'transparent'
@@ -3084,6 +3820,8 @@ export const MetroMap = memo(function MetroMap({
     hubGroups,
     farTransferSegments,
     labelSegmentsByStationId,
+    labelObstacleSegments,
+    labelRingCenters,
   ])
 
   // Актуализируем внутренний размер при ресайзе окна / изменении доступного места
@@ -3101,8 +3839,29 @@ export const MetroMap = memo(function MetroMap({
     }
 
     updateSize()
+
+    // Основной источник истины — ResizeObserver: он отработает и тогда, когда
+    // первое измерение вернуло 0 (стили ещё не применились, вкладка в фоне,
+    // холодный старт PWA). Без него размер мог никогда не пересчитаться,
+    // карта не рисовалась и приложение навсегда оставалось на сплэше.
+    let observer: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        updateSize()
+      })
+      const canvas = canvasRef.current
+      if (canvas) observer.observe(canvas)
+      const wrapper = canvas?.parentElement
+      if (wrapper) observer.observe(wrapper)
+    }
+
+    // Фолбэк для окружений без ResizeObserver и на смену ориентации.
     window.addEventListener('resize', updateSize)
-    return () => window.removeEventListener('resize', updateSize)
+
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', updateSize)
+    }
   }, [])
 
   const stopPanInertia = () => {
@@ -3422,7 +4181,7 @@ export const MetroMap = memo(function MetroMap({
             if (nextRingShapes.has(st.lineId)) continue
             const line = fullGraphLines.find((l) => l.id === st.lineId)
             if (!line) continue
-            const shape = getRingShapeForLine(st.lineId, line.stationIds, positionedById)
+            const shape = resolveRingShapeForLine(st.lineId, line.stationIds, positionedById)
             if (shape) nextRingShapes.set(st.lineId, shape)
           }
           dragRingShapesByLineIdRef.current = nextRingShapes
@@ -3631,7 +4390,7 @@ export const MetroMap = memo(function MetroMap({
             if (nextRingShapes.has(st.lineId)) continue
             const line = fullGraphLines.find((l) => l.id === st.lineId)
             if (!line) continue
-            const shape = getRingShapeForLine(st.lineId, line.stationIds, positionedById)
+            const shape = resolveRingShapeForLine(st.lineId, line.stationIds, positionedById)
             if (shape) nextRingShapes.set(st.lineId, shape)
           }
           dragRingShapesByLineIdRef.current = nextRingShapes

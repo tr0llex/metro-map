@@ -10,8 +10,6 @@ import {
   useState,
 } from 'react'
 import type {
-  ComponentType,
-  LazyExoticComponent,
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent,
   TouchEvent,
@@ -27,43 +25,71 @@ import type { RouteSuggestionItem } from './components/RouteForm.tsx'
 import { RouteDetailsSheet } from './components/RouteDetailsSheet.tsx'
 import type { DecoratedSegment } from './components/RouteDetailsSheet.tsx'
 import { RouteHeader } from './components/RouteHeader.tsx'
-import type { HubEditorPanelProps } from './components/HubEditorPanel.tsx'
-import {
-  fullGraphLines,
-  fullGraphStations,
-  fullGraphEdges,
-  fullGraphTransferHubs,
-} from './metro/fullGraph.ts'
-import type {
-  RouteResult,
-  FullGraphEdge,
-  EdgeOverride,
-  FullGraphStation,
-  EditorOverrides,
-  EditorOverridesGrid,
-  EditorOverridesRingShape,
-  EditorOverridesStationLayoutParams,
-} from './metro/types.ts'
+import { RouteLinePills } from './components/RouteLinePills.tsx'
+import { IconClock, IconClose, IconHistory, IconPin, IconStar } from './components/icons.tsx'
+import { fullGraphLines } from './metro/fullGraph.ts'
+import type { RouteResult, FullGraphStation } from './metro/types.ts'
 import { MetroMap } from './components/MetroMap.tsx'
+import { ErrorBoundary } from './components/ErrorBoundary.tsx'
+import { ThemeToggle } from './components/ThemeToggle.tsx'
+import { ThemeStationHint } from './components/ThemeStationHint.tsx'
+import type { StationHint, StationHintKind } from './components/ThemeStationHint.tsx'
+import { ThemeErrorLogPanel } from './components/ThemeErrorLogPanel.tsx'
+import { copyTextToClipboard } from './utils/clipboard.ts'
+import { readErrorLog, subscribeErrorLog } from './utils/errorLog.ts'
+import type { ErrorLogEntry } from './utils/errorLog.ts'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { useEditorController } from './editor/useEditorController.ts'
+import { useNoopEditorController } from './editor/noopEditorController.ts'
 
 const EDITOR_ENABLED = import.meta.env.DEV || import.meta.env.MODE === 'editor'
 
-const HubEditorPanelLazy: LazyExoticComponent<ComponentType<HubEditorPanelProps>> | null =
-  EDITOR_ENABLED
-    ? lazy(() =>
-        import('./components/HubEditorPanel.tsx').then((m) => ({ default: m.HubEditorPanel })),
-      )
-    : null
+// Выбор реализации редактора делается один раз на модуль, а не на рендер:
+// при EDITOR_ENABLED === false Rollup сворачивает тернарник, ссылка на
+// useEditorController пропадает, и весь модуль редактора вылетает из бандла.
+// Хук при этом вызывается безусловно — правило хуков не нарушено.
+const useEditor = EDITOR_ENABLED ? useEditorController : useNoopEditorController
+
+// Максимальное время ожидания готовности карты, после которого UI показывается принудительно.
+const MAP_READY_FALLBACK_MS = 3500
+
+// Минимальная длительность заставки. Держим её короткой: заставка — это «привет»,
+// а не загрузочный экран, реальную готовность карты сторожит MAP_READY_FALLBACK_MS.
+const SPLASH_MIN_DURATION_MS = 1200
+
+// Сколько ждём ответ воркера, прежде чем признать расчёт провалившимся.
+// Воркер может не ответить вовсе (упал, не создался, зажевал память) — без этого
+// таймаута индикатор загрузки висел бы вечно.
+const ROUTE_REQUEST_TIMEOUT_MS = 9000
+
+// Обычный расчёт укладывается в единицы миллисекунд, и если показывать индикатор
+// сразу, пользователь видит не «загрузку», а мигание скелетона на каждый запрос.
+// Поэтому индикатор появляется, только если расчёт реально затянулся...
+const ROUTE_LOADING_SHOW_DELAY_MS = 220
+// ...а появившись — держится минимум столько, чтобы не мигнуть и не исчезнуть.
+const ROUTE_LOADING_MIN_VISIBLE_MS = 420
+
+const ONBOARDING_HINT_STORAGE_KEY = 'kitty-metro-onboarding-hint-seen'
+
+// --- Тап по станции ---------------------------------------------------------
+// Первый тап ставит «Откуда», второй — «Куда» (стандарт Яндекс.Метро и Google
+// Maps), а прежний поповер с явным выбором поля остаётся на долгом нажатии.
+// MetroMap сообщает о выборе только на touchend/click и не отдаёт длительность
+// нажатия, поэтому App сам засекает pointerdown на документе — см.
+// pointerDownRef и handleMapSelect.
+const LONG_PRESS_MS = 480
+// Палец всегда немного «плывёт»: сдвиг больше этого — уже не долгое нажатие.
+const LONG_PRESS_MAX_MOVE_PX = 14
+// Сколько держится подсказка «станция назначена в поле».
+const STATION_HINT_DURATION_MS = 2200
+
+// Оверлей редактора грузится динамически и только в dev/editor-сборке:
+// в проде тернарник сворачивается в null и import() исчезает вместе с чанком.
+const EditorOverlayLazy = EDITOR_ENABLED
+  ? lazy(() => import('./editor/EditorOverlay.tsx').then((m) => ({ default: m.EditorOverlay })))
+  : null
 
 type NavigatorWithStandalone = Navigator & { standalone?: boolean }
-
-type StationOverride = {
-  title?: string
-  lineNumericId?: number | null
-  lat?: number
-  lon?: number
-}
 
 type SavedRoute = {
   fromStationId: string
@@ -75,48 +101,6 @@ type SavedRoute = {
 
 const FAVORITES_STORAGE_KEY = 'kitty-metro-favorites-v1'
 const RECENTS_STORAGE_KEY = 'kitty-metro-recents-v1'
-const HUB_ROTATE_STEP_DEG = 15
-
-type EditorSnapshot = {
-  stationOverrides: Record<string, StationOverride>
-  stationHubOverrides: Record<string, string | null>
-  edgeOverrides: Record<string, EdgeOverride>
-  hubMinOverrides: Record<string, number>
-  manualStations: Record<string, FullGraphStation>
-  manualEdges: Record<string, FullGraphEdge>
-  hiddenStations: Record<string, true>
-  lastLayoutOverrides: Record<string, { x: number; y: number }>
-  hubRotationOverrides: Record<string, number>
-
-  canonicalGrid: EditorOverridesGrid
-  canonicalRingShapes: Record<string, EditorOverridesRingShape>
-  canonicalStationParams: Record<string, EditorOverridesStationLayoutParams>
-}
-
-type EditorHistoryState = {
-  items: EditorSnapshot[]
-  index: number // -1, если истории ещё нет
-}
-
-const MAX_EDITOR_HISTORY = 100
-
-function areEditorSnapshotsShallowEqual(a: EditorSnapshot | undefined, b: EditorSnapshot | undefined) {
-  if (!a || !b) return false
-  return (
-    a.stationOverrides === b.stationOverrides &&
-    a.stationHubOverrides === b.stationHubOverrides &&
-    a.edgeOverrides === b.edgeOverrides &&
-    a.hubMinOverrides === b.hubMinOverrides &&
-    a.manualStations === b.manualStations &&
-    a.manualEdges === b.manualEdges &&
-    a.hiddenStations === b.hiddenStations &&
-    a.lastLayoutOverrides === b.lastLayoutOverrides &&
-    a.hubRotationOverrides === b.hubRotationOverrides &&
-    a.canonicalGrid === b.canonicalGrid &&
-    a.canonicalRingShapes === b.canonicalRingShapes &&
-    a.canonicalStationParams === b.canonicalStationParams
-  )
-}
 
 function getRouteVariantLabel(index: number, routes: RouteResult[]): string {
   if (index === 0) return 'Самый быстрый'
@@ -140,6 +124,34 @@ function getRouteVariantLabel(index: number, routes: RouteResult[]): string {
   return `Маршрут ${index + 1}`
 }
 
+// --- Deep links -------------------------------------------------------------
+// ID станций выглядят как `mos-1-1.148` и содержат точки и дефисы, поэтому
+// в ссылку они всегда попадают через encodeURIComponent, а читаются через
+// URLSearchParams (он сам декодирует значение).
+
+function readDeepLinkStationIds(search: string): { fromId: string; toId: string } | null {
+  try {
+    const params = new URLSearchParams(search)
+    const fromId = params.get('from')?.trim()
+    const toId = params.get('to')?.trim()
+    if (!fromId || !toId) return null
+    return { fromId, toId }
+  } catch {
+    return null
+  }
+}
+
+function buildRouteShareUrl(fromId: string, toId: string): string | null {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const { origin, pathname } = window.location
+    return `${origin}${pathname}?from=${encodeURIComponent(fromId)}&to=${encodeURIComponent(toId)}`
+  } catch {
+    return null
+  }
+}
+
 function App() {
   const [fromStation, setFromStation] = useState('')
   const [toStation, setToStation] = useState('')
@@ -158,49 +170,45 @@ function App() {
   const stationPickPopoverRef = useRef<HTMLDivElement | null>(null)
   const stationPickPopoverCloseTimeoutRef = useRef<number | null>(null)
   const stationPickPopoverPerfRef = useRef<{ openedAt: number; tapAt?: number } | null>(null)
+  // Последний pointerdown: единственный доступный источник длительности нажатия,
+  // потому что MetroMap правкам не подлежит и отдаёт только момент отпускания.
+  const pointerDownRef = useRef<{ at: number; x: number; y: number } | null>(null)
+  const [stationHint, setStationHint] = useState<StationHint | null>(null)
+  const stationHintTimeoutRef = useRef<number | null>(null)
+  const stationHintIdRef = useRef(0)
+  const [errorLogEntries, setErrorLogEntries] = useState<ErrorLogEntry[]>([])
+  const [isErrorLogOpen, setIsErrorLogOpen] = useState(false)
   const [routeAlternatives, setRouteAlternatives] = useState<RouteResult[]>([])
   const [activeRouteIndex, setActiveRouteIndex] = useState(0)
+  // ID запроса, ответ на который мы сейчас ждём (null — ничего не считается).
+  const [pendingRouteRequestId, setPendingRouteRequestId] = useState<number | null>(null)
+  // Отдельный флаг именно ВИДИМОСТИ индикатора: расчёт почти всегда мгновенный,
+  // и показывать скелетон на 5 мс — значит просто мигать пользователю в лицо.
+  const [isRouteLoadingVisible, setIsRouteLoadingVisible] = useState(false)
+  const routeLoadingShownAtRef = useRef<number | null>(null)
+  const [shareHint, setShareHint] = useState<string | null>(null)
   const [isRouteSheetOpen, setIsRouteSheetOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fromFixed, setFromFixed] = useState(false)
   const [toFixed, setToFixed] = useState(false)
-  const [editMode, setEditMode] = useState(false)
-  const [collisionDebug, setCollisionDebug] = useState(false)
-  const effectiveEditMode = EDITOR_ENABLED && editMode
-  const [lastLayoutOverrides, setLastLayoutOverrides] = useState<
-    Record<string, { x: number; y: number }>
-  >({})
-  const [editorLayoutApplyToken, setEditorLayoutApplyToken] = useState(0)
-  const pendingLayoutOverridesRef = useRef<
-    Record<string, { x: number; y: number }> | null
-  >(null)
+  // Всё состояние и вся логика редактора схемы живут в отдельном модуле.
+  // В проде здесь работает заглушка, а редакторский код в бандл не попадает.
+  const editor = useEditor()
+  const effectiveEditMode = editor.editMode
+  const {
+    allStations,
+    stationById,
+    stationTitleById,
+    stationOverrides,
+    edgeOverrides,
+    manualEdges,
+  } = editor
+
   const [isDesktop, setIsDesktop] = useState(false)
   const [isSplashDone, setIsSplashDone] = useState(false)
   const [isSplashMounted, setIsSplashMounted] = useState(true)
   const [fromSuggestionIndex, setFromSuggestionIndex] = useState(-1)
   const [toSuggestionIndex, setToSuggestionIndex] = useState(-1)
-  const [inspectedStationId, setInspectedStationId] = useState<string | null>(null)
-  const [inspectedLineId, setInspectedLineId] = useState<number | null>(null)
-  const [stationOverrides, setStationOverrides] = useState<Record<string, StationOverride>>({})
-  const [stationHubOverrides, setStationHubOverrides] = useState<Record<string, string | null>>({})
-  const [edgeOverrides, setEdgeOverrides] = useState<
-    Record<string, EdgeOverride>
-  >({})
-  const [hubMinOverrides, setHubMinOverrides] = useState<Record<string, number>>({})
-  const [hubRotationOverrides, setHubRotationOverrides] = useState<Record<string, number>>({})
-  const [canonicalGrid, setCanonicalGrid] = useState<EditorOverridesGrid>({ stepPx: 8 })
-  const [canonicalRingShapes, setCanonicalRingShapes] = useState<Record<string, EditorOverridesRingShape>>({})
-  const [canonicalStationParams, setCanonicalStationParams] = useState<
-    Record<string, EditorOverridesStationLayoutParams>
-  >({})
-  const [manualStations, setManualStations] = useState<Record<string, FullGraphStation>>({})
-  const [manualEdges, setManualEdges] = useState<Record<string, FullGraphEdge>>({})
-  const [newEdgeTarget, setNewEdgeTarget] = useState('')
-  const [hubAddStationInput, setHubAddStationInput] = useState('')
-  const [hiddenStations, setHiddenStations] = useState<Record<string, true>>({})
-  const [editorSelectedStationIds, setEditorSelectedStationIds] = useState<string[]>([])
-  const [editorToast, setEditorToast] = useState<string | null>(null)
-  const editorToastTimeoutRef = useRef<number | null>(null)
   const [favoriteRoutes, setFavoriteRoutes] = useState<SavedRoute[]>([])
   const [recentRoutes, setRecentRoutes] = useState<SavedRoute[]>([])
   const [isSmartSuggestionsOpen, setIsSmartSuggestionsOpen] = useState(false)
@@ -246,6 +254,82 @@ function App() {
       }
     >
   >(new Map())
+
+  // Таймер «воркер не ответил» для текущего запроса маршрута.
+  const routeRequestTimeoutRef = useRef<number | null>(null)
+  // Параметры последнего запроса — чтобы кнопка «Повторить» могла его переиграть.
+  const lastRouteRequestRef = useRef<{ fromId: string; toId: string } | null>(null)
+  const shareHintTimeoutRef = useRef<number | null>(null)
+  // Deep link применяем один раз на «живой» воркер. Сбрасывается вместе с воркером,
+  // чтобы пересоздание (в т.ч. двойной монтаж в StrictMode) не потеряло ссылку.
+  const deepLinkAppliedRef = useRef(false)
+
+  const [isOnboardingHintVisible, setIsOnboardingHintVisible] = useState(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return window.localStorage.getItem(ONBOARDING_HINT_STORAGE_KEY) !== '1'
+    } catch {
+      return false
+    }
+  })
+
+  const dismissOnboardingHint = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(ONBOARDING_HINT_STORAGE_KEY, '1')
+      } catch {
+        // ignore
+      }
+    }
+    setIsOnboardingHintVisible(false)
+  }, [])
+
+  // Засекаем начало нажатия на уровне документа: MetroMap трогать нельзя, а
+  // без момента pointerdown отличить долгое нажатие от обычного тапа негде.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const onPointerDown = (event: PointerEvent) => {
+      pointerDownRef.current = {
+        at: performance.now(),
+        x: event.clientX,
+        y: event.clientY,
+      }
+    }
+
+    window.addEventListener('pointerdown', onPointerDown, true)
+    return () => window.removeEventListener('pointerdown', onPointerDown, true)
+  }, [])
+
+  const showStationHint = useCallback((kind: StationHintKind, text: string) => {
+    stationHintIdRef.current += 1
+    setStationHint({ id: stationHintIdRef.current, kind, text })
+
+    if (typeof window === 'undefined') return
+    if (stationHintTimeoutRef.current != null) {
+      window.clearTimeout(stationHintTimeoutRef.current)
+    }
+    stationHintTimeoutRef.current = window.setTimeout(() => {
+      stationHintTimeoutRef.current = null
+      setStationHint(null)
+    }, STATION_HINT_DURATION_MS)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && stationHintTimeoutRef.current != null) {
+        window.clearTimeout(stationHintTimeoutRef.current)
+        stationHintTimeoutRef.current = null
+      }
+    }
+  }, [])
+
+  // Журнал ошибок: читаем накопленное при старте и слушаем новые записи, чтобы
+  // кнопка «Журнал ошибок» появлялась сразу, а не после перезагрузки.
+  useEffect(() => {
+    setErrorLogEntries(readErrorLog())
+    return subscribeErrorLog(setErrorLogEntries)
+  }, [])
 
   const perfInteractionActiveRef = useRef(false)
   const perfInteractionTimeoutRef = useRef<number | null>(null)
@@ -334,16 +418,6 @@ function App() {
       perfInteractionActiveRef.current = false
     }
   }, [])
-  const [hubRotateCommand, setHubRotateCommand] = useState<
-    { hubId: string; direction: 'cw' | 'ccw'; token: number } | null
-  >(null)
-  const [hubMirrorCommand, setHubMirrorCommand] = useState<
-    { hubId: string; token: number } | null
-  >(null)
-  const [editorFocusCommand, setEditorFocusCommand] = useState<
-    { stationId: string; token: number } | null
-  >(null)
-  const [editorHistory, setEditorHistory] = useState<EditorHistoryState>({ items: [], index: -1 })
   const [installGuidePlatform, setInstallGuidePlatform] = useState<
     'ios' | 'android' | 'desktop' | 'unknown' | 'hidden'
   >(() => {
@@ -382,291 +456,20 @@ function App() {
   const isInstallGuideOpen = installGuidePlatform !== 'hidden'
   const [isInstallGuideDelayPassed, setIsInstallGuideDelayPassed] = useState(false)
 
-  const edgeKey = useCallback((a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`), [])
-
-  const hubRotateTokenRef = useRef(0)
-  const hubMirrorTokenRef = useRef(0)
-  const editorFocusTokenRef = useRef(0)
-
-  const showEditorToast = useCallback((message: string) => {
-    setEditorToast(message)
-    if (editorToastTimeoutRef.current != null) {
-      window.clearTimeout(editorToastTimeoutRef.current)
-    }
-    editorToastTimeoutRef.current = window.setTimeout(() => {
-      editorToastTimeoutRef.current = null
-      setEditorToast(null)
-    }, 2200)
-  }, [])
-
-  const handleMirrorHubGeometry = useCallback(
-    (hubId: string) => {
-      setHubMirrorCommand(() => {
-        hubMirrorTokenRef.current += 1
-        return { hubId, token: hubMirrorTokenRef.current }
-      })
-      showEditorToast('Хаб отзеркален')
-    },
-    [showEditorToast],
-  )
-
-  const copyTextToClipboard = useCallback(async (text: string): Promise<boolean> => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(text)
-        return true
-      } catch {
-        // ignore
-      }
-    }
-
-    try {
-      const el = document.createElement('textarea')
-      el.value = text
-      el.setAttribute('readonly', '')
-      el.style.position = 'fixed'
-      el.style.top = '0'
-      el.style.left = '-9999px'
-      document.body.appendChild(el)
-      el.select()
-      const ok = document.execCommand('copy')
-      document.body.removeChild(el)
-      return ok
-    } catch {
-      return false
-    }
-  }, [])
-
-  const makeEditorSnapshot = useCallback((): EditorSnapshot => {
-    return {
-      stationOverrides,
-      stationHubOverrides,
-      edgeOverrides,
-      hubMinOverrides,
-      manualStations,
-      manualEdges,
-      hiddenStations,
-      lastLayoutOverrides,
-      hubRotationOverrides,
-
-      canonicalGrid,
-      canonicalRingShapes,
-      canonicalStationParams,
-    }
-  }, [
-    stationOverrides,
-    stationHubOverrides,
-    edgeOverrides,
-    hubMinOverrides,
-    manualStations,
-    manualEdges,
-    hiddenStations,
-    lastLayoutOverrides,
-    hubRotationOverrides,
-
-    canonicalGrid,
-    canonicalRingShapes,
-    canonicalStationParams,
-  ])
-
-  const pushEditorHistory = useCallback(() => {
-    setEditorHistory((prev: EditorHistoryState) => {
-      const snapshot = makeEditorSnapshot()
-
-      if (prev.index >= 0) {
-        const current = prev.items[prev.index]
-        if (areEditorSnapshotsShallowEqual(current, snapshot)) {
-          return prev
-        }
-      }
-
-      let items = prev.items.slice(0, prev.index + 1)
-      items.push(snapshot)
-      if (items.length > MAX_EDITOR_HISTORY) {
-        items = items.slice(items.length - MAX_EDITOR_HISTORY)
-      }
-      const index = items.length - 1
-      return { items, index }
-    })
-  }, [makeEditorSnapshot])
-
-  const applyEditorSnapshot = useCallback((snapshot: EditorSnapshot) => {
-    setStationOverrides(snapshot.stationOverrides)
-    setStationHubOverrides(snapshot.stationHubOverrides)
-    setEdgeOverrides(snapshot.edgeOverrides)
-    setHubMinOverrides(snapshot.hubMinOverrides)
-    setManualStations(snapshot.manualStations)
-    setManualEdges(snapshot.manualEdges)
-    setHiddenStations(snapshot.hiddenStations)
-    pendingLayoutOverridesRef.current = null
-    setLastLayoutOverrides(snapshot.lastLayoutOverrides)
-    setEditorLayoutApplyToken((prev: number) => prev + 1)
-    setHubRotationOverrides(snapshot.hubRotationOverrides)
-
-    setCanonicalGrid(snapshot.canonicalGrid)
-    setCanonicalRingShapes(snapshot.canonicalRingShapes)
-    setCanonicalStationParams(snapshot.canonicalStationParams)
-  }, [])
-
-  const handleCanonicalLayoutChange = useCallback(
-    (payload: {
-      grid: { stepPx: number }
-      ringShapes: Record<string, EditorOverridesRingShape>
-      stationParams: Record<string, EditorOverridesStationLayoutParams>
-    }) => {
-      setCanonicalGrid(payload.grid)
-      setCanonicalRingShapes(payload.ringShapes)
-      setCanonicalStationParams(payload.stationParams)
-    },
-    [],
-  )
-
-  const handleEditorUndo = useCallback(() => {
-    setEditorHistory((prev: EditorHistoryState) => {
-      if (prev.index <= 0) return prev
-      const nextIndex = prev.index - 1
-      const snapshot = prev.items[nextIndex]
-      applyEditorSnapshot(snapshot)
-      return { ...prev, index: nextIndex }
-    })
-  }, [applyEditorSnapshot])
-
-  const handleEditorRedo = useCallback(() => {
-    setEditorHistory((prev: EditorHistoryState) => {
-      if (prev.index < 0 || prev.index >= prev.items.length - 1) return prev
-      const nextIndex = prev.index + 1
-      const snapshot = prev.items[nextIndex]
-      applyEditorSnapshot(snapshot)
-      return { ...prev, index: nextIndex }
-    })
-  }, [applyEditorSnapshot])
-
-  const canEditorUndo = editorHistory.index > 0
-  const canEditorRedo = editorHistory.index >= 0 && editorHistory.index < editorHistory.items.length - 1
-
-  const handleLayoutChange = useCallback((overrides: Record<string, { x: number; y: number }>) => {
-    pendingLayoutOverridesRef.current = overrides
-  }, [])
-
   const handleInitialViewportReady = useCallback(() => {
     setIsMapReady(true)
   }, [])
 
+  // Страховка: пользователь никогда не должен застрять на сплэше навсегда.
+  // Если карта не отчиталась о готовности viewport за MAP_READY_FALLBACK_MS,
+  // выставляем готовность принудительно и показываем UI.
   useEffect(() => {
-    if (!effectiveEditMode) return
-    setEditorLayoutApplyToken((prev: number) => prev + 1)
-  }, [effectiveEditMode])
-
-  useEffect(() => {
-    let timeoutId: number | null = null
-
-    const flush = () => {
-      timeoutId = null
-      const pending = pendingLayoutOverridesRef.current
-      if (!pending) return
-      pendingLayoutOverridesRef.current = null
-      setLastLayoutOverrides((prev: Record<string, { x: number; y: number }>) => {
-        const prevKeys = Object.keys(prev)
-        const nextKeys = Object.keys(pending)
-        if (prevKeys.length === nextKeys.length) {
-          let same = true
-          for (const id of nextKeys) {
-            const p = prev[id]
-            const n = pending[id]
-            if (!p || !n || p.x !== n.x || p.y !== n.y) {
-              same = false
-              break
-            }
-          }
-          if (same) return prev
-        }
-        return pending
-      })
-    }
-
-    const schedule = () => {
-      if (timeoutId != null) return
-      timeoutId = window.setTimeout(flush, 50)
-    }
-
-    const interval = window.setInterval(() => {
-      if (pendingLayoutOverridesRef.current) {
-        schedule()
-      }
-    }, 60)
-
-    return () => {
-      if (timeoutId != null) {
-        window.clearTimeout(timeoutId)
-      }
-      window.clearInterval(interval)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!effectiveEditMode) return
-
-    pushEditorHistory()
-  }, [effectiveEditMode, makeEditorSnapshot, pushEditorHistory])
-
-  useEffect(() => {
-    if (!effectiveEditMode) return
-    pushEditorHistory()
-  }, [
-    effectiveEditMode,
-    stationOverrides,
-    stationHubOverrides,
-    edgeOverrides,
-    hubMinOverrides,
-    manualStations,
-    manualEdges,
-    hiddenStations,
-    lastLayoutOverrides,
-    hubRotationOverrides,
-    pushEditorHistory,
-  ])
-
-  useEffect(() => {
-    if (effectiveEditMode) return
-    setEditorHistory({ items: [], index: -1 })
-  }, [effectiveEditMode])
-
-  useEffect(() => {
-    if (!effectiveEditMode) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-      const tag = target?.tagName
-      const isEditableElement =
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        (target as HTMLElement).isContentEditable
-      if (isEditableElement) return
-
-      const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
-      const ctrlOrMeta = isMac ? event.metaKey : event.ctrlKey
-      if (!ctrlOrMeta) return
-
-      if (event.key === 'z' || event.key === 'Z') {
-        if (event.shiftKey) {
-          if (canEditorRedo) {
-            event.preventDefault()
-            handleEditorRedo()
-          }
-        } else {
-          if (canEditorUndo) {
-            event.preventDefault()
-            handleEditorUndo()
-          }
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [effectiveEditMode, canEditorUndo, canEditorRedo, handleEditorUndo, handleEditorRedo])
+    if (isMapReady) return
+    const timeoutId = window.setTimeout(() => {
+      setIsMapReady(true)
+    }, MAP_READY_FALLBACK_MS)
+    return () => window.clearTimeout(timeoutId)
+  }, [isMapReady])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -731,193 +534,6 @@ function App() {
     persistRoutesToStorage(RECENTS_STORAGE_KEY, [])
   }
 
-  const handleToggleEdgeTransfer = useCallback(
-    (edge: FullGraphEdge) => {
-      setEdgeOverrides((prev: Record<string, EdgeOverride>) => {
-        const key = edgeKey(edge.fromStationId, edge.toStationId)
-        const baseIsTransfer = !!edge.isTransfer
-        const baseSeconds = edge.medianTravelSeconds
-        const current = prev[key]
-
-        const effectiveIsTransfer =
-          current && current.isTransfer !== undefined ? current.isTransfer : baseIsTransfer
-        const effectiveSeconds =
-          current && current.medianTravelSeconds !== undefined
-            ? current.medianTravelSeconds
-            : baseSeconds
-        const effectiveMinutes = Math.round(effectiveSeconds / 60)
-
-        const LONG_TRANSFER_MINUTES = 6
-
-        let nextIsTransfer: boolean
-        let nextSeconds: number | undefined = effectiveSeconds
-
-        if (!effectiveIsTransfer) {
-          // перегон -> пересадка (близкая)
-          nextIsTransfer = true
-          let minutes = effectiveMinutes
-          if (!Number.isFinite(minutes) || minutes <= 0) minutes = 3
-          if (minutes >= LONG_TRANSFER_MINUTES) minutes = LONG_TRANSFER_MINUTES - 1
-          nextSeconds = minutes * 60
-        } else if (effectiveMinutes < LONG_TRANSFER_MINUTES) {
-          // пересадка (близкая) -> пересадка (дальняя)
-          nextIsTransfer = true
-          const minSeconds = LONG_TRANSFER_MINUTES * 60
-          nextSeconds =
-            Number.isFinite(effectiveSeconds) && effectiveSeconds > 0
-              ? Math.max(effectiveSeconds, minSeconds)
-              : minSeconds
-        } else {
-          // пересадка (дальняя) -> перегон
-          nextIsTransfer = false
-        }
-
-        const nextOverride: EdgeOverride = {
-          ...(current ?? {}),
-          isTransfer: nextIsTransfer,
-          medianTravelSeconds: nextSeconds,
-        }
-
-        const isSameAsBase =
-          (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-          (nextOverride.isTransfer === undefined || nextOverride.isTransfer === baseIsTransfer) &&
-          (nextOverride.medianTravelSeconds === undefined ||
-            nextOverride.medianTravelSeconds === baseSeconds)
-
-        if (isSameAsBase) {
-          if (!(key in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[key]
-          return cloned
-        }
-
-        return { ...prev, [key]: nextOverride }
-      })
-    },
-    [edgeKey],
-  )
-
-  const handleToggleEdgeDisabled = useCallback(
-    (edge: FullGraphEdge) => {
-      setEdgeOverrides((prev) => {
-        const key = edgeKey(edge.fromStationId, edge.toStationId)
-        const current = prev[key]
-
-        const effectiveDisabled = current?.disabled ?? false
-        const nextDisabled = !effectiveDisabled
-
-        const nextOverride: EdgeOverride = {
-          ...(current ?? {}),
-          disabled: nextDisabled,
-        }
-
-        const baseIsTransfer = !!edge.isTransfer
-        const baseSeconds = edge.medianTravelSeconds
-
-        const isSameAsBase =
-          (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-          (nextOverride.isTransfer === undefined || nextOverride.isTransfer === baseIsTransfer) &&
-          (nextOverride.medianTravelSeconds === undefined ||
-            nextOverride.medianTravelSeconds === baseSeconds)
-
-        if (isSameAsBase) {
-          if (!(key in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[key]
-          return cloned
-        }
-
-        return { ...prev, [key]: nextOverride }
-      })
-    },
-    [edgeKey],
-  )
-
-  const handleChangeEdgeMinutes = useCallback(
-    (edge: FullGraphEdge, minutesStr: string) => {
-      setEdgeOverrides((prev) => {
-        const key = edgeKey(edge.fromStationId, edge.toStationId)
-        const raw = minutesStr.replace(',', '.').trim()
-        const minutes = raw === '' ? NaN : Number(raw)
-        const current = prev[key]
-
-        const baseSeconds = edge.medianTravelSeconds
-        const hasValidMinutes = Number.isFinite(minutes) && minutes > 0
-        const newSeconds = hasValidMinutes ? Math.round(minutes * 60) : undefined
-
-        if (newSeconds === undefined) {
-          if (!current) {
-            if (!(key in prev)) return prev
-            const cloned = { ...prev }
-            delete cloned[key]
-            return cloned
-          }
-
-          const nextOverride: EdgeOverride = {}
-          if (current.isTransfer !== undefined) {
-            nextOverride.isTransfer = current.isTransfer
-          }
-          if (current.disabled !== undefined) {
-            nextOverride.disabled = current.disabled
-          }
-
-          const isSameAsBase =
-            (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-            (nextOverride.isTransfer === undefined || nextOverride.isTransfer === !!edge.isTransfer)
-
-          if (isSameAsBase) {
-            if (!(key in prev)) return prev
-            const cloned = { ...prev }
-            delete cloned[key]
-            return cloned
-          }
-
-          return { ...prev, [key]: nextOverride }
-        }
-
-        const nextOverride: EdgeOverride = {
-          ...(current ?? {}),
-          medianTravelSeconds: newSeconds,
-        }
-
-        const isSameAsBase =
-          (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-          (nextOverride.isTransfer === undefined || nextOverride.isTransfer === !!edge.isTransfer) &&
-          nextOverride.medianTravelSeconds === baseSeconds
-
-        if (isSameAsBase) {
-          if (!(key in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[key]
-          return cloned
-        }
-
-        return { ...prev, [key]: nextOverride }
-      })
-    },
-    [edgeKey],
-  )
-  const handleInspectStation = useCallback((stationId: string) => {
-    setInspectedStationId(stationId)
-  }, [])
-  const handleFocusStation = useCallback((stationId: string) => {
-    setEditorFocusCommand(() => {
-      editorFocusTokenRef.current += 1
-      return { stationId, token: editorFocusTokenRef.current }
-    })
-  }, [])
-  const hiddenStationIdSet = useMemo(() => new Set(Object.keys(hiddenStations)), [hiddenStations])
-
-  const handleToggleStationHidden = useCallback((stationId: string) => {
-    setHiddenStations((prev: Record<string, true>) => {
-      if (prev[stationId]) {
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      }
-      return { ...prev, [stationId]: true }
-    })
-  }, [])
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!import.meta.env.DEV) return
@@ -1089,6 +705,13 @@ function App() {
     recomputeSheetMaxOffsetPx()
   }, [
     recomputeSheetMaxOffsetPx,
+    // Шторка монтируется только когда основной UI готов (isSplashDone && isMapReady).
+    // Без этих зависимостей эффект не перезапускался в момент появления шторки,
+    // и при открытии по deep link она оставалась неизмеренной: высота бралась
+    // по контенту, шторка вылезала за экран и уносила поля ввода вверх за границу.
+    isSplashDone,
+    isMapReady,
+    effectiveEditMode,
     isDesktop,
     isSmartSuggestionsOpen,
     favoriteRoutes.length,
@@ -1099,6 +722,7 @@ function App() {
     routeAlternatives.length,
     activeRouteIndex,
     isRouteSheetOpen,
+    isRouteLoadingVisible,
   ])
 
   useEffect(() => {
@@ -1153,6 +777,11 @@ function App() {
     }
   }, [
     isDesktop,
+    // Те же зависимости, что и у измеряющего layout-эффекта: ResizeObserver должен
+    // подписаться на шторку сразу, как только она появилась в DOM.
+    isSplashDone,
+    isMapReady,
+    effectiveEditMode,
     recomputeSheetMaxOffsetPx,
     errorMessage,
     routeAlternatives.length,
@@ -1163,6 +792,7 @@ function App() {
     recentRoutes.length,
     nearbyStatus,
     nearbyStations.length,
+    isRouteLoadingVisible,
   ])
 
   useEffect(() => {
@@ -1366,7 +996,7 @@ function App() {
 
     const timeoutId = window.setTimeout(() => {
       setIsSplashDone(true)
-    }, 2600)
+    }, SPLASH_MIN_DURATION_MS)
 
     return () => window.clearTimeout(timeoutId)
   }, [])
@@ -1488,52 +1118,6 @@ function App() {
     }
   }, [isDesktop, isRouteSheetOpen])
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!EDITOR_ENABLED) return
-      const target = event.target as HTMLElement | null
-      const tag = target?.tagName
-      const isInputLike =
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        (target && target.isContentEditable)
-      if (isInputLike) return
-
-      if ((event.key === 'e' || event.key === 'E') && (event.ctrlKey || event.metaKey)) {
-        event.preventDefault()
-        setEditMode((prev: boolean) => !prev)
-        return
-      }
-
-      if (event.key === 'Escape') {
-        if (inspectedStationId) {
-          event.preventDefault()
-          setInspectedStationId(null)
-          return
-        }
-        if (editMode) {
-          event.preventDefault()
-          setEditMode(false)
-        }
-        return
-      }
-
-      if (
-        editMode &&
-        (event.key === 'd' || event.key === 'D') &&
-        (event.ctrlKey || event.metaKey)
-      ) {
-        event.preventDefault()
-        setCollisionDebug((prev: boolean) => !prev)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [editMode, inspectedStationId])
-
   const handleCloseInstallGuide = () => {
     setInstallGuidePlatform('hidden')
     if (typeof window === 'undefined') {
@@ -1638,15 +1222,62 @@ function App() {
     updateSheetTransformDom,
   ])
 
+  // Видимость индикатора отделена от факта расчёта: см. ROUTE_LOADING_SHOW_DELAY_MS.
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const worker = new Worker(new URL('./routeWorker.ts', import.meta.url), { type: 'module' })
-    routeWorkerRef.current = worker
+    if (pendingRouteRequestId != null) {
+      if (isRouteLoadingVisible) return
+      const timeoutId = window.setTimeout(() => {
+        routeLoadingShownAtRef.current = Date.now()
+        setIsRouteLoadingVisible(true)
+      }, ROUTE_LOADING_SHOW_DELAY_MS)
+      return () => window.clearTimeout(timeoutId)
+    }
 
+    if (!isRouteLoadingVisible) return
+
+    const shownAt = routeLoadingShownAtRef.current ?? 0
+    const restMs = Math.max(0, ROUTE_LOADING_MIN_VISIBLE_MS - (Date.now() - shownAt))
+    const timeoutId = window.setTimeout(() => {
+      routeLoadingShownAtRef.current = null
+      setIsRouteLoadingVisible(false)
+    }, restMs)
+    return () => window.clearTimeout(timeoutId)
+  }, [pendingRouteRequestId, isRouteLoadingVisible])
+
+  // Гасим индикатор загрузки и сторожевой таймер.
+  // Вызывается и при успехе, и при ошибке, и при отмене устаревшего запроса,
+  // поэтому «залипнуть» индикатор не может.
+  const stopRouteLoading = useCallback(() => {
+    if (routeRequestTimeoutRef.current != null) {
+      window.clearTimeout(routeRequestTimeoutRef.current)
+      routeRequestTimeoutRef.current = null
+    }
+    setPendingRouteRequestId(null)
+  }, [])
+
+  // Обработчики ответа воркера держим в ref и обновляем на каждом рендере.
+  //
+  // Это принципиально: сам воркер должен создаваться РОВНО ОДИН РАЗ. Раньше эффект
+  // создания воркера зависел от коллбэков (`setRouteSheetOpenState` и т.п.), а те
+  // пересоздаются при смене `isDesktop`. На широком экране `isDesktop` переключается
+  // с false на true сразу после монтирования — воркер пересоздавался прямо посреди
+  // расчёта, pending-запрос вычищался, и маршрут молча терялся (сильнее всего это
+  // било по deep link: на десктопе ссылка вообще не открывала маршрут).
+  const routeWorkerMessageRef = useRef<(event: MessageEvent) => void>(() => {})
+  const routeWorkerErrorRef = useRef<() => void>(() => {})
+
+  useEffect(() => {
     const pending = routeWorkerPendingRef.current
 
-    worker.onmessage = (event: MessageEvent) => {
+    routeWorkerErrorRef.current = () => {
+      pending.clear()
+      stopRouteLoading()
+      setErrorMessage('Не удалось построить маршрут: расчёт завершился с ошибкой. Попробуй ещё раз.')
+    }
+
+    routeWorkerMessageRef.current = (event: MessageEvent) => {
       const msg = event.data as
         | { type: 'routeResult'; requestId: number; routes: RouteResult[] }
         | { type: 'routeError'; requestId: number; errorMessage: string }
@@ -1654,8 +1285,12 @@ function App() {
       if (!msg || typeof msg.requestId !== 'number') return
 
       const ctx = pending.get(msg.requestId)
+      // Ответ на устаревший (отменённый) запрос: молча игнорируем,
+      // индикатор при этом продолжает относиться к актуальному запросу.
       if (!ctx) return
       pending.delete(msg.requestId)
+
+      stopRouteLoading()
 
       if (msg.type === 'routeError') {
         setErrorMessage(msg.errorMessage || 'Маршрут между этими станциями не найден.')
@@ -1695,13 +1330,36 @@ function App() {
         }
       })
     }
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const worker = new Worker(new URL('./routeWorker.ts', import.meta.url), { type: 'module' })
+    routeWorkerRef.current = worker
+
+    const pending = routeWorkerPendingRef.current
+
+    worker.onerror = () => routeWorkerErrorRef.current()
+    worker.onmessage = (event: MessageEvent) => routeWorkerMessageRef.current(event)
 
     return () => {
       routeWorkerRef.current = null
       pending.clear()
+      stopRouteLoading()
+      deepLinkAppliedRef.current = false
       worker.terminate()
     }
-  }, [persistRoutesToStorage, setRouteSheetOpenState])
+  }, [stopRouteLoading])
+
+  useEffect(() => {
+    return () => {
+      if (shareHintTimeoutRef.current != null) {
+        window.clearTimeout(shareHintTimeoutRef.current)
+        shareHintTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (isDesktop) return
@@ -1732,56 +1390,6 @@ function App() {
     stopSheetSpring,
     updateSheetTransformDom,
   ])
-
-  const allStations = useMemo(() => {
-    const manualList = Object.values(manualStations)
-    if (manualList.length === 0) return fullGraphStations
-    return [...fullGraphStations, ...manualList]
-  }, [manualStations])
-
-  const findExactStationByName = (name: string) => {
-    const q = name.trim().toLowerCase()
-    if (!q) return undefined
-
-    for (const s of allStations) {
-      const ov = stationOverrides[s.id]
-      const title = ov?.title?.trim() || s.title
-      if (title.toLowerCase() === q) return s
-    }
-
-    return undefined
-  }
-
-  const stationTitleById = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const s of allStations) {
-      const ov = stationOverrides[s.id]
-      const title = ov?.title?.trim() || s.title
-      map.set(s.id, title)
-    }
-    return map
-  }, [allStations, stationOverrides])
-
-  const stationTitleOverridesForMap = useMemo(() => {
-    const result: Record<string, string> = {}
-    for (const [stationId, ov] of Object.entries(stationOverrides)) {
-      const t = ov.title?.trim()
-      if (t) {
-        result[stationId] = t
-      }
-    }
-    return result
-  }, [stationOverrides])
-
-  const extraStationsForMap = useMemo(() => Object.values(manualStations), [manualStations])
-
-  const stationById = useMemo(() => {
-    const map = new Map<string, FullGraphStation>()
-    for (const s of allStations) {
-      map.set(s.id, s)
-    }
-    return map
-  }, [allStations])
 
   const lineByNumericId = useMemo(() => {
     const map = new Map<number, (typeof fullGraphLines)[number]>()
@@ -1814,757 +1422,6 @@ function App() {
     return getStationColorHex(st)
   }, [toStationId, stationById, getStationColorHex])
 
-  const inspectedStation = useMemo(() => {
-    if (!inspectedStationId) return null
-    return stationById.get(inspectedStationId) ?? null
-  }, [inspectedStationId, stationById])
-
-  useEffect(() => {
-    if (!inspectedStationId) {
-      setInspectedLineId(null)
-      return
-    }
-    const st = stationById.get(inspectedStationId)
-    const ov = stationOverrides[inspectedStationId]
-    const effectiveLineNumericId =
-      ov && ov.lineNumericId !== undefined ? ov.lineNumericId : st?.lineNumericId ?? null
-    setInspectedLineId(effectiveLineNumericId)
-  }, [inspectedStationId, stationById, stationOverrides])
-
-  const inspectedHub = useMemo(() => {
-    if (!inspectedStation || !inspectedStation.hubId) {
-      return null
-    }
-    const override = stationHubOverrides[inspectedStation.id]
-    let hubId: string | null
-    if (override === null) hubId = null
-    else if (override !== undefined) hubId = override
-    else hubId = inspectedStation.hubId ?? null
-
-    if (!hubId) return null
-
-    // На панели редактирования используем эффективный список хабов с учётом оверрайдов
-    const hubMeta = new Map<string, { minTransferSeconds: number; source: (typeof fullGraphTransferHubs)[number]['source'] }>()
-    for (const hub of fullGraphTransferHubs) {
-      hubMeta.set(hub.id, { minTransferSeconds: hub.minTransferSeconds, source: hub.source })
-    }
-
-    const hubToStationIds = new Map<string, string[]>()
-    for (const st of allStations) {
-      const stOverride = stationHubOverrides[st.id]
-      let effectiveHubId: string | null
-      if (stOverride === null) effectiveHubId = null
-      else if (stOverride !== undefined) effectiveHubId = stOverride
-      else effectiveHubId = st.hubId ?? null
-      if (!effectiveHubId) continue
-      let list = hubToStationIds.get(effectiveHubId)
-      if (!list) {
-        list = []
-        hubToStationIds.set(effectiveHubId, list)
-      }
-      list.push(st.id)
-    }
-
-    const stationIds = hubToStationIds.get(hubId)
-    if (!stationIds || stationIds.length === 0) return null
-
-    const meta = hubMeta.get(hubId)
-    const baseMinSeconds = meta?.minTransferSeconds ?? 180
-    const overrideMinSeconds = hubMinOverrides[hubId]
-    const minTransferSeconds = overrideMinSeconds ?? baseMinSeconds
-
-    return {
-      id: hubId,
-      stationIds,
-      minTransferSeconds,
-      source: (meta?.source ?? 'manual_override') as (typeof fullGraphTransferHubs)[number]['source'],
-    }
-  }, [inspectedStation, stationHubOverrides, hubMinOverrides, allStations])
-
-  const inspectedLine = useMemo(() => {
-    if (inspectedLineId == null) return null
-    return lineByNumericId.get(inspectedLineId) ?? null
-  }, [inspectedLineId, lineByNumericId])
-
-  const effectiveLineStationIdsById = useMemo(() => {
-    const stationEffectiveLineId = new Map<string, number | null>()
-
-    for (const s of fullGraphStations) {
-      const ov = stationOverrides[s.id]
-      if (ov && ov.lineNumericId !== undefined) {
-        stationEffectiveLineId.set(s.id, ov.lineNumericId)
-      } else {
-        stationEffectiveLineId.set(s.id, s.lineNumericId ?? null)
-      }
-    }
-
-    for (const s of Object.values(manualStations)) {
-      const ov = stationOverrides[s.id]
-      if (ov && ov.lineNumericId !== undefined) {
-        stationEffectiveLineId.set(s.id, ov.lineNumericId)
-      } else {
-        stationEffectiveLineId.set(s.id, s.lineNumericId ?? null)
-      }
-    }
-
-    const edgesByLineId = new Map<number, { from: string; to: string }[]>()
-
-    const processEdge = (e: FullGraphEdge) => {
-      if (e.lineNumericId == null) return
-      const key = edgeKey(e.fromStationId, e.toStationId)
-      const ov = edgeOverrides[key]
-      if (ov?.disabled) return
-      let list = edgesByLineId.get(e.lineNumericId)
-      if (!list) {
-        list = []
-        edgesByLineId.set(e.lineNumericId, list)
-      }
-      list.push({ from: e.fromStationId, to: e.toStationId })
-    }
-
-    for (const e of fullGraphEdges) {
-      processEdge(e)
-    }
-
-    for (const e of Object.values(manualEdges)) {
-      processEdge(e)
-    }
-
-    const result = new Map<number, string[]>()
-
-    for (const line of fullGraphLines) {
-      const lineId = line.id
-
-      const baseSeq: string[] = []
-      for (const sid of line.stationIds) {
-        const eff = stationEffectiveLineId.get(sid) ?? null
-        if (eff === lineId) {
-          baseSeq.push(sid)
-        }
-      }
-
-      const seq: string[] = [...baseSeq]
-
-      const extraIds: string[] = []
-      for (const [sid, effLine] of stationEffectiveLineId.entries()) {
-        if (effLine !== lineId) continue
-        if (baseSeq.includes(sid)) continue
-        extraIds.push(sid)
-      }
-
-      if (extraIds.length > 0) {
-        const edges = edgesByLineId.get(lineId) ?? []
-
-        const insertStation = (sid: string) => {
-          let anchorIndex = -1
-          for (const e of edges) {
-            let other: string | null = null
-            if (e.from === sid && seq.includes(e.to)) {
-              other = e.to
-            } else if (e.to === sid && seq.includes(e.from)) {
-              other = e.from
-            }
-            if (!other) continue
-            const idx = seq.indexOf(other)
-            if (idx >= 0) {
-              anchorIndex = idx
-              break
-            }
-          }
-
-          if (anchorIndex >= 0) {
-            seq.splice(anchorIndex + 1, 0, sid)
-          } else {
-            seq.push(sid)
-          }
-        }
-
-        for (const sid of extraIds) {
-          insertStation(sid)
-        }
-      }
-
-      result.set(lineId, seq)
-    }
-
-    return result
-  }, [stationOverrides, manualStations, manualEdges, edgeOverrides, edgeKey])
-
-  const inspectedLineEdges = useMemo(() => {
-    if (!inspectedLine) return [] as FullGraphEdge[]
-
-    const result: FullGraphEdge[] = []
-    const seen = new Set<string>()
-
-    const addEdge = (e: FullGraphEdge) => {
-      if (e.lineNumericId !== inspectedLine.id) return
-      const key = e.fromStationId < e.toStationId
-        ? `${e.fromStationId}|${e.toStationId}`
-        : `${e.toStationId}|${e.fromStationId}`
-      if (seen.has(key)) return
-      seen.add(key)
-      result.push(e)
-    }
-
-    for (const e of fullGraphEdges) {
-      addEdge(e)
-    }
-
-    for (const e of Object.values(manualEdges)) {
-      addEdge(e)
-    }
-
-    return result
-  }, [inspectedLine, manualEdges])
-
-  const inspectedEdges = useMemo(() => {
-    if (!inspectedStation) return [] as FullGraphEdge[]
-    const result: FullGraphEdge[] = []
-    const seen = new Set<string>()
-
-    for (const e of fullGraphEdges) {
-      if (e.fromStationId === inspectedStation.id || e.toStationId === inspectedStation.id) {
-        result.push(e)
-        const key = e.fromStationId < e.toStationId
-          ? `${e.fromStationId}|${e.toStationId}`
-          : `${e.toStationId}|${e.fromStationId}`
-        seen.add(key)
-      }
-    }
-
-    for (const e of Object.values(manualEdges)) {
-      if (e.fromStationId !== inspectedStation.id && e.toStationId !== inspectedStation.id) continue
-      const key = e.fromStationId < e.toStationId
-        ? `${e.fromStationId}|${e.toStationId}`
-        : `${e.toStationId}|${e.fromStationId}`
-      if (seen.has(key)) continue
-      result.push(e)
-    }
-
-    return result
-  }, [inspectedStation, manualEdges])
-
-  const availableHubIds = useMemo(() => {
-    const ids = new Set<string>()
-    for (const hub of fullGraphTransferHubs) {
-      ids.add(hub.id)
-    }
-    for (const value of Object.values(stationHubOverrides)) {
-      if (value && value !== null) {
-        ids.add(value)
-      }
-    }
-    return Array.from(ids).sort()
-  }, [stationHubOverrides])
-
-  const handleChangeStationHub = useCallback(
-    (stationId: string, newHubId: string | null) => {
-      setStationHubOverrides((prev) => {
-        const base = stationById.get(stationId)
-        const baseHubId = base?.hubId ?? null
-
-        const targetHubId = newHubId
-
-        // Если выбрали исходный hubId — снимаем оверрайд
-        if (targetHubId === baseHubId) {
-          if (!(stationId in prev)) return prev
-          const next = { ...prev }
-          delete next[stationId]
-          return next
-        }
-
-        const next = { ...prev }
-        next[stationId] = targetHubId
-        return next
-      })
-    },
-    [stationById],
-  )
-
-  const handleUpdateStationGeoFromOSM = useCallback(
-    async (stationId: string) => {
-      const base = stationById.get(stationId)
-      if (!base) {
-        throw new Error('Станция не найдена')
-      }
-
-      const title = stationOverrides[stationId]?.title?.trim() || base.title
-      const query = `станция метро ${title}, Москва`
-      const url =
-        'https://nominatim.openstreetmap.org/search' +
-        `?format=jsonv2&limit=1&countrycodes=ru&accept-language=ru&q=${encodeURIComponent(query)}`
-
-      const resp = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-      })
-
-      if (!resp.ok) {
-        throw new Error(`OSM API error: ${resp.status}`)
-      }
-
-      const data = (await resp.json()) as Array<{ lat?: string; lon?: string }>
-      const first = data[0]
-      const lat = first?.lat != null ? Number(first.lat) : NaN
-      const lon = first?.lon != null ? Number(first.lon) : NaN
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-        throw new Error('OSM: координаты не найдены')
-      }
-
-      setStationOverrides((prev) => {
-        const baseLat = base.lat
-        const baseLon = base.lon
-        const current = prev[stationId]
-        const next: StationOverride = { ...(current ?? {}) }
-
-        if (baseLat !== undefined && lat === baseLat) {
-          delete next.lat
-        } else {
-          next.lat = lat
-        }
-
-        if (baseLon !== undefined && lon === baseLon) {
-          delete next.lon
-        } else {
-          next.lon = lon
-        }
-
-        if (
-          next.title === undefined &&
-          next.lineNumericId === undefined &&
-          next.lat === undefined &&
-          next.lon === undefined
-        ) {
-          if (!(stationId in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[stationId]
-          return cloned
-        }
-
-        if (current && current.title === next.title && current.lineNumericId === next.lineNumericId) {
-          return prev
-        }
-
-        return { ...prev, [stationId]: next }
-      })
-
-      showEditorToast('lat/lon обновлены (OSM)')
-    },
-    [stationById, stationOverrides, showEditorToast],
-  )
-
-  const handleCreateManualStation = useCallback(() => {
-    const existingIds = new Set<string>()
-    for (const s of fullGraphStations) existingIds.add(s.id)
-    for (const id of Object.keys(manualStations)) existingIds.add(id)
-
-    let index = existingIds.size + 1
-    let newId = `manual-${index}`
-    while (existingIds.has(newId)) {
-      index += 1
-      newId = `manual-${index}`
-    }
-
-    let baseStation: FullGraphStation | null = inspectedStation
-    if (!baseStation && fullGraphStations.length > 0) {
-      baseStation = fullGraphStations[0]
-    }
-
-    let effectiveLineNumericId: number | null = null
-    let baseX = 0
-    let baseY = 0
-
-    if (baseStation) {
-      const ov = stationOverrides[baseStation.id]
-      if (ov && ov.lineNumericId !== undefined) {
-        effectiveLineNumericId = ov.lineNumericId
-      } else {
-        effectiveLineNumericId = baseStation.lineNumericId ?? null
-      }
-
-      const pos = lastLayoutOverrides[baseStation.id]
-      if (pos) {
-        baseX = pos.x
-        baseY = pos.y
-      } else if (
-        typeof baseStation.layoutX === 'number' &&
-        typeof baseStation.layoutY === 'number'
-      ) {
-        baseX = baseStation.layoutX
-        baseY = baseStation.layoutY
-      }
-    }
-
-    const offset = 22
-    const layoutX = baseX + offset
-    const layoutY = baseY + offset
-
-    const newStation: FullGraphStation = {
-      id: newId,
-      title: 'Новая станция',
-      lineNumericId: effectiveLineNumericId,
-      layoutX,
-      layoutY,
-      isTransfer: false,
-    }
-
-    setManualStations((prev) => ({
-      ...prev,
-      [newId]: newStation,
-    }))
-
-    if (baseStation) {
-      const baseLine =
-        (stationOverrides[baseStation.id]?.lineNumericId ?? baseStation.lineNumericId) ??
-        null
-      const lineNumericId =
-        effectiveLineNumericId != null ? effectiveLineNumericId : baseLine
-
-      const keyUndirected = edgeKey(baseStation.id, newId)
-      const manualKey = `manual:${keyUndirected}`
-
-      setManualEdges((prev) => {
-        if (prev[manualKey]) return prev
-
-        const defaultSeconds = 180
-        const newEdge: FullGraphEdge = {
-          fromStationId: baseStation!.id,
-          toStationId: newId,
-          lineNumericId: lineNumericId ?? undefined,
-          medianTravelSeconds: defaultSeconds,
-          isTransfer: false,
-        }
-
-        return { ...prev, [manualKey]: newEdge }
-      })
-    }
-
-    setInspectedStationId(newId)
-  }, [inspectedStation, manualStations, stationOverrides, lastLayoutOverrides, edgeKey])
-
-  const handleDeleteManualStation = useCallback(
-    (stationId: string) => {
-      setManualStations((prev) => {
-        if (!prev[stationId]) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-      setManualEdges((prev) => {
-        const next: typeof prev = {}
-        for (const [key, edge] of Object.entries(prev)) {
-          if (edge.fromStationId === stationId || edge.toStationId === stationId) continue
-          next[key] = edge
-        }
-        return next
-      })
-
-      setStationOverrides((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-      setStationHubOverrides((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-      setHiddenStations((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-      setEdgeOverrides((prev) => {
-        const next: typeof prev = {}
-        for (const [key, ov] of Object.entries(prev)) {
-          const [a, b] = key.split('|')
-          if (a === stationId || b === stationId) continue
-          next[key] = ov
-        }
-        return next
-      })
-
-      if (inspectedStationId === stationId) {
-        setInspectedStationId(null)
-      }
-    },
-    [inspectedStationId],
-  )
-
-  const handleChangeStationTitle = useCallback(
-    (stationId: string, nextTitle: string) => {
-      setStationOverrides((prev) => {
-        const base = stationById.get(stationId)
-        if (!base) return prev
-
-        const trimmed = nextTitle.trim()
-        const baseTitle = base.title
-        const current = prev[stationId]
-        const next: StationOverride = { ...(current ?? {}) }
-
-        if (!trimmed || trimmed === baseTitle) {
-          delete next.title
-        } else {
-          next.title = trimmed
-        }
-
-        if (
-          next.title === undefined &&
-          next.lineNumericId === undefined &&
-          next.lat === undefined &&
-          next.lon === undefined
-        ) {
-          if (!(stationId in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[stationId]
-          return cloned
-        }
-
-        if (current && current.title === next.title && current.lineNumericId === next.lineNumericId) {
-          return prev
-        }
-
-        return { ...prev, [stationId]: next }
-      })
-    },
-    [stationById],
-  )
-
-  const handleChangeStationLine = useCallback(
-    (stationId: string, lineIdStr: string) => {
-      setStationOverrides((prev) => {
-        const base = stationById.get(stationId)
-        if (!base) return prev
-
-        const baseLine = base.lineNumericId ?? null
-        const current = prev[stationId]
-        const next: StationOverride = { ...(current ?? {}) }
-
-        const raw = lineIdStr.trim()
-        let newLine: number | null
-        if (raw === '') {
-          newLine = null
-        } else {
-          const parsed = Number(raw)
-          if (!Number.isFinite(parsed)) {
-            return prev
-          }
-          newLine = parsed
-        }
-
-        if (newLine === baseLine) {
-          delete next.lineNumericId
-        } else {
-          next.lineNumericId = newLine
-        }
-
-        if (next.title === undefined && next.lineNumericId === undefined) {
-          if (!(stationId in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[stationId]
-          return cloned
-        }
-
-        if (current && current.title === next.title && current.lineNumericId === next.lineNumericId) {
-          return prev
-        }
-
-        return { ...prev, [stationId]: next }
-      })
-    },
-    [stationById],
-  )
-
-  const handleChangeHubMinMinutes = useCallback((hubId: string, minutesStr: string) => {
-    setHubMinOverrides((prev) => {
-      const raw = minutesStr.replace(',', '.').trim()
-      const minutes = raw === '' ? NaN : Number(raw)
-
-      const base = fullGraphTransferHubs.find((h) => h.id === hubId)
-      const baseMinSeconds = base?.minTransferSeconds ?? 180
-
-      if (!Number.isFinite(minutes) || minutes <= 0) {
-        if (!(hubId in prev)) return prev
-        const cloned = { ...prev }
-        delete cloned[hubId]
-        return cloned
-      }
-
-      const seconds = Math.round(minutes * 60)
-
-      if (seconds === baseMinSeconds) {
-        if (!(hubId in prev)) return prev
-        const cloned = { ...prev }
-        delete cloned[hubId]
-        return cloned
-      }
-
-      if (prev[hubId] === seconds) return prev
-      return { ...prev, [hubId]: seconds }
-    })
-  }, [])
-
-  const handleRotateHubGeometry = useCallback((hubId: string, direction: 'cw' | 'ccw') => {
-    setHubRotateCommand(() => {
-      hubRotateTokenRef.current += 1
-      return { hubId, direction, token: hubRotateTokenRef.current }
-    })
-    setHubRotationOverrides((prev) => {
-      const prevDeg = prev[hubId] ?? 0
-      const delta = direction === 'cw' ? HUB_ROTATE_STEP_DEG : -HUB_ROTATE_STEP_DEG
-      let nextDeg = prevDeg + delta
-      if (!Number.isFinite(nextDeg)) nextDeg = 0
-      nextDeg = ((nextDeg % 360) + 360) % 360
-      if (nextDeg === 0) {
-        if (!(hubId in prev)) return prev
-        const cloned = { ...prev }
-        delete cloned[hubId]
-        return cloned
-      }
-      if (prevDeg === nextDeg) return prev
-      return { ...prev, [hubId]: nextDeg }
-    })
-  }, [])
-
-  const handleResetStationEdits = useCallback(
-    (stationId: string) => {
-      setStationOverrides((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-      setStationHubOverrides((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-      setHiddenStations((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-      const base = stationById.get(stationId)
-      const baseX = base && typeof base.layoutX === 'number' ? base.layoutX : undefined
-      const baseY = base && typeof base.layoutY === 'number' ? base.layoutY : undefined
-      if (baseX !== undefined && baseY !== undefined) {
-        pendingLayoutOverridesRef.current = null
-        setLastLayoutOverrides((prev: Record<string, { x: number; y: number }>) => {
-          const current = prev[stationId]
-          if (current && current.x === baseX && current.y === baseY) return prev
-          return { ...prev, [stationId]: { x: baseX, y: baseY } }
-        })
-        setEditorLayoutApplyToken((prev: number) => prev + 1)
-      }
-
-      showEditorToast('Изменения станции сброшены')
-    },
-    [stationById, showEditorToast],
-  )
-
-  const handleResetEdgeEdits = useCallback(
-    (edge: FullGraphEdge) => {
-      const key = edgeKey(edge.fromStationId, edge.toStationId)
-      const manualKey = `manual:${key}`
-
-      setEdgeOverrides((prev) => {
-        if (!(key in prev)) return prev
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
-
-      setManualEdges((prev) => {
-        if (!(manualKey in prev)) return prev
-        const next = { ...prev }
-        delete next[manualKey]
-        return next
-      })
-
-      showEditorToast('Изменения ребра сброшены')
-    },
-    [edgeKey, showEditorToast],
-  )
-
-  const handleResetHubEdits = useCallback(
-    (hubId: string, hubStationIds: string[]) => {
-      setHubMinOverrides((prev) => {
-        if (!(hubId in prev)) return prev
-        const next = { ...prev }
-        delete next[hubId]
-        return next
-      })
-
-      setHubRotationOverrides((prev) => {
-        if (!(hubId in prev)) return prev
-        const next = { ...prev }
-        delete next[hubId]
-        return next
-      })
-
-      if (hubStationIds.length > 0) {
-        pendingLayoutOverridesRef.current = null
-        setLastLayoutOverrides((prev: Record<string, { x: number; y: number }>) => {
-          let changed = false
-          const next = { ...prev }
-          for (const sid of hubStationIds) {
-            const st = stationById.get(sid)
-            const baseX = st && typeof st.layoutX === 'number' ? st.layoutX : undefined
-            const baseY = st && typeof st.layoutY === 'number' ? st.layoutY : undefined
-            if (baseX === undefined || baseY === undefined) continue
-            const current = prev[sid]
-            if (!current || current.x !== baseX || current.y !== baseY) {
-              next[sid] = { x: baseX, y: baseY }
-              changed = true
-            }
-          }
-          return changed ? next : prev
-        })
-        setEditorLayoutApplyToken((prev: number) => prev + 1)
-      }
-
-      showEditorToast('Настройки хаба сброшены')
-    },
-    [stationById, showEditorToast],
-  )
-
-  const handleResetAllEditorEdits = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const ok = window.confirm(
-        'Сбросить все изменения редактора?\n\nЭто удалит ручные станции/рёбра и сбросит все оверрайды.',
-      )
-      if (!ok) return
-    }
-
-    setStationOverrides({})
-    setStationHubOverrides({})
-    setEdgeOverrides({})
-    setHubMinOverrides({})
-    setHubRotationOverrides({})
-    setManualStations({})
-    setManualEdges({})
-    setHiddenStations({})
-    pendingLayoutOverridesRef.current = null
-    setLastLayoutOverrides({})
-    setEditorLayoutApplyToken((prev: number) => prev + 1)
-    setInspectedStationId(null)
-    showEditorToast('Все изменения сброшены')
-  }, [showEditorToast])
-
   const clearRoutes = () => {
     setRouteAlternatives([])
     setActiveRouteIndex(0)
@@ -2577,6 +1434,8 @@ function App() {
     setErrorMessage(null)
     clearRoutes()
     setRouteSheetOpenState(false)
+    stopRouteLoading()
+    dismissOnboardingHint()
 
     const fromStationResolved = stationById.get(fromId)
     const toStationResolved = stationById.get(toId)
@@ -2606,6 +1465,21 @@ function App() {
     routeWorkerRequestIdRef.current += 1
     const requestId = routeWorkerRequestIdRef.current
 
+    lastRouteRequestRef.current = { fromId, toId }
+
+    // Deep link: держим адресную строку в актуальном состоянии, но без записи
+    // каждого шага в историю — иначе «назад» превращается в перебор станций.
+    if (typeof window !== 'undefined' && typeof window.history?.replaceState === 'function') {
+      const shareUrl = buildRouteShareUrl(fromId, toId)
+      if (shareUrl) {
+        try {
+          window.history.replaceState(window.history.state, '', shareUrl)
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     const fromTitleEffective = stationTitleById.get(fromId) ?? fromStationResolved.title
     const toTitleEffective = stationTitleById.get(toId) ?? toStationResolved.title
 
@@ -2626,7 +1500,103 @@ function App() {
       edgeOverrides,
       extraEdges: Object.values(manualEdges),
     })
+
+    setPendingRouteRequestId(requestId)
+
+    if (typeof window !== 'undefined') {
+      routeRequestTimeoutRef.current = window.setTimeout(() => {
+        routeRequestTimeoutRef.current = null
+        // Ответа так и нет: считаем запрос потерянным, снимаем его из pending,
+        // чтобы опоздавший ответ уже ничего не перерисовал.
+        if (!routeWorkerPendingRef.current.has(requestId)) return
+        routeWorkerPendingRef.current.delete(requestId)
+        setPendingRouteRequestId(null)
+        setErrorMessage('Расчёт маршрута занял слишком много времени. Попробуй ещё раз.')
+      }, ROUTE_REQUEST_TIMEOUT_MS)
+    }
   }
+
+  const buildRouteByIdsRef = useRef(buildRouteByIds)
+
+  useEffect(() => {
+    buildRouteByIdsRef.current = buildRouteByIds
+  })
+
+  const handleRetryRoute = useCallback(() => {
+    const last = lastRouteRequestRef.current
+    if (!last) {
+      setErrorMessage(null)
+      return
+    }
+    buildRouteByIdsRef.current(last.fromId, last.toId)
+  }, [])
+
+  // Deep link при холодном старте: если в URL есть обе станции и обе нашлись
+  // в графе — сразу строим маршрут. Если параметров нет, сценарий не меняется.
+  useEffect(() => {
+    if (deepLinkAppliedRef.current) return
+    if (typeof window === 'undefined') return
+    if (!routeWorkerRef.current) return
+
+    deepLinkAppliedRef.current = true
+
+    const params = readDeepLinkStationIds(window.location.search)
+    if (!params) return
+
+    const fromStationResolved = stationById.get(params.fromId)
+    const toStationResolved = stationById.get(params.toId)
+    if (!fromStationResolved || !toStationResolved) return
+    if (params.fromId === params.toId) return
+
+    const fromTitle = stationTitleById.get(params.fromId) ?? fromStationResolved.title
+    const toTitle = stationTitleById.get(params.toId) ?? toStationResolved.title
+
+    setFromStation(fromTitle)
+    setToStation(toTitle)
+    setFromFixed(true)
+    setToFixed(true)
+
+    buildRouteByIdsRef.current(params.fromId, params.toId)
+  }, [stationById, stationTitleById])
+
+  const handleShareRoute = useCallback(async () => {
+    const from = fromStationId
+    const to = toStationId
+    if (!from || !to) return
+
+    const shareUrl = buildRouteShareUrl(from, to)
+    if (!shareUrl) return
+
+    const fromTitle = stationTitleById.get(from) ?? ''
+    const toTitle = stationTitleById.get(to) ?? ''
+    const title =
+      fromTitle && toTitle ? `Метро: ${fromTitle} → ${toTitle}` : 'Маршрут в метро Москвы'
+
+    const showHint = (text: string) => {
+      setShareHint(text)
+      if (shareHintTimeoutRef.current != null) {
+        window.clearTimeout(shareHintTimeoutRef.current)
+      }
+      shareHintTimeoutRef.current = window.setTimeout(() => {
+        shareHintTimeoutRef.current = null
+        setShareHint(null)
+      }, 2400)
+    }
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, text: title, url: shareUrl })
+        return
+      } catch (err) {
+        // Пользователь закрыл системный шит — это не ошибка, ничего не показываем.
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        // Иначе падаем в фолбэк с копированием.
+      }
+    }
+
+    const copied = await copyTextToClipboard(shareUrl)
+    showHint(copied ? 'Ссылка на маршрут скопирована' : 'Не удалось скопировать ссылку')
+  }, [fromStationId, toStationId, stationTitleById])
 
   const fromSuggestions = useMemo(() => {
     const q = fromStation.trim().toLowerCase()
@@ -2808,6 +1778,36 @@ function App() {
 
     return Array.from(new Set(keys))
   }, [routeResult])
+
+  // Цвета линий по каждому варианту маршрута — для «пилюль» в чипах выбора.
+  // Логика та же, что у decoratedSegments (цвет берём у линии станции отправления
+  // перегона), но считаем сразу для всех альтернатив и без сборки текстов.
+  // Мемоизация обязательна: вариантов до 6, у каждого — десятки шагов.
+  const routeAlternativeLineColors = useMemo<string[][]>(() => {
+    return routeAlternatives.map((route) => {
+      const colors: string[] = []
+
+      for (const step of route.steps) {
+        if (step.isTransfer) continue
+
+        const fromStationResolved = stationById.get(step.fromStationId)
+        const toStationResolved = stationById.get(step.toStationId)
+
+        const fromLineNumericId = fromStationResolved?.lineNumericId ?? null
+        const toLineNumericId = toStationResolved?.lineNumericId ?? null
+
+        const color =
+          (fromLineNumericId != null ? lineByNumericId.get(fromLineNumericId)?.colorHex : undefined) ??
+          (toLineNumericId != null ? lineByNumericId.get(toLineNumericId)?.colorHex : undefined)
+
+        if (!color) continue
+        if (colors[colors.length - 1] === color) continue
+        colors.push(color)
+      }
+
+      return colors
+    })
+  }, [routeAlternatives, stationById, lineByNumericId])
 
   const decoratedSegments = useMemo<DecoratedSegment[]>(
     () => {
@@ -3070,6 +2070,7 @@ function App() {
   }, [handleRequestNearbyStations])
 
   const handleFromChange = (value: string) => {
+    dismissOnboardingHint()
     setFromStation(value)
     setFromStationId(null)
     setFromFixed(false)
@@ -3080,6 +2081,7 @@ function App() {
   }
 
   const handleToChange = (value: string) => {
+    dismissOnboardingHint()
     setToStation(value)
     setToStationId(null)
     setToFixed(false)
@@ -3181,7 +2183,7 @@ function App() {
     }
     if (sheetGestureAxisRef.current !== 'y') return
     const startY = sheetTouchStartYRef.current
-    let dragRange = sheetMaxOffsetPxRef.current
+    const dragRange = sheetMaxOffsetPxRef.current
     if (!dragRange || dragRange <= 0) return
     const startProgress =
       sheetDragStartProgressRef.current != null
@@ -3420,6 +2422,51 @@ function App() {
     }
   }
 
+  /**
+   * Тап по станции без поповера: первый тап — «Откуда», второй — «Куда».
+   *
+   * Когда обе точки уже заданы, тап заменяет «Куда» и сразу пересчитывает
+   * маршрут. Причина: «Откуда» — это почти всегда «где я сейчас», значение
+   * липкое, а меняется обычно цель поездки. К тому же замена «Куда» даёт
+   * полезный результат за один тап, тогда как замена «Откуда» со сбросом
+   * «Куда» оставила бы пользователя без маршрута и потребовала второй тап.
+   * Сменить точку отправления по-прежнему можно долгим нажатием.
+   */
+  const applyStationByTap = (stationId: string, stationName: string) => {
+    const fromId = fromStationId
+    const toId = toStationId
+
+    if (!fromId) {
+      if (toId && stationId === toId) {
+        showStationHint('info', `${stationName} уже выбрана как «Куда»`)
+        return
+      }
+      applyStationToField('from', stationId, stationName)
+      showStationHint('from', `Откуда: ${stationName}`)
+      return
+    }
+
+    if (stationId === fromId) {
+      showStationHint('info', `${stationName} уже выбрана как «Откуда»`)
+      return
+    }
+
+    if (toId && stationId === toId) {
+      showStationHint('info', `${stationName} уже выбрана как «Куда»`)
+      return
+    }
+
+    applyStationToField('to', stationId, stationName)
+    showStationHint('to', `Куда: ${stationName}`)
+  }
+
+  // Держим функцию в ref: handleMapSelect уходит в MetroMap пропом и должен
+  // оставаться стабильным, а applyStationByTap пересоздаётся каждый рендер.
+  const applyStationByTapRef = useRef(applyStationByTap)
+  useEffect(() => {
+    applyStationByTapRef.current = applyStationByTap
+  })
+
   const handleSwapStations = () => {
     if (!fromStation.trim() && !toStation.trim()) {
       return
@@ -3588,6 +2635,28 @@ function App() {
     if (!clientPoint) {
       return
     }
+    dismissOnboardingHint()
+
+    // Долгое нажатие = «хочу выбрать поле сам» → прежний поповер.
+    // Длительность считаем сами: MetroMap отдаёт только момент отпускания.
+    const down = pointerDownRef.current
+    pointerDownRef.current = null
+    let isLongPress = false
+    if (down) {
+      const heldMs = (typeof performance !== 'undefined' ? performance.now() : 0) - down.at
+      const dx = clientPoint.x - down.x
+      const dy = clientPoint.y - down.y
+      isLongPress =
+        heldMs >= LONG_PRESS_MS &&
+        heldMs < 10_000 &&
+        dx * dx + dy * dy <= LONG_PRESS_MAX_MOVE_PX * LONG_PRESS_MAX_MOVE_PX
+    }
+
+    if (!isLongPress) {
+      applyStationByTapRef.current(id, name)
+      return
+    }
+
     if (import.meta.env.DEV) {
       stationPickPopoverPerfRef.current = { openedAt: performance.now(), tapAt: clientPoint.t }
       console.log(`[perf][popover] open station=${id} tapAt=${clientPoint.t != null ? clientPoint.t.toFixed(1) : 'n/a'}`)
@@ -3601,7 +2670,7 @@ function App() {
       setStationPickPopoverPressed(null)
       setStationPickPopover({ stationId: id, stationName: name, clientPoint })
     })
-  }, [])
+  }, [dismissOnboardingHint])
 
   const handleMapInteraction = useCallback(() => {
     markPerfInteraction()
@@ -3688,13 +2757,26 @@ function App() {
     }
   }, [stationPickPopover, closeStationPickPopoverAnimated, closeStationPickPopoverImmediate])
 
-  const currentSelectionMode: 'from' | 'to' = !fromStationId
-    ? 'from'
-    : !toStationId
-      ? 'to'
-      : 'from'
+  // Какое поле получит следующий тап по карте. Совпадает с логикой
+  // applyStationByTap: пусто → «Откуда», иначе → «Куда» (в том числе когда обе
+  // точки уже заданы — тап заменяет именно цель поездки).
+  const currentSelectionMode: 'from' | 'to' = !fromStationId ? 'from' : 'to'
   const isSplashActive = isSplashMounted
   const isPrimaryUiReady = isSplashDone && isMapReady
+
+  const isRouteLoading = isRouteLoadingVisible
+
+  // Подсказка первого запуска: показываем только на «чистом» экране и только
+  // когда основной UI уже виден и ничего не перекрывает.
+  const showOnboardingHint =
+    isOnboardingHintVisible &&
+    !effectiveEditMode &&
+    !shouldShowInstallGuide &&
+    !isRouteLoading &&
+    !errorMessage &&
+    !fromStationId &&
+    !toStationId &&
+    routeAlternatives.length === 0
 
   const trimmedFrom = fromStation.trim()
   const trimmedTo = toStation.trim()
@@ -3768,25 +2850,14 @@ function App() {
           routeStationIds={routeStationIds}
           routeEdgeKeys={routeEdgeKeys}
           routeLongTransferEdgeKeys={routeLongTransferEdgeKeys}
-          editMode={effectiveEditMode}
-          onLayoutChange={handleLayoutChange}
-          onCanonicalLayoutChange={handleCanonicalLayoutChange}
-          editorLayoutOverrides={lastLayoutOverrides}
-          editorLayoutApplyToken={editorLayoutApplyToken}
-          collisionDebug={EDITOR_ENABLED && collisionDebug}
           onMapInteraction={handleMapInteraction}
-          onEditStationInspect={handleInspectStation}
-          stationHubOverrides={stationHubOverrides}
-          hiddenStationIds={hiddenStationIdSet}
           visibleInsets={mapVisibleInsets}
           getBottomInsetPx={getBottomInsetPx}
-          stationTitleOverrides={stationTitleOverridesForMap}
-          extraStations={extraStationsForMap}
-          hubRotateCommand={hubRotateCommand}
-          hubMirrorCommand={hubMirrorCommand}
-          editorFocusCommand={editorFocusCommand}
-          onEditSelectionChange={setEditorSelectedStationIds}
           onInitialViewportReady={handleInitialViewportReady}
+          // editMode, collisionDebug, editorLayout*, stationHubOverrides,
+          // hiddenStationIds, stationTitleOverrides, extraStations, hub*Command,
+          // onEdit*: имена и семантика те же, просто собраны редактором.
+          {...editor.mapProps}
           routeSheetOpen={isRouteSheetOpen}
         />
       </div>
@@ -3836,6 +2907,7 @@ function App() {
                   setStationPickPopoverPressed('from')
                   applyStationToField('from', stationPickPopover.stationId, stationPickPopover.stationName)
                 })
+                showStationHint('from', `Откуда: ${stationPickPopover.stationName}`)
                 closeStationPickPopoverAnimated({ delayMs: 120 })
               }}
             >
@@ -3854,6 +2926,7 @@ function App() {
                   setStationPickPopoverPressed('to')
                   applyStationToField('to', stationPickPopover.stationId, stationPickPopover.stationName)
                 })
+                showStationHint('to', `Куда: ${stationPickPopover.stationName}`)
                 closeStationPickPopoverAnimated({ delayMs: 120 })
               }}
             >
@@ -3862,6 +2935,10 @@ function App() {
           </div>
         </div>
       )}
+
+      {!effectiveEditMode && isPrimaryUiReady && <ThemeToggle />}
+
+      {!effectiveEditMode && <ThemeStationHint hint={stationHint} />}
 
       <div className="app-overlay">
         {!effectiveEditMode && isPrimaryUiReady && (
@@ -3883,71 +2960,22 @@ function App() {
 
             <main className="app-main">
               {errorMessage && (
-                <section className="route-placeholder">
+                <section className="route-placeholder" role="alert">
                   <p className="error-text">{errorMessage}</p>
+                  {fromStationId && toStationId && (
+                    <button
+                      type="button"
+                      className="route-retry-button"
+                      onClick={handleRetryRoute}
+                      aria-label="Построить маршрут ещё раз"
+                    >
+                      Попробовать ещё раз
+                    </button>
+                  )}
                 </section>
               )}
             </main>
           </>
-        )}
-
-        {EDITOR_ENABLED && HubEditorPanelLazy && effectiveEditMode && inspectedStation && (
-          <Suspense fallback={null}>
-            <HubEditorPanelLazy
-              inspectedStation={inspectedStation}
-              inspectedLineId={inspectedLineId}
-              inspectedLine={inspectedLine}
-              inspectedLineEdges={inspectedLineEdges}
-              inspectedHub={inspectedHub}
-              inspectedEdges={inspectedEdges}
-              fullGraphLines={fullGraphLines}
-              fullGraphEdges={fullGraphEdges}
-              stationOverrides={stationOverrides}
-              manualStations={manualStations}
-              manualEdges={manualEdges}
-              stationHubOverrides={stationHubOverrides}
-              hiddenStations={hiddenStations}
-              availableHubIds={availableHubIds}
-              baseHubIds={fullGraphTransferHubs.map((hub) => hub.id)}
-              stationById={stationById}
-              lineByNumericId={lineByNumericId}
-              effectiveLineStationIdsById={effectiveLineStationIdsById}
-              edgeOverrides={edgeOverrides}
-              hubMinOverrides={hubMinOverrides}
-              hubRotationOverrides={hubRotationOverrides}
-              editorSelectedStationIds={editorSelectedStationIds}
-              hubAddStationInput={hubAddStationInput}
-              newEdgeTarget={newEdgeTarget}
-              findExactStationByName={findExactStationByName}
-              edgeKey={edgeKey}
-              onClose={() => setEditMode(false)}
-              onUndo={handleEditorUndo}
-              onRedo={handleEditorRedo}
-              canUndo={canEditorUndo}
-              canRedo={canEditorRedo}
-              onChangeStationTitle={handleChangeStationTitle}
-              onChangeStationLine={handleChangeStationLine}
-              onDeleteManualStation={handleDeleteManualStation}
-              onToggleEdgeTransfer={handleToggleEdgeTransfer}
-              onChangeEdgeMinutes={handleChangeEdgeMinutes}
-              onToggleEdgeDisabled={handleToggleEdgeDisabled}
-              onChangeStationHub={handleChangeStationHub}
-              onChangeHubMinMinutes={handleChangeHubMinMinutes}
-              onToggleStationHidden={handleToggleStationHidden}
-              onSetHubAddStationInput={setHubAddStationInput}
-              onSetNewEdgeTarget={setNewEdgeTarget}
-              onSetManualEdges={setManualEdges}
-              onSetInspectedStationId={setInspectedStationId}
-              onFocusStation={handleFocusStation}
-              onRotateHubGeometry={handleRotateHubGeometry}
-              onMirrorHubGeometry={handleMirrorHubGeometry}
-              onUpdateStationGeoFromOSM={handleUpdateStationGeoFromOSM}
-              onResetStationEdits={handleResetStationEdits}
-              onResetEdgeEdits={handleResetEdgeEdits}
-              onResetHubEdits={handleResetHubEdits}
-              onResetAllEdits={handleResetAllEditorEdits}
-            />
-          </Suspense>
         )}
 
         {!effectiveEditMode && isPrimaryUiReady && (
@@ -3981,6 +3009,23 @@ function App() {
                   />
                 )}
 
+                {showOnboardingHint && (
+                  <div className="onboarding-hint" role="note">
+                    <span className="onboarding-hint-text">
+                      Первый тап по станции — «Откуда», второй — «Куда». Долгое нажатие даёт выбор
+                      поля.
+                    </span>
+                    <button
+                      type="button"
+                      className="onboarding-hint-close"
+                      onClick={dismissOnboardingHint}
+                      aria-label="Скрыть подсказку"
+                    >
+                      <IconClose />
+                    </button>
+                  </div>
+                )}
+
                 {!isSmartSuggestionsOpen &&
                   (favoriteRoutes.length > 0 ||
                     recentRoutes.length > 0 ||
@@ -3992,8 +3037,10 @@ function App() {
                         type="button"
                         className="smart-suggestions-inline-chip"
                         onClick={() => setIsSmartSuggestionsOpen(true)}
+                        aria-label="Показать недавние маршруты"
                       >
-                        ⟳ Недавние
+                        <IconHistory className="inline-icon" />
+                        Недавние
                       </button>
                     )}
                     {(nearbyStatus !== 'error' || nearbyStations.length > 0) && (
@@ -4006,8 +3053,10 @@ function App() {
                             handleRequestNearbyStations()
                           }
                         }}
+                        aria-label="Показать станции рядом"
                       >
-                        📍 Рядом
+                        <IconPin className="inline-icon" />
+                        Рядом
                       </button>
                     )}
                     {favoriteRoutes.length > 0 && (
@@ -4015,8 +3064,10 @@ function App() {
                         type="button"
                         className="smart-suggestions-inline-chip"
                         onClick={() => setIsSmartSuggestionsOpen(true)}
+                        aria-label="Показать избранные маршруты"
                       >
-                        ★ Избранные
+                        <IconStar className="inline-icon" filled />
+                        Избранные
                       </button>
                     )}
                   </div>
@@ -4036,7 +3087,7 @@ function App() {
                             onClick={() => setIsSmartSuggestionsOpen(false)}
                             aria-label="Скрыть быстрые маршруты"
                           >
-                            ✕
+                            <IconClose />
                           </button>
                         </div>
                       )}
@@ -4051,7 +3102,7 @@ function App() {
                               onClick={() => setIsSmartSuggestionsOpen(false)}
                               aria-label="Скрыть быстрые маршруты"
                             >
-                              ✕
+                              <IconClose />
                             </button>
                           </div>
                           <div className="smart-suggestions-row">
@@ -4135,6 +3186,21 @@ function App() {
                     </section>
                   )}
 
+                {/* Кнопка появляется, только если в локальном журнале реально
+                    что-то есть — иначе это шум в чистом интерфейсе. */}
+                {errorLogEntries.length > 0 && (
+                  <div className="smart-suggestions-inline">
+                    <button
+                      type="button"
+                      className="theme-error-log-trigger"
+                      onClick={() => setIsErrorLogOpen(true)}
+                      aria-label={`Показать журнал ошибок, записей: ${errorLogEntries.length}`}
+                    >
+                      Журнал ошибок ({errorLogEntries.length})
+                    </button>
+                  </div>
+                )}
+
                 <RouteForm
                   fromStation={fromStation}
                   toStation={toStation}
@@ -4158,7 +3224,29 @@ function App() {
                   isDesktop={isDesktop}
                 />
 
-                {routeAlternatives.length > 1 && !errorMessage && !isDesktop && (
+                {/* Честное состояние загрузки: пока воркер считает, шторка
+                    показывает скелетон, а не «ничего не произошло». */}
+                <div className="route-loading-live" role="status" aria-live="polite">
+                  {isRouteLoading ? 'Строим маршрут…' : ''}
+                </div>
+
+                {isRouteLoading && (
+                  /* Текст дублирует aria-live-область выше, поэтому для скринридера
+                     блок скрыт — иначе «Строим маршрут…» читается дважды. */
+                  <div className="route-loading" aria-hidden="true">
+                    <div className="route-loading-head">
+                      <span className="route-loading-spinner" aria-hidden="true" />
+                      <span className="route-loading-title">Строим маршрут…</span>
+                    </div>
+                    <div className="route-loading-skeleton" aria-hidden="true">
+                      <span className="route-loading-skeleton-chip" />
+                      <span className="route-loading-skeleton-chip" />
+                      <span className="route-loading-skeleton-chip" />
+                    </div>
+                  </div>
+                )}
+
+                {routeAlternatives.length > 1 && !errorMessage && !isDesktop && !isRouteLoading && (
                   <div className="bottom-route-summary-wrapper">
                     <div className="bottom-route-summary-scroll">
                       {routeAlternatives.map((route, index) => {
@@ -4186,8 +3274,12 @@ function App() {
                             aria-label={`Выбрать маршрут: ${label}, ~${route.totalMinutes} мин, пересадок ${route.transfersCount}`}
                           >
                             <div className="bottom-route-chip-main">
-                              <span className="bottom-route-chip-time">⏱ {route.totalMinutes} мин</span>
+                              <span className="bottom-route-chip-time">
+                                <IconClock className="inline-icon" />
+                                {route.totalMinutes} мин
+                              </span>
                             </div>
+                            <RouteLinePills colors={routeAlternativeLineColors[index] ?? []} />
                             <div className="bottom-route-chip-sub">
                               Пересадок: {route.transfersCount}
                             </div>
@@ -4212,306 +3304,30 @@ function App() {
                 detailsRef={routeDetailsRef}
                 isFavoriteRoute={isActiveRouteFavorite}
                 onToggleFavoriteRoute={handleToggleFavoriteActiveRoute}
+                routeLineColors={routeAlternativeLineColors}
+                onShareRoute={activeRouteEndpoints ? handleShareRoute : undefined}
+                shareHint={shareHint}
               />
             </div>
           </div>
         )}
 
-        {EDITOR_ENABLED && (
-          <>
-            <button
-              type="button"
-              className={`editor-fab${effectiveEditMode ? ' editor-fab--active' : ''}`}
-              onClick={() => setEditMode((prev: boolean) => !prev)}
-              aria-label={
-                effectiveEditMode ? 'Выключить режим редактора' : 'Включить режим редактора'
-              }
-            >
-              ✎
-            </button>
-
-            {effectiveEditMode && (
-              <div className="editor-tools-stack" aria-label="Инструменты редактора">
-                <button
-                  type="button"
-                  className="editor-fab editor-fab--small editor-fab--secondary"
-                  onClick={handleCreateManualStation}
-                  aria-label="Создать новую станцию рядом с текущей"
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  className={`editor-fab editor-fab--small${
-                    collisionDebug ? ' editor-fab--active' : ''
-                  }`}
-                  onClick={() => setCollisionDebug((prev: boolean) => !prev)}
-                  aria-label={
-                    collisionDebug
-                      ? 'Выключить отладку коллизий подписей'
-                      : 'Включить отладку коллизий подписей'
-                  }
-                >
-                  ⚡
-                </button>
-                <button
-                  type="button"
-                  className="editor-fab editor-fab--small editor-fab--secondary"
-                  onClick={async () => {
-                    try {
-                      const layout = lastLayoutOverrides
-
-                      const stations: Record<
-                        string,
-                        {
-                          title?: string
-                          lineNumericId?: number | null
-                          hubId?: string | null
-                          hidden?: boolean
-                          manual?: boolean
-                        }
-                      > = {}
-
-                      const applyStation = (s: FullGraphStation, manual: boolean) => {
-                        const id = s.id
-                        const baseTitle = s.title
-                        const baseLine = s.lineNumericId ?? null
-                        const baseHubId = s.hubId ?? null
-
-                        const stOverride = stationOverrides[id]
-                        const trimmedTitle = stOverride?.title?.trim()
-                        const overrideLine =
-                          stOverride && stOverride.lineNumericId !== undefined
-                            ? stOverride.lineNumericId
-                            : undefined
-
-                        const stationHidden = !!hiddenStations[id]
-
-                        const hubOverride = stationHubOverrides[id]
-                        let effectiveHubId: string | null
-                        if (hubOverride === null) effectiveHubId = null
-                        else if (hubOverride !== undefined) effectiveHubId = hubOverride
-                        else effectiveHubId = baseHubId
-
-                        if (manual) {
-                          const entry: {
-                            title?: string
-                            lineNumericId?: number | null
-                            hubId?: string | null
-                            hidden?: boolean
-                            manual?: boolean
-                          } = {}
-
-                          entry.manual = true
-
-                          entry.title =
-                            trimmedTitle && trimmedTitle.length > 0
-                              ? trimmedTitle
-                              : baseTitle
-
-                          entry.lineNumericId =
-                            overrideLine !== undefined ? overrideLine : baseLine
-
-                          entry.hubId = effectiveHubId
-
-                          if (stationHidden) {
-                            entry.hidden = true
-                          }
-
-                          stations[id] = entry
-                          return
-                        }
-
-                        const entry: {
-                          title?: string
-                          lineNumericId?: number | null
-                          hubId?: string | null
-                          hidden?: boolean
-                          manual?: boolean
-                        } = {}
-
-                        if (trimmedTitle && trimmedTitle !== baseTitle) {
-                          entry.title = trimmedTitle
-                        }
-
-                        if (overrideLine !== undefined) {
-                          if (overrideLine !== baseLine) {
-                            entry.lineNumericId = overrideLine
-                          }
-                        }
-
-                        if (effectiveHubId !== baseHubId) {
-                          entry.hubId = effectiveHubId
-                        }
-
-                        if (stationHidden) {
-                          entry.hidden = true
-                        }
-
-                        if (Object.keys(entry).length === 0) {
-                          return
-                        }
-
-                        stations[id] = entry
-                      }
-
-                      for (const s of fullGraphStations) {
-                        applyStation(s, false)
-                      }
-                      for (const s of Object.values(manualStations)) {
-                        applyStation(s, true)
-                      }
-
-                      const lines: Record<
-                        string,
-                        {
-                          stationIds?: string[]
-                        }
-                      > = {}
-
-                      for (const line of fullGraphLines) {
-                        const effective = effectiveLineStationIdsById.get(line.id)
-                        if (!effective) continue
-                        const baseIds = line.stationIds
-                        if (
-                          effective.length === baseIds.length &&
-                          effective.every((sid, idx) => sid === baseIds[idx])
-                        ) {
-                          continue
-                        }
-                        lines[String(line.id)] = {
-                          stationIds: effective,
-                        }
-                      }
-
-                      const edges: Record<
-                        string,
-                        {
-                          fromStationId?: string
-                          toStationId?: string
-                          lineNumericId?: number | null
-                          medianTravelSeconds?: number
-                          isTransfer?: boolean
-                          disabled?: boolean
-                          manual?: boolean
-                        }
-                      > = {}
-
-                      const allBaseEdges: FullGraphEdge[] = [...fullGraphEdges]
-
-                      for (const e of allBaseEdges) {
-                        const key = edgeKey(e.fromStationId, e.toStationId)
-                        const ov = edgeOverrides[key]
-                        if (!ov) continue
-
-                        const entry: {
-                          medianTravelSeconds?: number
-                          isTransfer?: boolean
-                          disabled?: boolean
-                        } = {}
-
-                        if (ov.medianTravelSeconds !== undefined) {
-                          if (ov.medianTravelSeconds !== e.medianTravelSeconds) {
-                            entry.medianTravelSeconds = ov.medianTravelSeconds
-                          }
-                        }
-                        if (ov.isTransfer !== undefined) {
-                          if (ov.isTransfer !== !!e.isTransfer) {
-                            entry.isTransfer = ov.isTransfer
-                          }
-                        }
-                        if (ov.disabled !== undefined && ov.disabled) {
-                          entry.disabled = true
-                        }
-
-                        if (Object.keys(entry).length === 0) continue
-
-                        edges[key] = {
-                          ...edges[key],
-                          ...entry,
-                        }
-                      }
-
-                      for (const e of Object.values(manualEdges)) {
-                        const key = edgeKey(e.fromStationId, e.toStationId)
-                        const existing = edges[key] || {}
-                        edges[key] = {
-                          ...existing,
-                          fromStationId: e.fromStationId,
-                          toStationId: e.toStationId,
-                          lineNumericId: e.lineNumericId ?? null,
-                          medianTravelSeconds: e.medianTravelSeconds,
-                          isTransfer: !!e.isTransfer,
-                          manual: true,
-                        }
-                      }
-
-                      const hubs: Record<
-                        string,
-                        {
-                          minTransferSeconds?: number
-                          rotationDeg?: number
-                        }
-                      > = {}
-
-                      for (const [hubId, seconds] of Object.entries(hubMinOverrides)) {
-                        if (!Number.isFinite(seconds)) continue
-                        hubs[hubId] = {
-                          ...(hubs[hubId] || {}),
-                          minTransferSeconds: seconds,
-                        }
-                      }
-
-                      for (const [hubId, deg] of Object.entries(hubRotationOverrides)) {
-                        if (!Number.isFinite(deg)) continue
-                        hubs[hubId] = {
-                          ...(hubs[hubId] || {}),
-                          rotationDeg: deg,
-                        }
-                      }
-
-                      const editorOverrides: EditorOverrides = {
-                        layout,
-                        stations,
-                        lines,
-                        edges,
-                        hubs,
-
-                        grid: canonicalGrid,
-                        ringShapes: canonicalRingShapes,
-                        stationParams: canonicalStationParams,
-                      }
-
-                      const json = JSON.stringify(editorOverrides, null, 2)
-                      const ok = json ? await copyTextToClipboard(json) : false
-                      if (ok) {
-                        showEditorToast('editor_overrides.json скопирован')
-                      } else {
-                        showEditorToast('Не удалось скопировать editor_overrides.json')
-                      }
-                    } catch {
-                      showEditorToast('Не удалось скопировать editor_overrides.json')
-                      // ignore clipboard errors
-                    }
-                  }}
-                  aria-label="Скопировать editor_overrides.json в буфер обмена"
-                  title="Скопировать editor_overrides.json"
-                >
-                  OVR
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {EDITOR_ENABLED && editorToast && (
-          <div className="editor-toast" role="status" aria-live="polite">
-            {editorToast}
-          </div>
+        {EDITOR_ENABLED && EditorOverlayLazy && editor.overlay && (
+          <Suspense fallback={null}>
+            <EditorOverlayLazy editor={editor.overlay} active={effectiveEditMode} />
+          </Suspense>
         )}
 
         {showUpdateBanner && (
           <UpdateBanner onUpdate={handleUpdateBannerClick} onLater={handleUpdateBannerLater} />
+        )}
+
+        {isErrorLogOpen && (
+          <ThemeErrorLogPanel
+            entries={errorLogEntries}
+            onClose={() => setIsErrorLogOpen(false)}
+            onEntriesChange={setErrorLogEntries}
+          />
         )}
 
         {shouldShowInstallGuide && (
@@ -4527,4 +3343,14 @@ function App() {
   )
 }
 
-export default App
+// Оборачиваем всё дерево в error boundary: без него любая ошибка рендера
+// давала белый экран без единого сообщения (main.tsx править нельзя).
+function AppWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  )
+}
+
+export default AppWithErrorBoundary

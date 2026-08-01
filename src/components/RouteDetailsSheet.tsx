@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, Ref } from 'react'
 import type { RouteResult } from '../metro/types'
+import { RouteLinePills } from './RouteLinePills.tsx'
+import { IconClock, IconShare, IconStar } from './icons.tsx'
 
 export type DecoratedRideSegment = {
   type: 'ride'
@@ -39,6 +41,11 @@ interface RouteDetailsSheetProps {
   detailsRef?: Ref<HTMLDivElement>
   isFavoriteRoute?: boolean
   onToggleFavoriteRoute?: () => void
+  /** Цвета линий по каждому варианту маршрута (индексы совпадают с routeAlternatives). */
+  routeLineColors?: string[][]
+  onShareRoute?: () => void
+  /** Короткое сообщение о результате «Поделиться» (например, «Ссылка скопирована»). */
+  shareHint?: string | null
 }
 
 export function RouteDetailsSheet({
@@ -55,6 +62,9 @@ export function RouteDetailsSheet({
   detailsRef,
   isFavoriteRoute,
   onToggleFavoriteRoute,
+  routeLineColors,
+  onShareRoute,
+  shareHint,
 }: RouteDetailsSheetProps) {
   const hasAlternatives = routeAlternatives.length > 1
 
@@ -100,10 +110,15 @@ export function RouteDetailsSheet({
                         onClick={() => {
                           onChangeActiveRoute(index)
                         }}
+                        aria-label={`Выбрать маршрут: ~${route.totalMinutes} мин, пересадок ${route.transfersCount}`}
                       >
                         <div className="bottom-route-chip-main">
-                          <span className="bottom-route-chip-time">⏱ {route.totalMinutes} мин</span>
+                          <span className="bottom-route-chip-time">
+                            <IconClock className="inline-icon" />
+                            {route.totalMinutes} мин
+                          </span>
                         </div>
+                        <RouteLinePills colors={routeLineColors?.[index] ?? []} />
                         <div className="bottom-route-chip-sub">
                           Пересадок: {route.transfersCount}
                         </div>
@@ -117,7 +132,8 @@ export function RouteDetailsSheet({
               <div className="route-summary">
                 <div className="route-summary-main">
                   <span className="summary-time">
-                    ⏱ {routeResult.totalMinutes} мин
+                    <IconClock className="inline-icon" />
+                    {routeResult.totalMinutes} мин
                   </span>
                   {arrivalTimeLabel && (
                     <span className="summary-arrival">
@@ -128,23 +144,39 @@ export function RouteDetailsSheet({
                     Пересадок: {routeResult.transfersCount}
                   </span>
                 </div>
-                {onToggleFavoriteRoute && (
-                  <button
-                    type="button"
-                    className={`route-favorite-button${
-                      isFavoriteRoute ? ' route-favorite-button--active' : ''
-                    }`}
-                    onClick={onToggleFavoriteRoute}
-                    aria-pressed={isFavoriteRoute === true}
-                    aria-label={
-                      isFavoriteRoute
-                        ? 'Убрать маршрут из избранного'
-                        : 'Добавить маршрут в избранное'
-                    }
-                  >
-                    ★
-                  </button>
-                )}
+                <div className="route-summary-actions">
+                  {onShareRoute && (
+                    <button
+                      type="button"
+                      className="route-share-button"
+                      onClick={onShareRoute}
+                      aria-label="Поделиться ссылкой на маршрут"
+                    >
+                      <IconShare />
+                    </button>
+                  )}
+                  {onToggleFavoriteRoute && (
+                    <button
+                      type="button"
+                      className={`route-favorite-button${
+                        isFavoriteRoute ? ' route-favorite-button--active' : ''
+                      }`}
+                      onClick={onToggleFavoriteRoute}
+                      aria-pressed={isFavoriteRoute === true}
+                      aria-label={
+                        isFavoriteRoute
+                          ? 'Убрать маршрут из избранного'
+                          : 'Добавить маршрут в избранное'
+                      }
+                    >
+                      <IconStar filled={isFavoriteRoute === true} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="route-share-hint" role="status" aria-live="polite">
+                {shareHint ?? ''}
               </div>
               <ol
                 key={stepsAnimToken}
