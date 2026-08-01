@@ -118,7 +118,6 @@ export interface FullGraphTransferHub {
   minTransferSeconds: number;
   /** Источник оценки времени пересадки */
   source: TransferTimeSource;
-  rotationDeg?: number;
 }
 
 /**
@@ -171,7 +170,6 @@ export interface EditorOverridesEdge {
 
 export interface EditorOverridesHub {
   minTransferSeconds?: number;
-  rotationDeg?: number;
 }
 
 export interface EditorOverridesGrid {

@@ -31,7 +31,6 @@ export type EditorSnapshot = {
   manualEdges: Record<string, FullGraphEdge>
   hiddenStations: Record<string, true>
   lastLayoutOverrides: Record<string, { x: number; y: number }>
-  hubRotationOverrides: Record<string, number>
 
   canonicalGrid: EditorOverridesGrid
   canonicalRingShapes: Record<string, EditorOverridesRingShape>
@@ -94,7 +93,6 @@ export interface EditorOverlayApi {
   stationHubOverrides: Record<string, string | null>
   edgeOverrides: Record<string, EdgeOverride>
   hubMinOverrides: Record<string, number>
-  hubRotationOverrides: Record<string, number>
   manualStations: Record<string, FullGraphStation>
   manualEdges: Record<string, FullGraphEdge>
   hiddenStations: Record<string, true>
