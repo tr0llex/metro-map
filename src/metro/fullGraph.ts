@@ -25,8 +25,6 @@ interface RawFullGraph {
     lon?: number
     layoutX?: number
     layoutY?: number
-    yandexX?: number
-    yandexY?: number
   }[]
   edges: {
     fromStationId: string
@@ -63,8 +61,6 @@ export const fullGraphStations: FullGraphStation[] = raw.stations.map((s) => ({
   lon: s.lon,
   layoutX: s.layoutX,
   layoutY: s.layoutY,
-  yandexX: s.yandexX,
-  yandexY: s.yandexY,
   isTransfer: s.isTransfer,
   hubId: s.hubId,
 }))

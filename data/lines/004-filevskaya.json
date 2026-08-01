@@ -1,0 +1,99 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 4,
+  "title": "Филевская",
+  "color": "#1EBCEF",
+  "ring": false,
+  "stations": [
+    {
+      "id": "4/kuntsevskaya",
+      "title": "Кунцевская",
+      "lat": 55.730815,
+      "lon": 37.446754,
+      "toNextSeconds": 151
+    },
+    {
+      "id": "4/pionerskaya",
+      "title": "Пионерская",
+      "lat": 55.736027,
+      "lon": 37.466728,
+      "toNextSeconds": 129
+    },
+    {
+      "id": "4/filevskiy-park",
+      "title": "Филевский парк",
+      "lat": 55.739665,
+      "lon": 37.483902,
+      "toNextSeconds": 108
+    },
+    {
+      "id": "4/bagrationovskaya",
+      "title": "Багратионовская",
+      "lat": 55.743544,
+      "lon": 37.497042,
+      "toNextSeconds": 126
+    },
+    {
+      "id": "4/fili",
+      "title": "Фили",
+      "lat": 55.746763,
+      "lon": 37.514035,
+      "toNextSeconds": 156
+    },
+    {
+      "id": "4/kutuzovskaya",
+      "title": "Кутузовская",
+      "lat": 55.740544,
+      "lon": 37.5341,
+      "toNextSeconds": 107
+    },
+    {
+      "id": "4/studencheskaya",
+      "title": "Студенческая",
+      "lat": 55.738761,
+      "lon": 37.54842,
+      "toNextSeconds": 131
+    },
+    {
+      "id": "4/kievskaya",
+      "title": "Киевская",
+      "lat": 55.743168,
+      "lon": 37.565425,
+      "toNextSeconds": 137
+    },
+    {
+      "id": "4/smolenskaya",
+      "title": "Смоленская",
+      "lat": 55.749083,
+      "lon": 37.582173,
+      "toNextSeconds": 139
+    },
+    {
+      "id": "4/arbatskaya",
+      "title": "Арбатская",
+      "lat": 55.752122,
+      "lon": 37.601553,
+      "toNextSeconds": 63
+    },
+    {
+      "id": "4/aleksandrovskiy-sad",
+      "title": "Александровский сад",
+      "lat": 55.752255,
+      "lon": 37.608775,
+      "toNextSeconds": 413
+    },
+    {
+      "id": "4/delovoy-tsentr-vystavochnaya",
+      "title": "Деловой центр (Выставочная)",
+      "lat": 55.750243,
+      "lon": 37.542641,
+      "toNextSeconds": 83
+    },
+    {
+      "id": "4/moskva-siti",
+      "title": "Москва-Сити",
+      "lat": 55.748056,
+      "lon": 37.532778
+    }
+  ]
+}

@@ -1,0 +1,226 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке (у последней — до первой, линия кольцевая).",
+  "id": 95,
+  "title": "МЦК",
+  "color": "#CC4C6E",
+  "ring": true,
+  "stations": [
+    {
+      "id": "95/okruzhnaya",
+      "title": "Окружная",
+      "lat": 55.848889,
+      "lon": 37.571111,
+      "toNextSeconds": 125
+    },
+    {
+      "id": "95/vladykino",
+      "title": "Владыкино",
+      "lat": 55.847222,
+      "lon": 37.591944,
+      "toNextSeconds": 262
+    },
+    {
+      "id": "95/botanicheskiy-sad",
+      "title": "Ботанический сад",
+      "lat": 55.845556,
+      "lon": 37.640278,
+      "toNextSeconds": 168
+    },
+    {
+      "id": "95/rostokino",
+      "title": "Ростокино",
+      "lat": 55.839444,
+      "lon": 37.667778,
+      "toNextSeconds": 204
+    },
+    {
+      "id": "95/belokamennaya",
+      "title": "Белокаменная",
+      "lat": 55.83,
+      "lon": 37.700556,
+      "toNextSeconds": 234
+    },
+    {
+      "id": "95/bulvar-rokossovskogo",
+      "title": "Бульвар Рокоссовского",
+      "lat": 55.817222,
+      "lon": 37.736944,
+      "toNextSeconds": 152
+    },
+    {
+      "id": "95/lokomotiv",
+      "title": "Локомотив",
+      "lat": 55.803219,
+      "lon": 37.745742,
+      "toNextSeconds": 151
+    },
+    {
+      "id": "95/izmaylovo",
+      "title": "Измайлово",
+      "lat": 55.788611,
+      "lon": 37.742778,
+      "toNextSeconds": 186
+    },
+    {
+      "id": "95/sokolinaya-gora",
+      "title": "Соколиная Гора",
+      "lat": 55.77,
+      "lon": 37.745278,
+      "toNextSeconds": 122
+    },
+    {
+      "id": "95/shosse-entuziastov",
+      "title": "Шоссе Энтузиастов",
+      "lat": 55.758633,
+      "lon": 37.748477,
+      "toNextSeconds": 191
+    },
+    {
+      "id": "95/andronovka",
+      "title": "Андроновка",
+      "lat": 55.741111,
+      "lon": 37.734444,
+      "toNextSeconds": 105
+    },
+    {
+      "id": "95/nizhegorodskaya",
+      "title": "Нижегородская",
+      "lat": 55.732222,
+      "lon": 37.72825,
+      "toNextSeconds": 116
+    },
+    {
+      "id": "95/novokhokhlovskaya",
+      "title": "Новохохловская",
+      "lat": 55.723889,
+      "lon": 37.716111,
+      "toNextSeconds": 124
+    },
+    {
+      "id": "95/ugreshskaya",
+      "title": "Угрешская",
+      "lat": 55.718333,
+      "lon": 37.697778,
+      "toNextSeconds": 132
+    },
+    {
+      "id": "95/dubrovka",
+      "title": "Дубровка",
+      "lat": 55.71268,
+      "lon": 37.677775,
+      "toNextSeconds": 113
+    },
+    {
+      "id": "95/avtozavodskaya",
+      "title": "Автозаводская",
+      "lat": 55.70631,
+      "lon": 37.66314,
+      "toNextSeconds": 123
+    },
+    {
+      "id": "95/zil",
+      "title": "ЗИЛ",
+      "lat": 55.698333,
+      "lon": 37.648333,
+      "toNextSeconds": 185
+    },
+    {
+      "id": "95/verkhnie-kotly",
+      "title": "Верхние Котлы",
+      "lat": 55.69,
+      "lon": 37.618889,
+      "toNextSeconds": 90
+    },
+    {
+      "id": "95/krymskaya",
+      "title": "Крымская",
+      "lat": 55.690038,
+      "lon": 37.605,
+      "toNextSeconds": 198
+    },
+    {
+      "id": "95/ploshchad-gagarina",
+      "title": "Площадь Гагарина",
+      "lat": 55.706944,
+      "lon": 37.585833,
+      "toNextSeconds": 185
+    },
+    {
+      "id": "95/luzhniki",
+      "title": "Лужники",
+      "lat": 55.720278,
+      "lon": 37.563056,
+      "toNextSeconds": 256
+    },
+    {
+      "id": "95/kutuzovskaya",
+      "title": "Кутузовская",
+      "lat": 55.740833,
+      "lon": 37.533333,
+      "toNextSeconds": 77
+    },
+    {
+      "id": "95/delovoy-tsentr",
+      "title": "Деловой центр",
+      "lat": 55.747222,
+      "lon": 37.532222,
+      "toNextSeconds": 117
+    },
+    {
+      "id": "95/shelepikha",
+      "title": "Шелепиха",
+      "lat": 55.7575,
+      "lon": 37.525556,
+      "toNextSeconds": 218
+    },
+    {
+      "id": "95/khoroshevo",
+      "title": "Хорошево",
+      "lat": 55.777222,
+      "lon": 37.507222,
+      "toNextSeconds": 115
+    },
+    {
+      "id": "95/zorge",
+      "title": "Зорге",
+      "lat": 55.787778,
+      "lon": 37.504444,
+      "toNextSeconds": 125
+    },
+    {
+      "id": "95/panfilovskaya",
+      "title": "Панфиловская",
+      "lat": 55.799167,
+      "lon": 37.498889,
+      "toNextSeconds": 162
+    },
+    {
+      "id": "95/streshnevo",
+      "title": "Стрешнево",
+      "lat": 55.813611,
+      "lon": 37.486944,
+      "toNextSeconds": 138
+    },
+    {
+      "id": "95/baltiyskaya",
+      "title": "Балтийская",
+      "lat": 55.825833,
+      "lon": 37.496111,
+      "toNextSeconds": 191
+    },
+    {
+      "id": "95/koptevo",
+      "title": "Коптево",
+      "lat": 55.839637,
+      "lon": 37.520037,
+      "toNextSeconds": 191
+    },
+    {
+      "id": "95/likhobory",
+      "title": "Лихоборы",
+      "lat": 55.847222,
+      "lon": 37.551389,
+      "toNextSeconds": 120
+    }
+  ]
+}

@@ -22,16 +22,16 @@ import type { FullGraphEdge, RouteResult } from './types'
 // Реальные пары станций (id из normalized/fullGraph.json).
 // Взяты «через всю схему», чтобы маршруты были длинными и с пересадками.
 // ---------------------------------------------------------------------------
-const MEDVEDKOVO = 'mos-6-6.81'
-const SALARYEVO = 'mos-1-1.514'
-const PYATNITSKOE = 'mos-3-3.463'
-const VYKHINO = 'mos-7-7.33'
-const KHOVRINO = 'mos-2-2.558'
-const YUGO_ZAPADNAYA = 'mos-1-1.162'
-const PLANERNAYA = 'mos-7-7.111'
-const ROKOSSOVSKOGO_MCC = 'mos-95-95.520'
-const KOMSOMOLSKAYA_1 = 'mos-1-1.54'
-const KOMSOMOLSKAYA_5 = 'mos-5-5.55'
+const MEDVEDKOVO = '6/medvedkovo'
+const SALARYEVO = '1/salarevo'
+const PYATNITSKOE = '3/pyatnitskoe-shosse'
+const VYKHINO = '7/vykhino'
+const KHOVRINO = '2/khovrino'
+const YUGO_ZAPADNAYA = '1/yugo-zapadnaya'
+const PLANERNAYA = '7/planernaya'
+const ROKOSSOVSKOGO_MCC = '95/bulvar-rokossovskogo'
+const KOMSOMOLSKAYA_1 = '1/komsomolskaya'
+const KOMSOMOLSKAYA_5 = '5/komsomolskaya'
 
 const LONG_PAIRS: [string, string, string][] = [
   [MEDVEDKOVO, SALARYEVO, 'Медведково → Саларьево'],
@@ -359,7 +359,7 @@ describe('findRouteAlternativesFullGraph — набор альтернатив',
     // и pushUnique(fewestTransfers) выполнялись до него — при запросе одного
     // варианта возвращались два. Парк культуры → Орехово: как раз тот случай,
     // когда быстрейший маршрут и маршрут с минимумом пересадок различаются.
-    const routes = findRouteAlternativesFullGraph('mos-1-1.103', 'mos-2-2.96', {
+    const routes = findRouteAlternativesFullGraph('1/park-kultury', '2/orekhovo', {
       maxAlternatives: 1,
     })
     expect(routes.length).toBe(1)

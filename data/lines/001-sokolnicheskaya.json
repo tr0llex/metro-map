@@ -1,0 +1,197 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 1,
+  "title": "Сокольническая",
+  "color": "#E42313",
+  "ring": false,
+  "stations": [
+    {
+      "id": "1/bulvar-rokossovskogo",
+      "title": "Бульвар Рокоссовского",
+      "lat": 55.814916,
+      "lon": 37.732227,
+      "toNextSeconds": 168
+    },
+    {
+      "id": "1/cherkizovskaya",
+      "title": "Черкизовская",
+      "lat": 55.802787,
+      "lon": 37.744863,
+      "toNextSeconds": 217
+    },
+    {
+      "id": "1/preobrazhenskaya-ploshchad",
+      "title": "Преображенская площадь",
+      "lat": 55.796322,
+      "lon": 37.713582,
+      "toNextSeconds": 233
+    },
+    {
+      "id": "1/sokolniki",
+      "title": "Сокольники",
+      "lat": 55.789282,
+      "lon": 37.679895,
+      "toNextSeconds": 147
+    },
+    {
+      "id": "1/krasnoselskaya",
+      "title": "Красносельская",
+      "lat": 55.780014,
+      "lon": 37.666097,
+      "toNextSeconds": 113
+    },
+    {
+      "id": "1/komsomolskaya",
+      "title": "Комсомольская",
+      "lat": 55.774072,
+      "lon": 37.654565,
+      "toNextSeconds": 93
+    },
+    {
+      "id": "1/krasnye-vorota",
+      "title": "Красные ворота",
+      "lat": 55.768307,
+      "lon": 37.6478,
+      "toNextSeconds": 86
+    },
+    {
+      "id": "1/chistye-prudy",
+      "title": "Чистые пруды",
+      "lat": 55.76499,
+      "lon": 37.638293,
+      "toNextSeconds": 114
+    },
+    {
+      "id": "1/lubyanka",
+      "title": "Лубянка",
+      "lat": 55.759889,
+      "lon": 37.625336,
+      "toNextSeconds": 87
+    },
+    {
+      "id": "1/okhotnyy-ryad",
+      "title": "Охотный ряд",
+      "lat": 55.757228,
+      "lon": 37.615078,
+      "toNextSeconds": 81
+    },
+    {
+      "id": "1/biblioteka-im-lenina",
+      "title": "Библиотека им.Ленина",
+      "lat": 55.752123,
+      "lon": 37.610388,
+      "toNextSeconds": 101
+    },
+    {
+      "id": "1/kropotkinskaya",
+      "title": "Кропоткинская",
+      "lat": 55.745297,
+      "lon": 37.604217,
+      "toNextSeconds": 131
+    },
+    {
+      "id": "1/park-kultury",
+      "title": "Парк культуры",
+      "lat": 55.736163,
+      "lon": 37.595027,
+      "toNextSeconds": 147
+    },
+    {
+      "id": "1/frunzenskaya",
+      "title": "Фрунзенская",
+      "lat": 55.727462,
+      "lon": 37.58022,
+      "toNextSeconds": 140
+    },
+    {
+      "id": "1/sportivnaya",
+      "title": "Спортивная",
+      "lat": 55.722388,
+      "lon": 37.562041,
+      "toNextSeconds": 162
+    },
+    {
+      "id": "1/vorobevy-gory",
+      "title": "Воробьевы горы",
+      "lat": 55.709169,
+      "lon": 37.557293,
+      "toNextSeconds": 235
+    },
+    {
+      "id": "1/universitet",
+      "title": "Университет",
+      "lat": 55.69329,
+      "lon": 37.534511,
+      "toNextSeconds": 270
+    },
+    {
+      "id": "1/prospekt-vernadskogo",
+      "title": "Проспект Вернадского",
+      "lat": 55.676549,
+      "lon": 37.504584,
+      "toNextSeconds": 211
+    },
+    {
+      "id": "1/yugo-zapadnaya",
+      "title": "Юго-Западная",
+      "lat": 55.663146,
+      "lon": 37.482852,
+      "toNextSeconds": 212
+    },
+    {
+      "id": "1/troparevo",
+      "title": "Тропарево",
+      "lat": 55.6459,
+      "lon": 37.4725,
+      "toNextSeconds": 247
+    },
+    {
+      "id": "1/rumyantsevo",
+      "title": "Румянцево",
+      "lat": 55.633,
+      "lon": 37.4419,
+      "toNextSeconds": 172
+    },
+    {
+      "id": "1/salarevo",
+      "title": "Саларьево",
+      "lat": 55.6227,
+      "lon": 37.424,
+      "toNextSeconds": 281
+    },
+    {
+      "id": "1/filatov-lug",
+      "title": "Филатов луг",
+      "lat": 55.5997,
+      "lon": 37.4075,
+      "toNextSeconds": 305
+    },
+    {
+      "id": "1/prokshino",
+      "title": "Прокшино",
+      "lat": 55.5813,
+      "lon": 37.4425,
+      "toNextSeconds": 181
+    },
+    {
+      "id": "1/olkhovaya",
+      "title": "Ольховая",
+      "lat": 55.5692,
+      "lon": 37.4589,
+      "toNextSeconds": 135
+    },
+    {
+      "id": "1/novomoskovskaya",
+      "title": "Новомосковская",
+      "lat": 55.559765,
+      "lon": 37.468716,
+      "toNextSeconds": 173
+    },
+    {
+      "id": "1/potapovo",
+      "title": "Потапово",
+      "lat": 55.552538,
+      "lon": 37.490978
+    }
+  ]
+}

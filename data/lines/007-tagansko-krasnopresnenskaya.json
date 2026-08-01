@@ -1,0 +1,169 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 7,
+  "title": "Таганско-Краснопресненская",
+  "color": "#943E90",
+  "ring": false,
+  "stations": [
+    {
+      "id": "7/planernaya",
+      "title": "Планерная",
+      "lat": 55.859676,
+      "lon": 37.436808,
+      "toNextSeconds": 132
+    },
+    {
+      "id": "7/skhodnenskaya",
+      "title": "Сходненская",
+      "lat": 55.84926,
+      "lon": 37.44076,
+      "toNextSeconds": 271
+    },
+    {
+      "id": "7/tushinskaya",
+      "title": "Тушинская",
+      "lat": 55.825479,
+      "lon": 37.437024,
+      "toNextSeconds": 97
+    },
+    {
+      "id": "7/spartak",
+      "title": "Спартак",
+      "lat": 55.8182,
+      "lon": 37.4352,
+      "toNextSeconds": 210
+    },
+    {
+      "id": "7/shchukinskaya",
+      "title": "Щукинская",
+      "lat": 55.8094,
+      "lon": 37.463241,
+      "toNextSeconds": 264
+    },
+    {
+      "id": "7/oktyabrskoe-pole",
+      "title": "Октябрьское поле",
+      "lat": 55.793581,
+      "lon": 37.493317,
+      "toNextSeconds": 246
+    },
+    {
+      "id": "7/polezhaevskaya",
+      "title": "Полежаевская",
+      "lat": 55.777201,
+      "lon": 37.517895,
+      "toNextSeconds": 188
+    },
+    {
+      "id": "7/begovaya",
+      "title": "Беговая",
+      "lat": 55.773505,
+      "lon": 37.545518,
+      "toNextSeconds": 161
+    },
+    {
+      "id": "7/ulitsa-1905-goda",
+      "title": "Улица 1905 года",
+      "lat": 55.763944,
+      "lon": 37.562271,
+      "toNextSeconds": 137
+    },
+    {
+      "id": "7/barrikadnaya",
+      "title": "Баррикадная",
+      "lat": 55.760793,
+      "lon": 37.581242,
+      "toNextSeconds": 166
+    },
+    {
+      "id": "7/pushkinskaya",
+      "title": "Пушкинская",
+      "lat": 55.765607,
+      "lon": 37.604356,
+      "toNextSeconds": 147
+    },
+    {
+      "id": "7/kuznetskiy-most",
+      "title": "Кузнецкий мост",
+      "lat": 55.761498,
+      "lon": 37.624423,
+      "toNextSeconds": 114
+    },
+    {
+      "id": "7/kitay-gorod",
+      "title": "Китай-город",
+      "lat": 55.75436,
+      "lon": 37.633877,
+      "toNextSeconds": 215
+    },
+    {
+      "id": "7/taganskaya",
+      "title": "Таганская",
+      "lat": 55.739502,
+      "lon": 37.653605,
+      "toNextSeconds": 135
+    },
+    {
+      "id": "7/proletarskaya",
+      "title": "Пролетарская",
+      "lat": 55.731546,
+      "lon": 37.666917,
+      "toNextSeconds": 146
+    },
+    {
+      "id": "7/volgogradskiy-prospekt",
+      "title": "Волгоградский проспект",
+      "lat": 55.725546,
+      "lon": 37.685197,
+      "toNextSeconds": 347
+    },
+    {
+      "id": "7/tekstilshchiki",
+      "title": "Текстильщики",
+      "lat": 55.709211,
+      "lon": 37.732117,
+      "toNextSeconds": 209
+    },
+    {
+      "id": "7/kuzminki",
+      "title": "Кузьминки",
+      "lat": 55.705493,
+      "lon": 37.763295,
+      "toNextSeconds": 227
+    },
+    {
+      "id": "7/ryazanskiy-prospekt",
+      "title": "Рязанский проспект",
+      "lat": 55.716139,
+      "lon": 37.792694,
+      "toNextSeconds": 163
+    },
+    {
+      "id": "7/vykhino",
+      "title": "Выхино",
+      "lat": 55.715983,
+      "lon": 37.816788,
+      "toNextSeconds": 271
+    },
+    {
+      "id": "7/lermontovskiy-prospekt",
+      "title": "Лермонтовский проспект",
+      "lat": 55.702036,
+      "lon": 37.851044,
+      "toNextSeconds": 205
+    },
+    {
+      "id": "7/zhulebino",
+      "title": "Жулебино",
+      "lat": 55.684722,
+      "lon": 37.855833,
+      "toNextSeconds": 131
+    },
+    {
+      "id": "7/kotelniki",
+      "title": "Котельники",
+      "lat": 55.6743,
+      "lon": 37.8582
+    }
+  ]
+}

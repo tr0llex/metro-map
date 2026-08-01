@@ -1,0 +1,176 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 6,
+  "title": "Калужско-Рижская",
+  "color": "#F07E24",
+  "ring": false,
+  "stations": [
+    {
+      "id": "6/medvedkovo",
+      "title": "Медведково",
+      "lat": 55.888103,
+      "lon": 37.661562,
+      "toNextSeconds": 205
+    },
+    {
+      "id": "6/babushkinskaya",
+      "title": "Бабушкинская",
+      "lat": 55.870641,
+      "lon": 37.664341,
+      "toNextSeconds": 192
+    },
+    {
+      "id": "6/sviblovo",
+      "title": "Свиблово",
+      "lat": 55.855558,
+      "lon": 37.653379,
+      "toNextSeconds": 168
+    },
+    {
+      "id": "6/botanicheskiy-sad",
+      "title": "Ботанический сад",
+      "lat": 55.844597,
+      "lon": 37.637811,
+      "toNextSeconds": 284
+    },
+    {
+      "id": "6/vdnkh",
+      "title": "ВДНХ",
+      "lat": 55.819626,
+      "lon": 37.640751,
+      "toNextSeconds": 145
+    },
+    {
+      "id": "6/alekseevskaya",
+      "title": "Алексеевская",
+      "lat": 55.807794,
+      "lon": 37.638699,
+      "toNextSeconds": 182
+    },
+    {
+      "id": "6/rizhskaya",
+      "title": "Рижская",
+      "lat": 55.792494,
+      "lon": 37.636114,
+      "toNextSeconds": 134
+    },
+    {
+      "id": "6/prospekt-mira",
+      "title": "Проспект Мира",
+      "lat": 55.781827,
+      "lon": 37.633199,
+      "toNextSeconds": 120
+    },
+    {
+      "id": "6/sukharevskaya",
+      "title": "Сухаревская",
+      "lat": 55.772315,
+      "lon": 37.63285,
+      "toNextSeconds": 97
+    },
+    {
+      "id": "6/turgenevskaya",
+      "title": "Тургеневская",
+      "lat": 55.765371,
+      "lon": 37.636732,
+      "toNextSeconds": 119
+    },
+    {
+      "id": "6/kitay-gorod",
+      "title": "Китай-город",
+      "lat": 55.756498,
+      "lon": 37.631326,
+      "toNextSeconds": 190
+    },
+    {
+      "id": "6/tretyakovskaya",
+      "title": "Третьяковская",
+      "lat": 55.74073,
+      "lon": 37.625624,
+      "toNextSeconds": 145
+    },
+    {
+      "id": "6/oktyabrskaya",
+      "title": "Октябрьская",
+      "lat": 55.731232,
+      "lon": 37.612851,
+      "toNextSeconds": 154
+    },
+    {
+      "id": "6/shabolovskaya",
+      "title": "Шаболовская",
+      "lat": 55.718828,
+      "lon": 37.607892,
+      "toNextSeconds": 206
+    },
+    {
+      "id": "6/leninskiy-prospekt",
+      "title": "Ленинский проспект",
+      "lat": 55.70678,
+      "lon": 37.58499,
+      "toNextSeconds": 240
+    },
+    {
+      "id": "6/akademicheskaya",
+      "title": "Академическая",
+      "lat": 55.687147,
+      "lon": 37.5723,
+      "toNextSeconds": 135
+    },
+    {
+      "id": "6/profsoyuznaya",
+      "title": "Профсоюзная",
+      "lat": 55.677671,
+      "lon": 37.562595,
+      "toNextSeconds": 113
+    },
+    {
+      "id": "6/novye-cheremushki",
+      "title": "Новые Черемушки",
+      "lat": 55.670077,
+      "lon": 37.554493,
+      "toNextSeconds": 185
+    },
+    {
+      "id": "6/kaluzhskaya",
+      "title": "Калужская",
+      "lat": 55.656682,
+      "lon": 37.540075,
+      "toNextSeconds": 192
+    },
+    {
+      "id": "6/belyaevo",
+      "title": "Беляево",
+      "lat": 55.642357,
+      "lon": 37.526115,
+      "toNextSeconds": 138
+    },
+    {
+      "id": "6/konkovo",
+      "title": "Коньково",
+      "lat": 55.631857,
+      "lon": 37.519156,
+      "toNextSeconds": 179
+    },
+    {
+      "id": "6/teplyy-stan",
+      "title": "Теплый Стан",
+      "lat": 55.61873,
+      "lon": 37.505912,
+      "toNextSeconds": 230
+    },
+    {
+      "id": "6/yasenevo",
+      "title": "Ясенево",
+      "lat": 55.606182,
+      "lon": 37.5334,
+      "toNextSeconds": 145
+    },
+    {
+      "id": "6/novoyasenevskaya",
+      "title": "Новоясеневская",
+      "lat": 55.601947,
+      "lon": 37.553017
+    }
+  ]
+}

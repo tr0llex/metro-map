@@ -1,0 +1,64 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 8,
+  "title": "Калининская",
+  "color": "#FFCD1C",
+  "ring": false,
+  "stations": [
+    {
+      "id": "8/novokosino",
+      "title": "Новокосино",
+      "lat": 55.745113,
+      "lon": 37.864052,
+      "toNextSeconds": 323
+    },
+    {
+      "id": "8/novogireevo",
+      "title": "Новогиреево",
+      "lat": 55.752237,
+      "lon": 37.814587,
+      "toNextSeconds": 201
+    },
+    {
+      "id": "8/perovo",
+      "title": "Перово",
+      "lat": 55.75098,
+      "lon": 37.78422,
+      "toNextSeconds": 227
+    },
+    {
+      "id": "8/shosse-entuziastov",
+      "title": "Шоссе Энтузиастов",
+      "lat": 55.75809,
+      "lon": 37.751703,
+      "toNextSeconds": 233
+    },
+    {
+      "id": "8/aviamotornaya",
+      "title": "Авиамоторная",
+      "lat": 55.751933,
+      "lon": 37.717444,
+      "toNextSeconds": 244
+    },
+    {
+      "id": "8/ploshchad-ilicha",
+      "title": "Площадь Ильича",
+      "lat": 55.747115,
+      "lon": 37.680726,
+      "toNextSeconds": 181
+    },
+    {
+      "id": "8/marksistskaya",
+      "title": "Марксистская",
+      "lat": 55.740746,
+      "lon": 37.65604,
+      "toNextSeconds": 197
+    },
+    {
+      "id": "8/tretyakovskaya",
+      "title": "Третьяковская",
+      "lat": 55.741125,
+      "lon": 37.626142
+    }
+  ]
+}

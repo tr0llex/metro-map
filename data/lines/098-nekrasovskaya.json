@@ -1,0 +1,64 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 98,
+  "title": "Некрасовская",
+  "color": "#CC0066",
+  "ring": false,
+  "stations": [
+    {
+      "id": "98/kosino",
+      "title": "Косино",
+      "lat": 55.7026,
+      "lon": 37.8511,
+      "toNextSeconds": 201
+    },
+    {
+      "id": "98/ulitsa-dmitrievskogo",
+      "title": "Улица Дмитриевского",
+      "lat": 55.7093,
+      "lon": 37.8792,
+      "toNextSeconds": 147
+    },
+    {
+      "id": "98/lukhmanovskaya",
+      "title": "Лухмановская",
+      "lat": 55.7078,
+      "lon": 37.9004,
+      "toNextSeconds": 183
+    },
+    {
+      "id": "98/nekrasovka",
+      "title": "Некрасовка",
+      "lat": 55.7029,
+      "lon": 37.9264,
+      "toNextSeconds": 656
+    },
+    {
+      "id": "98/yugo-vostochnaya",
+      "title": "Юго-Восточная",
+      "lat": 55.71,
+      "lon": 37.82,
+      "toNextSeconds": 335
+    },
+    {
+      "id": "98/okskaya",
+      "title": "Окская",
+      "lat": 55.72,
+      "lon": 37.77,
+      "toNextSeconds": 141
+    },
+    {
+      "id": "98/stakhanovskaya",
+      "title": "Стахановская",
+      "lat": 55.73,
+      "lon": 37.76,
+      "toNextSeconds": 198
+    },
+    {
+      "id": "98/nizhegorodskaya",
+      "title": "Нижегородская",
+      "lat": 55.73,
+      "lon": 37.73
+    }
+  ]
+}

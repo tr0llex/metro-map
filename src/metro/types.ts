@@ -59,9 +59,6 @@ export interface FullGraphStation {
   /** Схемные координаты для Canvas (px), независимые от географии */
   layoutX?: number;
   layoutY?: number;
-  /** Координаты станции на схеме Яндекс.Метро (px в системе Yandex SVG) */
-  yandexX?: number;
-  yandexY?: number;
   /** Флаг пересадочного узла (есть хотя бы одна пересадка) */
   isTransfer?: boolean;
   /** ID пересадочного хаба, объединяющий несколько станций в один комплекс */
@@ -144,47 +141,8 @@ export interface FullGraphExport {
   ringShapes?: Record<string, FullGraphRingShape>;
 }
 
-export interface EditorOverridesStation {
-  title?: string;
-  lineNumericId?: number | null;
-  hubId?: string | null;
-  lat?: number;
-  lon?: number;
-  hidden?: boolean;
-  manual?: boolean;
-}
-
-export interface EditorOverridesLine {
-  stationIds?: string[];
-}
-
-export interface EditorOverridesEdge {
-  fromStationId?: string;
-  toStationId?: string;
-  lineNumericId?: number | null;
-  medianTravelSeconds?: number;
-  isTransfer?: boolean;
-  disabled?: boolean;
-  manual?: boolean;
-}
-
-export interface EditorOverridesHub {
-  /**
-   * Якорь: состав узла, отсортированный по кодовым точкам (как `sort.Strings`
-   * в Go). Именно по нему солвер находит хаб — ключ вида "hub-N" нестабилен,
-   * его сдвигает любая дедупликация станций. См. `hubAnchorKey`
-   * в `go-layout-solver/graph_overrides.go` и `buildEditorOverrides`.
-   */
-  stationIds?: string[];
-  minTransferSeconds?: number;
-}
-
-export interface EditorOverridesGrid {
-  stepPx?: number;
-}
-
 /**
- * Форма кольцевой линии в редакторских оверрайдах.
+ * Форма кольцевой линии в `data/layout.json`.
  *
  * Совпадает с контрактом `ringShapes` в fullGraph.json: ровно circle/ellipse.
  * Раньше эллипс назывался `superellipse` и нёс `n`, `thickness`, `rotateDeg`,
@@ -192,7 +150,7 @@ export interface EditorOverridesGrid {
  * остальные поля не читал никто: ни солвер, ни рантайм. Держать в формате
  * то, что нельзя нарисовать, — прямой путь к расхождению данных и картинки.
  */
-export type EditorOverridesRingShape =
+export type LayoutRingShape =
   | {
       kind: 'circle';
       cx?: number;
@@ -207,27 +165,11 @@ export type EditorOverridesRingShape =
       ry?: number;
     };
 
-export interface EditorOverridesStationLayoutParams {
+/**
+ * Внутреннее состояние редактора для станции. В файл не выгружается: солвер
+ * таких полей не читает, а `data/layout.json` хранит только координаты.
+ */
+export interface StationLayoutParams {
   gridPos?: { gx: number; gy: number };
   theta?: number;
-}
-
-export interface EditorOverrides {
-  layout: Record<string, { x: number; y: number }>;
-  stations: Record<string, EditorOverridesStation>;
-  lines: Record<string, EditorOverridesLine>;
-  edges: Record<string, EditorOverridesEdge>;
-  hubs: Record<string, EditorOverridesHub>;
-  ringShapes?: Record<string, EditorOverridesRingShape>;
-
-  /**
-   * ВНИМАНИЕ: `grid` и `stationParams` (включая `theta`) солвер НЕ читает —
-   * в структуре `GraphOverrides` (`go-layout-solver/graph_overrides.go`) таких
-   * полей нет, а `json.Decoder` молча игнорирует неизвестные ключи. Поля
-   * оставлены в типе только для разбора уже существующих файлов; редактор их
-   * больше не экспортирует (см. `src/editor/exportOverrides.ts`). Прежде чем
-   * возвращать экспорт, нужно добавить соответствующие поля в Go.
-   */
-  grid?: EditorOverridesGrid;
-  stationParams?: Record<string, EditorOverridesStationLayoutParams>;
 }

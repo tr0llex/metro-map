@@ -29,8 +29,8 @@ vi.mock('./graphCore', async (importOriginal) => {
 
 const { findRouteAlternativesFullGraph, setRoutingGraph } = await import('./routing')
 
-const FROM = 'mos-6-6.81'
-const TO = 'mos-1-1.514'
+const FROM = '6/medvedkovo'
+const TO = '1/salarevo'
 
 const stationIds = fullGraphStations.map((s) => s.id)
 
@@ -57,7 +57,7 @@ describe('findRouteAlternativesFullGraph — переиспользование 
 
   it('непустые edgeOverrides граф пересобирают', () => {
     findRouteAlternativesFullGraph(FROM, TO, {
-      edgeOverrides: { 'mos-1-1.54|mos-5-5.55': { disabled: true } },
+      edgeOverrides: { '1/komsomolskaya|5/komsomolskaya': { disabled: true } },
     })
     expect(buildAdjacencySpy).toHaveBeenCalledTimes(1)
     expect(buildEdgeByKeySpy).toHaveBeenCalledTimes(1)

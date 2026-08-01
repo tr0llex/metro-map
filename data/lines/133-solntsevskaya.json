@@ -1,0 +1,106 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 133,
+  "title": "Солнцевская",
+  "color": "#FFCD1C",
+  "ring": false,
+  "stations": [
+    {
+      "id": "133/delovoy-tsentr",
+      "title": "Деловой центр",
+      "lat": 55.7491,
+      "lon": 37.5395,
+      "toNextSeconds": 220
+    },
+    {
+      "id": "133/park-pobedy",
+      "title": "Парк Победы",
+      "lat": 55.736478,
+      "lon": 37.514401,
+      "toNextSeconds": 173
+    },
+    {
+      "id": "133/minskaya",
+      "title": "Минская",
+      "lat": 55.7232,
+      "lon": 37.5038,
+      "toNextSeconds": 237
+    },
+    {
+      "id": "133/lomonosovskiy-prospekt",
+      "title": "Ломоносовский проспект",
+      "lat": 55.7055,
+      "lon": 37.5225,
+      "toNextSeconds": 164
+    },
+    {
+      "id": "133/ramenki",
+      "title": "Раменки",
+      "lat": 55.6961,
+      "lon": 37.505,
+      "toNextSeconds": 161
+    },
+    {
+      "id": "133/michurinskiy-prospekt",
+      "title": "Мичуринский проспект",
+      "lat": 55.6888,
+      "lon": 37.485,
+      "toNextSeconds": 311
+    },
+    {
+      "id": "133/ozernaya",
+      "title": "Озёрная",
+      "lat": 55.6698,
+      "lon": 37.4495,
+      "toNextSeconds": 243
+    },
+    {
+      "id": "133/govorovo",
+      "title": "Говорово",
+      "lat": 55.6588,
+      "lon": 37.4174,
+      "toNextSeconds": 207
+    },
+    {
+      "id": "133/solntsevo",
+      "title": "Солнцево",
+      "lat": 55.649,
+      "lon": 37.3911,
+      "toNextSeconds": 147
+    },
+    {
+      "id": "133/borovskoe-shosse",
+      "title": "Боровское шоссе",
+      "lat": 55.647,
+      "lon": 37.3701,
+      "toNextSeconds": 149
+    },
+    {
+      "id": "133/novoperedelkino",
+      "title": "Новопеределкино",
+      "lat": 55.6385,
+      "lon": 37.3544,
+      "toNextSeconds": 164
+    },
+    {
+      "id": "133/rasskazovka",
+      "title": "Рассказовка",
+      "lat": 55.6324,
+      "lon": 37.3328,
+      "toNextSeconds": 241
+    },
+    {
+      "id": "133/pykhtino",
+      "title": "Пыхтино",
+      "lat": 55.625,
+      "lon": 37.298056,
+      "toNextSeconds": 222
+    },
+    {
+      "id": "133/aeroport-vnukovo",
+      "title": "Аэропорт Внуково",
+      "lat": 55.606667,
+      "lon": 37.288333
+    }
+  ]
+}

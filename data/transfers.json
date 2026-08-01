@@ -1,0 +1,546 @@
+{
+  "$readme": [
+    "Пересадки между линиями и все значения времени по умолчанию.",
+    "`kind`: near — переход внутри узла, far — длинный переход, mcc — на МЦК,",
+    "out_of_station — выход в город. `seconds` можно не указывать: тогда",
+    "берётся defaults.kindSeconds[kind]. Узлы пересадок (хабы) НЕ хранятся —",
+    "они выводятся как связные компоненты этого списка."
+  ],
+  "defaults": {
+    "rideSeconds": 150,
+    "hubMinSeconds": 240,
+    "kindSeconds": {
+      "near": 180,
+      "far": 300,
+      "mcc": 300,
+      "out_of_station": 480
+    }
+  },
+  "transfers": [
+    {
+      "stations": [
+        "1/biblioteka-im-lenina",
+        "3/arbatskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/biblioteka-im-lenina",
+        "4/aleksandrovskiy-sad"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/biblioteka-im-lenina",
+        "9/borovitskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/bulvar-rokossovskogo",
+        "95/bulvar-rokossovskogo"
+      ],
+      "kind": "out_of_station"
+    },
+    {
+      "stations": [
+        "1/cherkizovskaya",
+        "95/lokomotiv"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "1/chistye-prudy",
+        "10/sretenskiy-bulvar"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/chistye-prudy",
+        "6/turgenevskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/komsomolskaya",
+        "5/komsomolskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/okhotnyy-ryad",
+        "2/teatralnaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/okhotnyy-ryad",
+        "3/ploshchad-revolyutsii"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "1/park-kultury",
+        "5/park-kultury"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "10/dubrovka",
+        "95/dubrovka"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "10/okruzhnaya",
+        "95/okruzhnaya"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "10/pechatniki",
+        "97/pechatniki"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "10/petrovsko-razumovskaya",
+        "9/petrovsko-razumovskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "10/zyablikovo",
+        "2/krasnogvardeyskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "133/delovoy-tsentr",
+        "4/moskva-siti"
+      ],
+      "kind": "out_of_station"
+    },
+    {
+      "stations": [
+        "133/delovoy-tsentr",
+        "95/delovoy-tsentr"
+      ],
+      "kind": "out_of_station"
+    },
+    {
+      "stations": [
+        "133/michurinskiy-prospekt",
+        "97/michurinskiy-prospekt"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "133/park-pobedy",
+        "3/park-pobedy"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "137/novatorskaya",
+        "97/novatorskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "137/novomoskovskaya",
+        "1/novomoskovskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "2/avtozavodskaya",
+        "95/avtozavodskaya"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "2/kashirskaya",
+        "97/varshavskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "2/voykovskaya",
+        "95/baltiyskaya"
+      ],
+      "kind": "out_of_station"
+    },
+    {
+      "stations": [
+        "3/elektrozavodskaya",
+        "97/elektrozavodskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "3/kuntsevskaya",
+        "4/kuntsevskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "3/smolenskaya",
+        "4/smolenskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "4/kutuzovskaya",
+        "95/kutuzovskaya"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "4/moskva-siti",
+        "95/delovoy-tsentr"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "5/belorusskaya",
+        "2/belorusskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/kievskaya",
+        "3/kievskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/kievskaya",
+        "4/kievskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/kurskaya",
+        "10/chkalovskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/kurskaya",
+        "3/kurskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/novoslobodskaya",
+        "9/mendeleevskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/oktyabrskaya",
+        "6/oktyabrskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/paveletskaya",
+        "2/paveletskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/prospekt-mira",
+        "6/prospekt-mira"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/taganskaya",
+        "7/taganskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "5/taganskaya",
+        "8/marksistskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "6/akademicheskaya",
+        "137/akademicheskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "6/botanicheskiy-sad",
+        "95/botanicheskiy-sad"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "6/novoyasenevskaya",
+        "12/bittsevskiy-park"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "6/tretyakovskaya",
+        "8/tretyakovskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "7/barrikadnaya",
+        "5/krasnopresnenskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "7/kitay-gorod",
+        "6/kitay-gorod"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "7/kuznetskiy-most",
+        "1/lubyanka"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "7/oktyabrskoe-pole",
+        "95/panfilovskaya"
+      ],
+      "kind": "out_of_station"
+    },
+    {
+      "stations": [
+        "7/pushkinskaya",
+        "2/tverskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "7/pushkinskaya",
+        "9/chekhovskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "7/taganskaya",
+        "8/marksistskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "8/aviamotornaya",
+        "97/aviamotornaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "8/ploshchad-ilicha",
+        "10/rimskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "8/shosse-entuziastov",
+        "95/shosse-entuziastov"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "9/bulvar-dmitriya-donskogo",
+        "12/ulitsa-starokachalovskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "9/tsvetnoy-bulvar",
+        "10/trubnaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "9/vladykino",
+        "95/vladykino"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "95/andronovka",
+        "8/shosse-entuziastov"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "95/delovoy-tsentr",
+        "97/delovoy-tsentr"
+      ],
+      "kind": "out_of_station"
+    },
+    {
+      "stations": [
+        "95/krymskaya",
+        "137/krymskaya"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "95/ploshchad-gagarina",
+        "6/leninskiy-prospekt"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "95/zil",
+        "137/zil"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "97/delovoy-tsentr",
+        "133/delovoy-tsentr"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/kashirskaya",
+        "2/kashirskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/kuntsevskaya",
+        "3/kuntsevskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/marina-roshcha",
+        "10/marina-roshcha"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/nizhegorodskaya",
+        "98/nizhegorodskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/prospekt-vernadskogo",
+        "1/prospekt-vernadskogo"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/rizhskaya",
+        "6/rizhskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/savelovskaya",
+        "9/savelovskaya"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/shelepikha",
+        "95/shelepikha"
+      ],
+      "kind": "mcc"
+    },
+    {
+      "stations": [
+        "97/sokolniki",
+        "1/sokolniki"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "97/tekstilshchiki",
+        "7/tekstilshchiki"
+      ],
+      "kind": "near"
+    },
+    {
+      "stations": [
+        "98/nizhegorodskaya",
+        "95/nizhegorodskaya"
+      ],
+      "kind": "mcc"
+    }
+  ]
+}

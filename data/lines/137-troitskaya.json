@@ -1,0 +1,85 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 137,
+  "title": "Троицкая",
+  "color": "#03795F",
+  "ring": false,
+  "stations": [
+    {
+      "id": "137/zil",
+      "title": "ЗИЛ",
+      "lat": 55.697915,
+      "lon": 37.647565,
+      "toNextSeconds": 283
+    },
+    {
+      "id": "137/krymskaya",
+      "title": "Крымская",
+      "lat": 55.689971,
+      "lon": 37.605612,
+      "toNextSeconds": 203
+    },
+    {
+      "id": "137/akademicheskaya",
+      "title": "Академическая",
+      "lat": 55.68808,
+      "lon": 37.57501,
+      "toNextSeconds": 206
+    },
+    {
+      "id": "137/vavilovskaya",
+      "title": "Вавиловская",
+      "lat": 55.686688,
+      "lon": 37.543706,
+      "toNextSeconds": 238
+    },
+    {
+      "id": "137/novatorskaya",
+      "title": "Новаторская",
+      "lat": 55.670833,
+      "lon": 37.52,
+      "toNextSeconds": 269
+    },
+    {
+      "id": "137/universitet-druzhby-narodov",
+      "title": "Университет дружбы народов",
+      "lat": 55.64824,
+      "lon": 37.507556,
+      "toNextSeconds": 285
+    },
+    {
+      "id": "137/generala-tyuleneva",
+      "title": "Генерала Тюленева",
+      "lat": 55.626248,
+      "lon": 37.486032,
+      "toNextSeconds": 103
+    },
+    {
+      "id": "137/tyutchevskaya",
+      "title": "Тютчевская",
+      "lat": 55.618801,
+      "lon": 37.481415,
+      "toNextSeconds": 225
+    },
+    {
+      "id": "137/kornilovskaya",
+      "title": "Корниловская",
+      "lat": 55.599411,
+      "lon": 37.479586,
+      "toNextSeconds": 301
+    },
+    {
+      "id": "137/kommunarka",
+      "title": "Коммунарка",
+      "lat": 55.57354,
+      "lon": 37.468116,
+      "toNextSeconds": 162
+    },
+    {
+      "id": "137/novomoskovskaya",
+      "title": "Новомосковская",
+      "lat": 55.560094,
+      "lon": 37.469807
+    }
+  ]
+}

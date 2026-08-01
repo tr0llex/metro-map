@@ -1,0 +1,93 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке (у последней — до первой, линия кольцевая).",
+  "id": 5,
+  "title": "Кольцевая",
+  "color": "#915133",
+  "ring": true,
+  "stations": [
+    {
+      "id": "5/novoslobodskaya",
+      "title": "Новослободская",
+      "lat": 55.779606,
+      "lon": 37.601252,
+      "toNextSeconds": 194
+    },
+    {
+      "id": "5/prospekt-mira",
+      "title": "Проспект Мира",
+      "lat": 55.779584,
+      "lon": 37.633646,
+      "toNextSeconds": 139
+    },
+    {
+      "id": "5/komsomolskaya",
+      "title": "Комсомольская",
+      "lat": 55.775672,
+      "lon": 37.654772,
+      "toNextSeconds": 186
+    },
+    {
+      "id": "5/kurskaya",
+      "title": "Курская",
+      "lat": 55.758631,
+      "lon": 37.661059,
+      "toNextSeconds": 180
+    },
+    {
+      "id": "5/taganskaya",
+      "title": "Таганская",
+      "lat": 55.742396,
+      "lon": 37.653334,
+      "toNextSeconds": 159
+    },
+    {
+      "id": "5/paveletskaya",
+      "title": "Павелецкая",
+      "lat": 55.731414,
+      "lon": 37.636294,
+      "toNextSeconds": 97
+    },
+    {
+      "id": "5/dobryninskaya",
+      "title": "Добрынинская",
+      "lat": 55.728994,
+      "lon": 37.622533,
+      "toNextSeconds": 82
+    },
+    {
+      "id": "5/oktyabrskaya",
+      "title": "Октябрьская",
+      "lat": 55.729264,
+      "lon": 37.611049,
+      "toNextSeconds": 132
+    },
+    {
+      "id": "5/park-kultury",
+      "title": "Парк культуры",
+      "lat": 55.735221,
+      "lon": 37.593095,
+      "toNextSeconds": 180
+    },
+    {
+      "id": "5/kievskaya",
+      "title": "Киевская",
+      "lat": 55.74361,
+      "lon": 37.56735,
+      "toNextSeconds": 188
+    },
+    {
+      "id": "5/krasnopresnenskaya",
+      "title": "Краснопресненская",
+      "lat": 55.760378,
+      "lon": 37.577114,
+      "toNextSeconds": 164
+    },
+    {
+      "id": "5/belorusskaya",
+      "title": "Белорусская",
+      "lat": 55.775179,
+      "lon": 37.582303,
+      "toNextSeconds": 130
+    }
+  ]
+}

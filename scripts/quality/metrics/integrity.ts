@@ -1,34 +1,7 @@
 /** Категория «Целостность данных»: без неё маршруты просто не строятся. */
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-
 import type { RenderModel } from '../render.ts'
 import { makeMetric, type MetricResult, type Offender } from '../types.ts'
-
-/** Связь из исходника new_map_source/connections.json. */
-interface SourceConnection {
-  from_station: string
-  to_station: string
-  from_line?: string
-  to_line?: string
-  type?: string
-}
-
-function readSourceConnections(): SourceConnection[] {
-  const path = fileURLToPath(new URL('../../../new_map_source/connections.json', import.meta.url))
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'))
-    return Array.isArray(parsed) ? (parsed as SourceConnection[]) : []
-  } catch {
-    return []
-  }
-}
-
-/** Нормализация названия для поиска «потерянных» пересадок. */
-function normTitle(t: string): string {
-  return t.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ').trim()
-}
 
 export function integrityMetrics(model: RenderModel): MetricResult[] {
   const { graph, byId } = model
@@ -89,90 +62,16 @@ export function integrityMetrics(model: RenderModel): MetricResult[] {
     }),
   )
 
-  // --- 2. Пересадки, потерянные пайплайном относительно исходника ---
+  // --- 2. (удалено) Пересадки, потерянные пайплайном ---
   //
-  // ВАЖНО: не путать с «одноимённые станции без общего хаба». Общий хаб — это
-  // решение об ОТРИСОВКЕ (слить в один значок), а не о наличии пересадки.
-  // Пересадки типа out-of-station («выход в город», напр. Бульвар Рокоссовского
-  // ↔ МЦК, Деловой центр ↔ МЦК) намеренно НЕ сливаются в хаб и рисуются
-  // пунктиром — штрафовать за это нельзя, старая система метрик именно на этом
-  // и ошибалась. Единственный настоящий дефект целостности — связь, объявленная
-  // в new_map_source/connections.json, но отсутствующая в графе как ребро.
-  // Сопоставление станции связи с конкретной станцией графа идёт по паре
-  // (название, линия). Только по названию нельзя: во-первых, большинство
-  // переходов — между одноимёнными станциями разных линий, во-вторых, связь
-  // может вести на линию, которой в датасете ещё нет (Бирюлёвская, МЦД) —
-  // это не потеря пайплайна, а отсутствие данных, и штрафовать за это нельзя.
-  const lineKeyById = new Map<number, string>()
-  for (const line of graph.lines) lineKeyById.set(line.id, normTitle(line.title))
-
-  /** «Большая кольцевая (11)» → ключ линии графа, либо null, если такой линии нет. */
-  const resolveLineKey = (raw: string | undefined): string | null => {
-    const cleaned = normTitle((raw ?? '').replace(/\([^)]*\)/g, ''))
-    if (!cleaned) return null
-    for (const key of lineKeyById.values()) {
-      if (key === cleaned || key.startsWith(cleaned) || cleaned.startsWith(key)) return key
-    }
-    return null
-  }
-
-  const stationKey = (title: string, lineId: number | null | undefined): string =>
-    `${normTitle(title)}@${lineId != null ? (lineKeyById.get(lineId) ?? lineId) : '∅'}`
-
-  const knownStationKeys = new Set<string>()
-  for (const st of model.stations) knownStationKeys.add(stationKey(st.title, st.lineId))
-
-  const transferPairs = new Set<string>()
-  for (const e of graph.edges) {
-    if (!e.isTransfer) continue
-    const a = byId.get(e.fromStationId)
-    const b = byId.get(e.toStationId)
-    if (!a || !b) continue
-    const ka = stationKey(a.title, a.lineId)
-    const kb = stationKey(b.title, b.lineId)
-    transferPairs.add(ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`)
-  }
-
-  const droppedSeen = new Set<string>()
-  const droppedOffenders: Offender[] = []
-  for (const conn of readSourceConnections()) {
-    const lineA = resolveLineKey(conn.from_line)
-    const lineB = resolveLineKey(conn.to_line)
-    // Линия не представлена в датасете — связь физически некуда приземлить.
-    if (!lineA || !lineB) continue
-
-    const ka = `${normTitle(conn.from_station ?? '')}@${lineA}`
-    const kb = `${normTitle(conn.to_station ?? '')}@${lineB}`
-    if (ka === kb) continue
-    if (!knownStationKeys.has(ka) || !knownStationKeys.has(kb)) continue
-
-    const pair = ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`
-    if (transferPairs.has(pair)) continue
-    if (droppedSeen.has(pair)) continue
-    droppedSeen.add(pair)
-    droppedOffenders.push({
-      id: pair,
-      label: `${conn.from_station} [${conn.from_line ?? '?'}] ↔ ${conn.to_station} [${conn.to_line ?? '?'}]`,
-      value: 1,
-      detail: `объявлена в connections.json (type=${conn.type ?? '?'}), но ребра-пересадки в графе нет`,
-    })
-  }
-  droppedOffenders.sort((a, b) => a.id.localeCompare(b.id))
-  out.push(
-    makeMetric({
-      id: 'transfers.droppedFromSource',
-      category: 'integrity',
-      name: 'Пересадки, потерянные пайплайном',
-      unit: 'шт',
-      value: droppedOffenders.length,
-      target: 0,
-      fail: 1,
-      direction: 'lower',
-      description:
-        'Связь объявлена в new_map_source/connections.json, но не доехала до графа как ребро-пересадка. Маршрут сделает крюк вместо реально существующего перехода. Отсутствие общего хаба дефектом НЕ считается: out-of-station переходы по дизайну рисуются пунктиром, а не сливаются в один значок.',
-      offenders: droppedOffenders,
-    }),
-  )
+  // Метрика сравнивала список связей из new_map_source/connections.json с
+  // рёбрами графа: связь могла быть объявлена в источнике, не сопоставиться по
+  // имени станции и молча исчезнуть. Сопоставление по именам исчезло вместе с
+  // тем форматом — в data/transfers.json пересадка ссылается на станции по
+  // идентификаторам, и неизвестный идентификатор останавливает сборку с
+  // ошибкой. Потерять пересадку между источником и графом теперь физически
+  // нечем, а метрика, которая не может ничего найти, только создаёт иллюзию
+  // проверки.
 
   // --- 3. Рёбра-пересадки без общего хаба ---
   const noHubTransfers: Offender[] = []
@@ -241,7 +140,6 @@ export function integrityMetrics(model: RenderModel): MetricResult[] {
     const bad: string[] = []
     if (typeof s.layoutX !== 'number' || typeof s.layoutY !== 'number') bad.push('layoutX/Y')
     if (typeof s.lat !== 'number' || typeof s.lon !== 'number') bad.push('lat/lon')
-    if (typeof s.yandexX !== 'number' || typeof s.yandexY !== 'number') bad.push('yandexX/Y')
     if (bad.length === 0) continue
     missing.push({ id: s.id, label: s.title, value: bad.length, detail: `нет ${bad.join(', ')}` })
   }
@@ -256,7 +154,7 @@ export function integrityMetrics(model: RenderModel): MetricResult[] {
       fail: 1,
       direction: 'lower',
       description:
-        'Станция без layoutX/layoutY просто не рисуется. Отсутствие lat/lon или яндекс-якоря ломает пересборку схемы солвером.',
+        'Станция без layoutX/layoutY просто не рисуется, без lat/lon не находится поиском «рядом со мной».',
       offenders: missing,
     }),
   )

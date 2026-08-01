@@ -1,0 +1,183 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 9,
+  "title": "Серпуховско-Тимирязевская",
+  "color": "#ADACAC",
+  "ring": false,
+  "stations": [
+    {
+      "id": "9/altufevo",
+      "title": "Алтуфьево",
+      "lat": 55.899034,
+      "lon": 37.586473,
+      "toNextSeconds": 207
+    },
+    {
+      "id": "9/bibirevo",
+      "title": "Бибирево",
+      "lat": 55.883868,
+      "lon": 37.603011,
+      "toNextSeconds": 227
+    },
+    {
+      "id": "9/otradnoe",
+      "title": "Отрадное",
+      "lat": 55.864273,
+      "lon": 37.605066,
+      "toNextSeconds": 210
+    },
+    {
+      "id": "9/vladykino",
+      "title": "Владыкино",
+      "lat": 55.848236,
+      "lon": 37.590451,
+      "toNextSeconds": 171
+    },
+    {
+      "id": "9/petrovsko-razumovskaya",
+      "title": "Петровско-Разумовская",
+      "lat": 55.836565,
+      "lon": 37.575512,
+      "toNextSeconds": 209
+    },
+    {
+      "id": "9/timiryazevskaya",
+      "title": "Тимирязевская",
+      "lat": 55.81866,
+      "lon": 37.574498,
+      "toNextSeconds": 140
+    },
+    {
+      "id": "9/dmitrovskaya",
+      "title": "Дмитровская",
+      "lat": 55.808056,
+      "lon": 37.581734,
+      "toNextSeconds": 171
+    },
+    {
+      "id": "9/savelovskaya",
+      "title": "Савёловская",
+      "lat": 55.794054,
+      "lon": 37.587163,
+      "toNextSeconds": 165
+    },
+    {
+      "id": "9/mendeleevskaya",
+      "title": "Менделеевская",
+      "lat": 55.781999,
+      "lon": 37.599141,
+      "toNextSeconds": 187
+    },
+    {
+      "id": "9/tsvetnoy-bulvar",
+      "title": "Цветной бульвар",
+      "lat": 55.771653,
+      "lon": 37.620466,
+      "toNextSeconds": 114
+    },
+    {
+      "id": "9/chekhovskaya",
+      "title": "Чеховская",
+      "lat": 55.765747,
+      "lon": 37.608493,
+      "toNextSeconds": 182
+    },
+    {
+      "id": "9/borovitskaya",
+      "title": "Боровицкая",
+      "lat": 55.750399,
+      "lon": 37.60934,
+      "toNextSeconds": 173
+    },
+    {
+      "id": "9/polyanka",
+      "title": "Полянка",
+      "lat": 55.736795,
+      "lon": 37.618594,
+      "toNextSeconds": 134
+    },
+    {
+      "id": "9/serpukhovskaya",
+      "title": "Серпуховская",
+      "lat": 55.726548,
+      "lon": 37.624792,
+      "toNextSeconds": 199
+    },
+    {
+      "id": "9/tulskaya",
+      "title": "Тульская",
+      "lat": 55.70961,
+      "lon": 37.622569,
+      "toNextSeconds": 310
+    },
+    {
+      "id": "9/nagatinskaya",
+      "title": "Нагатинская",
+      "lat": 55.682099,
+      "lon": 37.620917,
+      "toNextSeconds": 135
+    },
+    {
+      "id": "9/nagornaya",
+      "title": "Нагорная",
+      "lat": 55.672962,
+      "lon": 37.610397,
+      "toNextSeconds": 136
+    },
+    {
+      "id": "9/nakhimovskiy-prospekt",
+      "title": "Нахимовский проспект",
+      "lat": 55.662379,
+      "lon": 37.605274,
+      "toNextSeconds": 143
+    },
+    {
+      "id": "9/sevastopolskaya",
+      "title": "Севастопольская",
+      "lat": 55.651451,
+      "lon": 37.59809,
+      "toNextSeconds": 144
+    },
+    {
+      "id": "9/chertanovskaya",
+      "title": "Чертановская",
+      "lat": 55.640538,
+      "lon": 37.606065,
+      "toNextSeconds": 212
+    },
+    {
+      "id": "9/yuzhnaya",
+      "title": "Южная",
+      "lat": 55.622436,
+      "lon": 37.609047,
+      "toNextSeconds": 147
+    },
+    {
+      "id": "9/prazhskaya",
+      "title": "Пражская",
+      "lat": 55.610962,
+      "lon": 37.602386,
+      "toNextSeconds": 170
+    },
+    {
+      "id": "9/ulitsa-akademika-yangelya",
+      "title": "Улица Академика Янгеля",
+      "lat": 55.596753,
+      "lon": 37.601498,
+      "toNextSeconds": 162
+    },
+    {
+      "id": "9/annino",
+      "title": "Аннино",
+      "lat": 55.583477,
+      "lon": 37.596999,
+      "toNextSeconds": 221
+    },
+    {
+      "id": "9/bulvar-dmitriya-donskogo",
+      "title": "Бульвар Дмитрия Донского",
+      "lat": 55.568201,
+      "lon": 37.576856
+    }
+  ]
+}

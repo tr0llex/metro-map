@@ -100,8 +100,8 @@ describe('routeWorker — загрузка графа', () => {
   })
 
   it('не перезапрашивает граф на каждый запрос маршрута', async () => {
-    await send({ type: 'route', requestId: 1, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
-    await send({ type: 'route', requestId: 2, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 1, fromId: '6/medvedkovo', toId: '1/salarevo' })
+    await send({ type: 'route', requestId: 2, fromId: '6/medvedkovo', toId: '1/salarevo' })
     expect(fetchedUrls.length).toBe(1)
   })
 
@@ -121,7 +121,7 @@ describe('routeWorker — загрузка графа', () => {
     })
 
     stub.onmessage!({
-      data: { type: 'route', requestId: 11, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' },
+      data: { type: 'route', requestId: 11, fromId: '6/medvedkovo', toId: '1/salarevo' },
     })
     await settle()
     expect(posted, 'ответ не должен уходить до готовности графа').toEqual([])
@@ -137,7 +137,7 @@ describe('routeWorker — загрузка графа', () => {
   it('если граф не загрузился, отвечает routeError с тем же requestId', async () => {
     await loadWorker(() => Promise.resolve({ ok: false, status: 404 }))
 
-    await send({ type: 'route', requestId: 3, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 3, fromId: '6/medvedkovo', toId: '1/salarevo' })
 
     expect(posted.length).toBe(1)
     const response = posted[0]
@@ -158,19 +158,19 @@ describe('routeWorker — загрузка графа', () => {
       return okGraphResponse()
     })
 
-    await send({ type: 'route', requestId: 1, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 1, fromId: '6/medvedkovo', toId: '1/salarevo' })
     expect(posted[0].type).toBe('routeError')
 
-    await send({ type: 'route', requestId: 2, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 2, fromId: '6/medvedkovo', toId: '1/salarevo' })
     expect(posted[1].type).toBe('routeResult')
     expect(posted[1].requestId).toBe(2)
     expect(fetchedUrls.length).toBe(3)
   })
 
   it('после успешной загрузки повторных попыток не делает', async () => {
-    await send({ type: 'route', requestId: 1, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
-    await send({ type: 'route', requestId: 2, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
-    await send({ type: 'route', requestId: 3, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 1, fromId: '6/medvedkovo', toId: '1/salarevo' })
+    await send({ type: 'route', requestId: 2, fromId: '6/medvedkovo', toId: '1/salarevo' })
+    await send({ type: 'route', requestId: 3, fromId: '6/medvedkovo', toId: '1/salarevo' })
     expect(fetchedUrls.length).toBe(1)
     expect(posted.every((m) => m.type === 'routeResult')).toBe(true)
   })
@@ -185,7 +185,7 @@ describe('routeWorker — загрузка графа', () => {
       }),
     )
 
-    await send({ type: 'route', requestId: 4, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 4, fromId: '6/medvedkovo', toId: '1/salarevo' })
 
     const response = posted[0]
     expect(response.type).toBe('routeError')
@@ -200,7 +200,7 @@ describe('routeWorker — протокол сообщений', () => {
   })
 
   it('на запрос type=route отвечает routeResult с тем же requestId', async () => {
-    await send({ type: 'route', requestId: 42, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 42, fromId: '6/medvedkovo', toId: '1/salarevo' })
 
     expect(posted.length).toBe(1)
     const response = posted[0]
@@ -216,10 +216,10 @@ describe('routeWorker — протокол сообщений', () => {
     // Оба сообщения отправляем ДО ожидания: проверяем, что асинхронная выдача
     // не переставляет ответы местами.
     stub.onmessage!({
-      data: { type: 'route', requestId: 1, fromId: 'mos-6-6.81', toId: 'mos-1-1.514' },
+      data: { type: 'route', requestId: 1, fromId: '6/medvedkovo', toId: '1/salarevo' },
     })
     stub.onmessage!({
-      data: { type: 'route', requestId: 2, fromId: 'mos-2-2.558', toId: 'mos-1-1.162' },
+      data: { type: 'route', requestId: 2, fromId: '2/khovrino', toId: '1/yugo-zapadnaya' },
     })
     await settle()
 
@@ -231,8 +231,8 @@ describe('routeWorker — протокол сообщений', () => {
     await send({
       type: 'route',
       requestId: 7,
-      fromId: 'mos-6-6.81',
-      toId: 'mos-1-1.514',
+      fromId: '6/medvedkovo',
+      toId: '1/salarevo',
       maxAlternatives: 3,
     })
 
@@ -243,7 +243,7 @@ describe('routeWorker — протокол сообщений', () => {
   })
 
   it('передаёт edgeOverrides: отключённое ребро меняет ответ', async () => {
-    await send({ type: 'route', requestId: 1, fromId: 'mos-1-1.54', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 1, fromId: '1/komsomolskaya', toId: '1/salarevo' })
     const base = posted[0]
     if (base.type !== 'routeResult') throw new Error('ожидался routeResult')
     const midStep = base.routes[0].steps[Math.floor(base.routes[0].steps.length / 2)]
@@ -252,8 +252,8 @@ describe('routeWorker — протокол сообщений', () => {
     await send({
       type: 'route',
       requestId: 2,
-      fromId: 'mos-1-1.54',
-      toId: 'mos-1-1.514',
+      fromId: '1/komsomolskaya',
+      toId: '1/salarevo',
       edgeOverrides: { [key]: { disabled: true } },
     })
 
@@ -266,10 +266,10 @@ describe('routeWorker — протокол сообщений', () => {
     await send({
       type: 'route',
       requestId: 5,
-      fromId: 'mos-1-1.54',
-      toId: 'mos-1-1.514',
+      fromId: '1/komsomolskaya',
+      toId: '1/salarevo',
       extraEdges: [
-        { fromStationId: 'mos-1-1.54', toStationId: 'mos-1-1.514', medianTravelSeconds: 60 },
+        { fromStationId: '1/komsomolskaya', toStationId: '1/salarevo', medianTravelSeconds: 60 },
       ],
     })
 
@@ -280,7 +280,7 @@ describe('routeWorker — протокол сообщений', () => {
   })
 
   it('на несуществующие станции отвечает routeResult с пустым списком, а не ошибкой', async () => {
-    await send({ type: 'route', requestId: 9, fromId: 'no-such', toId: 'mos-1-1.514' })
+    await send({ type: 'route', requestId: 9, fromId: 'no-such', toId: '1/salarevo' })
 
     const response = posted[0]
     expect(response.type).toBe('routeResult')
