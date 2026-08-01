@@ -52,12 +52,12 @@
   justify-content: center;
   font-size: var(--font-size-xs);
   font-weight: 700;
-  color: var(--color-surface-rose-highlight, #fff);
+  color: var(--color-on-accent, #fff);
   background: var(--map-endpoint-a, var(--color-accent));
 }
 
 .theme-station-hint[data-kind='to'] .theme-station-hint-badge {
-  background: var(--map-endpoint-b, var(--color-accent-hot-pink, var(--color-accent)));
+  background: var(--map-endpoint-b, var(--color-accent));
 }
 
 .theme-station-hint-text {

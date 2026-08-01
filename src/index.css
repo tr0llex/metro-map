@@ -15,8 +15,8 @@
   --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-splash: cubic-bezier(0.19, 1, 0.22, 1);
   --ease-out: ease-out;
-  --color-bg-body: #f5f5f7;
-  --color-bg-body-alt: #e5e7eb;
+  --color-bg-body: #f4f5f7;
+  --color-bg-body-alt: #e9ebef;
   /* ------------------------------------------------------------------
      RGB-триплеты поверхностей и границ.
      Используются как rgba(var(--rgb-*), <alpha>) — так одна перекраска
@@ -24,40 +24,30 @@
      вариантами (стекло, ореолы, кольца, ховеры).
      ------------------------------------------------------------------ */
   --rgb-card: 255, 255, 255;
-  --rgb-card-tint: 255, 247, 252;
-  --rgb-rose-wash: 255, 230, 245;
-  --rgb-border-pink: 248, 187, 208;
+  --rgb-card-tint: 248, 249, 251;
+  --rgb-wash: 238, 241, 245;
+  --rgb-border-hair: 214, 219, 227;
   --rgb-border-slate: 148, 163, 184;
   --rgb-border-neutral: 209, 213, 219;
-  --rgb-input-surface: 249, 250, 251;
-  /* Акцент интерфейса — глубокая слива, а не розовый (см. блок «Акценты»
-     ниже): 236,72,153 отстоял от МЦК на ΔE00 10 и был неотличим от данных. */
-  --rgb-accent: 127, 17, 75;
-  --rgb-accent-pink: 244, 114, 182;
-  --rgb-warm-wash-1: 255, 248, 235;
-  --rgb-warm-wash-2: 254, 240, 199;
-  --rgb-warm-line: 234, 88, 12;
-  --rgb-indigo: 129, 140, 248;
-  --rgb-sky: 56, 189, 248;
-  --rgb-amber: 251, 191, 36;
-  /* Было 190,24,93 — ровно цвет Некрасовской линии (ΔE00 2.8). */
+  --rgb-input-surface: 245, 246, 249;
+  /* Единственный акцент интерфейса — чернильный сланец, см. блок «Акценты». */
+  --rgb-accent: 47, 61, 91;
+  --rgb-accent-soft: 79, 93, 122;
+  --rgb-warm-wash-1: 243, 245, 248;
+  --rgb-warm-wash-2: 232, 236, 242;
+  --rgb-warm-line: 130, 142, 160;
   --rgb-shadow-ink: 15, 23, 42;
   --rgb-shadow-cool: 148, 163, 184;
   --rgb-scrim: 15, 23, 42;
-  /* Фон приложения и подложка схемы */
-  --app-backdrop-rose: rgba(255, 228, 241, 0.96);
-  --app-backdrop-rose-soft: rgba(255, 228, 241, 0.4);
-  --app-backdrop-blue: rgba(219, 234, 254, 0.96);
-  --app-backdrop-blue-soft: rgba(219, 234, 254, 0.4);
-  --app-backdrop-cream: rgba(254, 249, 195, 0.9);
-  --app-backdrop-veil-1: rgba(255, 255, 255, 0.96);
-  --app-backdrop-veil-2: rgba(255, 255, 255, 0.7);
-  --app-backdrop-veil-3: rgba(255, 255, 255, 0.96);
-  --app-backdrop-veil-4: rgba(229, 231, 235, 0.75);
-  --app-bg-1: var(--color-surface-lilac-50);
-  --app-bg-2: var(--color-surface-rose-200);
-  --app-bg-3: var(--color-surface-lilac-100);
-  --app-bg-4: var(--color-surface-cream-100);
+  /* Фон приложения: одна спокойная вертикальная растяжка вместо трёх
+     радиальных вуалей (розовой, синей, кремовой) поверх диагонального
+     градиента из четырёх остановок. Самым цветным объектом на экране
+     обязана быть схема, а не подложка под ней. */
+  --app-bg-1: #f7f8fa;
+  --app-bg-2: #edeff3;
+  /* --map-canvas-*: полотно схемы. Правится агентом карты — здесь значения
+     оставлены как были. Под нейтральный интерфейс полотну нужны
+     #f7f8fa / #f1f3f6 и вуали rgba(255,255,255,.96) / rgba(236,239,244,.9). */
   --map-canvas-top: #ffe0f2;
   --map-canvas-bottom: #ffeaf8;
   --map-canvas-veil-1: rgba(255, 255, 255, 0.96);
@@ -72,25 +62,35 @@
      Акценты интерфейса. Разведены с палитрой линий метро.
 
      Цвета линий фиксированы официальными и неприкосновенны, поэтому
-     расходиться обязан интерфейс. Прежний акцент #ec4899 стоял в 10.2
-     ΔE00 от МЦК (#CC4C6E), а основное действие #be185d — в 2.8 ΔE00 от
-     Некрасовской (#CC0066), то есть было буквально её цветом: порог
-     различимости ΔE00 ≈ 2.3.
+     расходиться обязан интерфейс. Прежние попытки искали «свободный
+     оттенок» и каждый раз упирались в палитру: #ec4899 стоял в 10.2 ΔE00
+     от МЦК, #be185d — в 2.8 ΔE00 от Некрасовской (то есть был буквально её
+     цветом при пороге различимости 2.3), а ушедший в глубокую сливу
+     #7f114b хоть и набрал 15.2, но остался розовым по характеру.
 
-     Свободного места в середине шкалы светлоты нет — там сидят
-     Таганско-Краснопресненская (L*41, фиолетовая) и Некрасовская/МЦК
-     (L*44/51, малиновые). Зато ни одна линия не уходит ниже L*41.
-     Отсюда правило: ЛИНИИ ДЕРЖАТ СЕРЕДИНУ, ИНТЕРФЕЙС — КРАЯ. В светлой
-     теме акценты живут в глубокой сливе (L*20–28), в тёмной — в светлой
-     орхидее (L*72–83). Характер (тёплый розово-сиреневый) сохранён,
-     минимальное расстояние до любой линии выросло с 2.8 до 15.2 ΔE00.
+     Замер по CIEDE2000 показывает, что свободного оттенка не существует:
+     в полосе живого брендового цвета (L* 45–65, C* ≥ 45) из 19 достижимых
+     в sRGB оттенков 8 стоят ближе 15 ΔE00 к какой-нибудь линии, а из
+     оставшихся по-настоящему свободны только кислотно-оливковый и
+     пурпурно-сиреневый. Свободна не окружность, а светлота и насыщенность:
+     ниже L*41 и выше L*85 линий нет вовсе, а C* ≤ 20 не занят никем, кроме
+     нейтрально-серой Серпуховской.
+
+     Отсюда решение: ЦВЕТ — ПРИВИЛЕГИЯ ДАННЫХ. Интерфейс уходит в нейтраль,
+     а весь акцент сводится к одной чернильно-сланцевой шкале (оттенок
+     ≈280°, C* 14–20 — втрое ниже, чем у любой линии). #2f3d5b стоит в
+     22.0 ΔE00 от ближайшей линии (Арбатско-Покровская) и даёт 10.8:1 на
+     белой карточке.
 
      Меняя эти значения, прогоняйте расстояние до colorHex из
      normalized/fullGraph.json: держите ΔE00 ≥ 15 ко всем 15 линиям.
      ------------------------------------------------------------------ */
-  --color-accent: #7f114b;
-  --color-accent-soft: rgba(127, 17, 75, 0.16);
-  --color-accent-subtle: rgba(127, 17, 75, 0.08);
+  --color-accent: #2f3d5b;
+  --color-accent-soft: rgba(47, 61, 91, 0.12);
+  --color-accent-subtle: rgba(47, 61, 91, 0.06);
+  --color-accent-outline: #4b5a73;
+  --color-accent-deep: #232c40;
+  --color-accent-muted: #495471;
   --color-text-primary: #111827;
   --color-text-secondary: #4b5563;
   --color-text-muted: #6b7280;
@@ -118,59 +118,34 @@
   --map-route-build-glow: rgba(148, 163, 184, 0.35);
   --map-endpoint-shadow: rgba(15, 23, 42, 0.25);
   --map-endpoint-stroke: rgba(15, 23, 42, 0.18);
-  --color-border-pink-strong: rgba(248, 187, 208, 0.85);
-  --color-text-muted-soft: #9ca3af;
+  --color-border-hair-strong: rgba(203, 210, 222, 0.9);
+  /* Было #9ca3af — 2.54:1 на белом при норме 4.5:1 для текста. */
+  --color-text-muted-soft: #6f7787;
   --color-text-strong-muted: #374151;
-  --color-text-plum: #4b164c;
-  /* Оба токена сидели в палитре линий: #be185d — ΔE00 2.8 до Некрасовской
-     (то есть буквально её цвет), #b44a87 — 9.7 до Таганско-Краснопресненской.
-     Переведены в ту же сливовую шкалу, что и акцент; попутно контраст на
-     карточке вырос с 6.0:1 и 4.9:1 до 10.1:1 и 9.3:1. */
-  --color-text-transfer-pink: #7b284b;
-  --color-text-raspberry: #7f114b;
-  --color-text-crimson: #9f1239;
-  --color-text-violet: #6b21a8;
-  --color-text-placeholder-pink: #d08bb2;
-  --color-accent-outline: #ff8ac4;
-  --color-bg-input: #f9fafb;
-  --color-bg-input-hover: #f3f4f6;
+  --color-text-heading: #1f2937;
+  --color-text-heading-strong: #111827;
+  --color-text-transfer: #4b5563;
+  --color-text-accent: #2f3d5b;
+  --color-text-quiet: #3b4968;
+  --color-text-placeholder: #6b7280;
+  --color-bg-input: #f5f6f9;
+  --color-bg-input-hover: #eef0f4;
   --color-danger: #b3261e;
-  --color-warning: #f97316;
   --color-neutral-200: #e5e7eb;
   --color-neutral-300: #d1d5db;
   --color-surface-white: #ffffff;
-  --color-surface-rose-50: #fff7fb;
-  --color-surface-rose-25: #fff4fb;
-  --color-surface-rose-100: #ffeaf8;
-  --color-surface-rose-150: #ffe0f2;
-  --color-surface-rose-200: #fee2f2;
-  --color-surface-rose-300: #fecaca;
-  --color-surface-rose-220: #fed7e2;
-  --color-surface-rose-225: #fee2e2;
-  --color-surface-rose-230: #fbcfe8;
-  --color-surface-rose-bright-1: #ffeef8;
-  --color-surface-rose-bright-2: #ffd1e3;
-  --color-surface-lilac-50: #fdf2ff;
-  --color-surface-lilac-100: #eef2ff;
-  --color-surface-sky-100: #e0f2fe;
-  --color-surface-violet-100: #f5f3ff;
-  --color-surface-amber-50: #fefce8;
-  --color-surface-amber-100: #fde68a;
-  --color-surface-cream-100: #fef9c3;
-  --color-surface-rose-highlight: #fdf2f8;
-  --color-text-deep-plum: #2f102f;
+  /* Подпись на залитой акцентом кнопке. */
+  --color-on-accent: #ffffff;
+  /* Нейтральные подложки декоративных кружков (знак в шапке, иконка баннера,
+     логотип в карточке установки). Раньше это была пара радиальных градиентов
+     розовый→персиковый и голубой→сиреневый: четыре цвета на кружке 2rem. */
+  --color-surface-tint: #eef0f4;
+  --color-surface-tint-strong: #dfe3ea;
+  --color-surface-hover-1: #f7f8fa;
+  --color-surface-hover-2: #eceff4;
   --color-text-success-strong: #166534;
   --color-border-neutral-soft: #e5e7eb;
   --color-border-neutral-strong: #d1d5db;
-  /* Было #fb7185: помимо близости к МЦК (ΔE00 13.4), на нём светлая
-     подпись .update-banner-button давала 2.56:1 при норме 4.5:1. */
-  --color-accent-salmon: #8d3e4b;
-  --color-accent-hot-pink: #ff69b4;
-  --color-accent-soft-pink-1: #ffd9f0;
-  --color-accent-soft-pink-2: #ffc0e5;
-  --color-accent-bubblegum: #ff9ecb;
-  /* Было #db2777 — ΔE00 5.3 до Некрасовской. */
-  --color-accent-berry: #5f0051;
   /* Шкала отступов. До её появления в файле было 30+ уникальных значений
      padding и 18 gap; всё, что раньше писалось числом, теперь ссылается сюда.
      ВАЖНО: любой var(--space-N) без объявления делает ВСЁ правило невалидным,
@@ -198,12 +173,12 @@
 
   /* Основное действие: плотная заливка вместо градиента — на градиенте
      контраст текста падал до 3.23:1. Оттенок уведён из палитры линий:
-     #be185d был неотличим от Некрасовской (ΔE00 2.8), стало 15.2. */
-  --color-primary-surface: #7d004c;
-  --color-primary-surface-hover: #62003f;
+     #28344f стоит в 24.8 ΔE00 от ближайшей, белая подпись даёт 12.4:1. */
+  --color-primary-surface: #28344f;
+  --color-primary-surface-hover: #1c2536;
   --color-primary-on: #ffffff;
 
-  --color-focus-ring: #7f114b;
+  --color-focus-ring: #2f3d5b;
   /* Мягкая, менее размытая тень для интерфейсных элементов */
   --shadow-soft: 0 6px 18px rgba(15, 23, 42, 0.18);
   --shadow-strong: 0 30px 80px rgba(15, 23, 42, 0.45);
@@ -280,129 +255,100 @@ optgroup {
     color-scheme: dark;
 
     /* Поверхности и границы (RGB-триплеты) */
-    --rgb-card: 43, 29, 51;
-    --rgb-card-tint: 56, 35, 62;
-    --rgb-rose-wash: 96, 42, 80;
-    --rgb-border-pink: 214, 118, 172;
-    --rgb-border-slate: 128, 108, 140;
-    --rgb-border-neutral: 104, 88, 118;
-    --rgb-input-surface: 39, 26, 46;
-    --rgb-accent: 242, 144, 218;
-    --rgb-accent-pink: 255, 138, 196;
-    --rgb-warm-wash-1: 74, 52, 26;
-    --rgb-warm-wash-2: 92, 63, 26;
-    --rgb-warm-line: 251, 146, 60;
-    --rgb-indigo: 165, 180, 252;
-    --rgb-sky: 125, 211, 252;
-    --rgb-amber: 251, 191, 36;
+    --rgb-card: 27, 32, 41;
+    --rgb-card-tint: 33, 39, 49;
+    --rgb-wash: 38, 45, 56;
+    --rgb-border-hair: 66, 76, 92;
+    --rgb-border-slate: 110, 122, 140;
+    --rgb-border-neutral: 86, 96, 112;
+    --rgb-input-surface: 25, 30, 38;
+    --rgb-accent: 135, 129, 177;
+    --rgb-accent-soft: 122, 116, 160;
+    --rgb-warm-wash-1: 38, 44, 54;
+    --rgb-warm-wash-2: 45, 52, 64;
+    --rgb-warm-line: 128, 140, 158;
     /* Тени на тёмном фоне работают только чёрные: светлый «холодный» дым
        превращался бы в ореол вокруг каждой кнопки. */
     --rgb-shadow-ink: 0, 0, 0;
     --rgb-shadow-cool: 0, 0, 0;
-    --rgb-scrim: 6, 3, 10;
+    --rgb-scrim: 6, 8, 12;
 
     /* Фон приложения */
-    --app-backdrop-rose: rgba(120, 40, 92, 0.5);
-    --app-backdrop-rose-soft: rgba(120, 40, 92, 0.14);
-    --app-backdrop-blue: rgba(46, 52, 120, 0.45);
-    --app-backdrop-blue-soft: rgba(46, 52, 120, 0.12);
-    --app-backdrop-cream: rgba(92, 62, 34, 0.3);
-    --app-bg-1: #1d1224;
-    --app-bg-2: #2a1430;
-    --app-bg-3: #1a1330;
-    --app-bg-4: #241a2a;
-    --app-backdrop-veil-1: rgba(20, 12, 26, 0.86);
-    --app-backdrop-veil-2: rgba(20, 12, 26, 0.6);
-    --app-backdrop-veil-3: rgba(24, 14, 30, 0.86);
-    --app-backdrop-veil-4: rgba(12, 8, 18, 0.7);
+    --app-bg-1: #171b23;
+    --app-bg-2: #0f131a;
 
-    /* Подложка схемы: максимально тёмная, чтобы фирменные цвета линий
-       (включая тёмно-коричневую и фиолетовую) оставались различимыми. */
+    /* Стекло, границы, поля */
+    --color-bg-body: #12161d;
+    --color-bg-body-alt: #1b2029;
+    --color-surface-glass: rgba(27, 32, 41, 0.84);
+    --color-surface-glass-strong: rgba(27, 32, 41, 0.94);
+    --color-surface-glass-soft: rgba(27, 32, 41, 0.72);
+    --color-surface-glass-dark: rgba(0, 0, 0, 0.35);
+    --color-border-soft: rgba(148, 163, 184, 0.22);
+    --color-border-strong: rgba(148, 163, 184, 0.42);
+    --color-border-hair-strong: rgba(110, 122, 140, 0.5);
+    --color-border-neutral-soft: #2a313c;
+    --color-border-neutral-strong: #3a4250;
+    --color-bg-input: #1a1f27;
+    --color-bg-input-hover: #222833;
+    --color-neutral-200: #2a313c;
+    --color-neutral-300: #3a4250;
+    --color-surface-white: #232a34;
+
+    /* Акценты */
+    /* Верхний край шкалы светлоты, вопреки прежнему комментарию, НЕ пуст:
+       Бутовская (#BAC8E8, L*80) и БКЛ (#88CDCF, L*78) сами по себе бледные,
+       и любой светлый холодный акцент упирается в них — замер показывает у
+       #93a9c4 всего 9.7 ΔE00 до Бутовской. Свободен провал L*55–63 между
+       Арбатско-Покровской (L*46) и Серпуховской (L*70): #8781b1 стоит в
+       20.9 ΔE00 от ближайшей линии и даёт 5.0:1 на фоне приложения. */
+    --color-accent: #8781b1;
+    --color-accent-soft: rgba(135, 129, 177, 0.22);
+    --color-accent-subtle: rgba(135, 129, 177, 0.12);
+    --color-accent-outline: #928bbc;
+    --color-accent-deep: #7d77a3;
+    --color-accent-muted: #8781b1;
+    --color-danger: #f2938d;
+    --color-text-success-strong: #86d3a6;
+
+    /* Текст */
+    --color-text-primary: #e8eaef;
+    --color-text-secondary: #c3c8d2;
+    --color-text-muted: #9aa1ad;
+    --color-text-muted-soft: #8b929e;
+    --color-text-strong-muted: #d4d9e1;
+    --color-text-heading: #e8eaef;
+    --color-text-heading-strong: #f2f4f7;
+    --color-text-transfer: #b9bfca;
+    --color-text-accent: #928bbc;
+    --color-text-quiet: #928bbc;
+    --color-text-placeholder: #868d99;
+    /* Подпись на залитой акцентом кнопке: акцент светлее фона, поэтому
+       подпись тёмная — белая давала бы 2.4:1. */
+    --color-on-accent: #12161d;
+
+    /* Декоративные нейтральные подложки */
+    --color-surface-tint: #262d38;
+    --color-surface-tint-strong: #313945;
+    --color-surface-hover-1: #232a34;
+    --color-surface-hover-2: #2c333f;
+
+    /* Схема метро. Весь блок --map-* правит агент карты — значения здесь
+       оставлены как были. Под нейтральный интерфейс полотну нужны
+       #12161d / #0d1015, вуали #10141a / #0c0f14, подписи #dfe3ea / #9aa1ad,
+       заливка станций #202730, ореол rgba(10,13,18,.94). */
     --map-canvas-top: #140c18;
     --map-canvas-bottom: #0d0711;
     --map-canvas-veil-1: #100914;
     --map-canvas-veil-2: #0b0610;
-
-    /* Стекло, границы, поля */
-    --color-bg-body: #16101c;
-    --color-bg-body-alt: #241528;
-    --color-surface-glass: rgba(43, 29, 51, 0.82);
-    --color-surface-glass-strong: rgba(43, 29, 51, 0.92);
-    --color-surface-glass-soft: rgba(43, 29, 51, 0.7);
-    --color-surface-glass-dark: rgba(0, 0, 0, 0.35);
-    --color-border-soft: rgba(214, 118, 172, 0.26);
-    --color-border-strong: rgba(214, 118, 172, 0.5);
-    --color-border-pink-strong: rgba(214, 118, 172, 0.55);
-    --color-border-neutral-soft: #3a2942;
-    --color-border-neutral-strong: #4d3958;
-    --color-bg-input: #2a1b31;
-    --color-bg-input-hover: #34213c;
-    --color-neutral-200: #3a2942;
-    --color-neutral-300: #55405f;
-    --color-surface-white: #33223b;
-
-    /* Акценты */
-    /* Тёмная тема берёт верхний край шкалы светлоты (L*66–83) — линий там
-       нет вовсе, поэтому запас до палитры вдвое больше, чем в светлой:
-       минимум ΔE00 20.0. Оттенок — светлая орхидея, тот же тёплый
-       розово-сиреневый род, что и слива светлой темы. */
-    --color-accent: #f290da;
-    --color-accent-soft: rgba(242, 144, 218, 0.22);
-    --color-accent-subtle: rgba(242, 144, 218, 0.12);
-    --color-accent-outline: #ff9ed3;
-    --color-accent-berry: #e47ccc;
-    --color-accent-salmon: #ff9ec4;
-    --color-danger: #ff8f8a;
-    --color-warning: #fb923c;
-    --color-text-success-strong: #7fe3a3;
-
-    /* Текст */
-    --color-text-primary: #fbeaf6;
-    --color-text-secondary: #e6cbdd;
-    --color-text-muted: #c5a5bb;
-    --color-text-muted-soft: #b291a8;
-    --color-text-strong-muted: #e2c9da;
-    --color-text-plum: #f6dcee;
-    --color-text-deep-plum: #fdeaf6;
-    --color-text-transfer-pink: #ffa4cf;
-    --color-text-raspberry: #ff9ac9;
-    --color-text-crimson: #ff9fb8;
-    --color-text-violet: #d0b6f8;
-    --color-text-placeholder-pink: #b98cae;
-  /* Текст на ярких розовых кнопках: на тёмной теме акцент светлее,
-     поэтому подпись становится тёмной — иначе контраст падает до 2.4:1. */
-  --color-surface-rose-25: #33112a;
-  --color-surface-rose-50: #3d0c26;
-  --color-surface-rose-highlight: #3d0c26;
-
-    /* Декоративные поверхности (логотипы, аватары, бейджи). Значения
-       --color-surface-rose-25/50/highlight намеренно остаются светлыми:
-       это цвет текста на розовых кнопках. */
-    --color-surface-rose-100: #2a1730;
-    --color-surface-rose-150: #331a38;
-    --color-surface-rose-200: #5c2a46;
-    --color-surface-rose-220: #5a2c44;
-    --color-surface-rose-225: #6b3040;
-    --color-surface-rose-230: #6d2f4f;
-    --color-surface-rose-300: #7a3450;
-    --color-surface-lilac-50: #241a2e;
-    --color-surface-lilac-100: #1e1a35;
-    --color-surface-sky-100: #23384d;
-    --color-surface-violet-100: #2d2450;
-    --color-surface-amber-50: #4a3a1c;
-    --color-surface-amber-100: #6b5320;
-    --color-surface-cream-100: #3a3016;
-
-    /* Схема метро: цвета линий приходят из данных и не меняются, поэтому
-       тёмной делаем «среду» — ореол под линиями, заливку станций, подписи. */
     --map-label-color-strong: #f2dcec;
     --map-label-color-weak: #a894b0;
     --map-line-halo-color: rgba(14, 8, 18, 0.94);
     --map-station-fill: #241a2c;
     --map-station-selected-halo: rgba(255, 145, 195, 0.4);
     --map-route-fallback-color: #ff7ab8;
-  --map-route-casing: rgba(255, 255, 255, 0.62);
-  --map-hub-link: rgba(242, 220, 236, 0.82);
+    --map-route-casing: rgba(255, 255, 255, 0.62);
+    --map-hub-link: rgba(242, 220, 236, 0.82);
     --map-endpoint-a: #2ed3c4;
     --map-endpoint-b: #ff6b6b;
     --map-label-halo: rgba(14, 8, 18, 0.92);
@@ -419,10 +365,10 @@ optgroup {
     --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.5);
     --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.62);
     --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.75);
-    --color-primary-surface: #f899e0;
-    --color-primary-surface-hover: #ffb5f1;
-    --color-primary-on: #3d0c26;
-    --color-focus-ring: #ffaaec;
+    --color-primary-surface: #928bbc;
+    --color-primary-surface-hover: #9790c2;
+    --color-primary-on: #12161d;
+    --color-focus-ring: #9790c2;
   }
 }
 
@@ -430,121 +376,92 @@ optgroup {
   color-scheme: dark;
 
   /* Поверхности и границы (RGB-триплеты) */
-  --rgb-card: 43, 29, 51;
-  --rgb-card-tint: 56, 35, 62;
-  --rgb-rose-wash: 96, 42, 80;
-  --rgb-border-pink: 214, 118, 172;
-  --rgb-border-slate: 128, 108, 140;
-  --rgb-border-neutral: 104, 88, 118;
-  --rgb-input-surface: 39, 26, 46;
-  --rgb-accent: 242, 144, 218;
-  --rgb-accent-pink: 255, 138, 196;
-  --rgb-warm-wash-1: 74, 52, 26;
-  --rgb-warm-wash-2: 92, 63, 26;
-  --rgb-warm-line: 251, 146, 60;
-  --rgb-indigo: 165, 180, 252;
-  --rgb-sky: 125, 211, 252;
-  --rgb-amber: 251, 191, 36;
+  --rgb-card: 27, 32, 41;
+  --rgb-card-tint: 33, 39, 49;
+  --rgb-wash: 38, 45, 56;
+  --rgb-border-hair: 66, 76, 92;
+  --rgb-border-slate: 110, 122, 140;
+  --rgb-border-neutral: 86, 96, 112;
+  --rgb-input-surface: 25, 30, 38;
+  --rgb-accent: 135, 129, 177;
+  --rgb-accent-soft: 122, 116, 160;
+  --rgb-warm-wash-1: 38, 44, 54;
+  --rgb-warm-wash-2: 45, 52, 64;
+  --rgb-warm-line: 128, 140, 158;
   /* Тени на тёмном фоне работают только чёрные: светлый «холодный» дым
      превращался бы в ореол вокруг каждой кнопки. */
   --rgb-shadow-ink: 0, 0, 0;
   --rgb-shadow-cool: 0, 0, 0;
-  --rgb-scrim: 6, 3, 10;
+  --rgb-scrim: 6, 8, 12;
 
   /* Фон приложения */
-  --app-backdrop-rose: rgba(120, 40, 92, 0.5);
-  --app-backdrop-rose-soft: rgba(120, 40, 92, 0.14);
-  --app-backdrop-blue: rgba(46, 52, 120, 0.45);
-  --app-backdrop-blue-soft: rgba(46, 52, 120, 0.12);
-  --app-backdrop-cream: rgba(92, 62, 34, 0.3);
-  --app-bg-1: #1d1224;
-  --app-bg-2: #2a1430;
-  --app-bg-3: #1a1330;
-  --app-bg-4: #241a2a;
-  --app-backdrop-veil-1: rgba(20, 12, 26, 0.86);
-  --app-backdrop-veil-2: rgba(20, 12, 26, 0.6);
-  --app-backdrop-veil-3: rgba(24, 14, 30, 0.86);
-  --app-backdrop-veil-4: rgba(12, 8, 18, 0.7);
+  --app-bg-1: #171b23;
+  --app-bg-2: #0f131a;
 
-  /* Подложка схемы: максимально тёмная, чтобы фирменные цвета линий
-     (включая тёмно-коричневую и фиолетовую) оставались различимыми. */
+  /* Стекло, границы, поля */
+  --color-bg-body: #12161d;
+  --color-bg-body-alt: #1b2029;
+  --color-surface-glass: rgba(27, 32, 41, 0.84);
+  --color-surface-glass-strong: rgba(27, 32, 41, 0.94);
+  --color-surface-glass-soft: rgba(27, 32, 41, 0.72);
+  --color-surface-glass-dark: rgba(0, 0, 0, 0.35);
+  --color-border-soft: rgba(148, 163, 184, 0.22);
+  --color-border-strong: rgba(148, 163, 184, 0.42);
+  --color-border-hair-strong: rgba(110, 122, 140, 0.5);
+  --color-border-neutral-soft: #2a313c;
+  --color-border-neutral-strong: #3a4250;
+  --color-bg-input: #1a1f27;
+  --color-bg-input-hover: #222833;
+  --color-neutral-200: #2a313c;
+  --color-neutral-300: #3a4250;
+  --color-surface-white: #232a34;
+
+  /* Акценты */
+  /* Верхний край шкалы светлоты, вопреки прежнему комментарию, НЕ пуст:
+     Бутовская (#BAC8E8, L*80) и БКЛ (#88CDCF, L*78) сами по себе бледные,
+     и любой светлый холодный акцент упирается в них — замер показывает у
+     #93a9c4 всего 9.7 ΔE00 до Бутовской. Свободен провал L*55–63 между
+     Арбатско-Покровской (L*46) и Серпуховской (L*70): #8781b1 стоит в
+     20.9 ΔE00 от ближайшей линии и даёт 5.0:1 на фоне приложения. */
+  --color-accent: #8781b1;
+  --color-accent-soft: rgba(135, 129, 177, 0.22);
+  --color-accent-subtle: rgba(135, 129, 177, 0.12);
+  --color-accent-outline: #928bbc;
+  --color-accent-deep: #7d77a3;
+  --color-accent-muted: #8781b1;
+  --color-danger: #f2938d;
+  --color-text-success-strong: #86d3a6;
+
+  /* Текст */
+  --color-text-primary: #e8eaef;
+  --color-text-secondary: #c3c8d2;
+  --color-text-muted: #9aa1ad;
+  --color-text-muted-soft: #8b929e;
+  --color-text-strong-muted: #d4d9e1;
+  --color-text-heading: #e8eaef;
+  --color-text-heading-strong: #f2f4f7;
+  --color-text-transfer: #b9bfca;
+  --color-text-accent: #928bbc;
+  --color-text-quiet: #928bbc;
+  --color-text-placeholder: #868d99;
+  /* Подпись на залитой акцентом кнопке: акцент светлее фона, поэтому
+     подпись тёмная — белая давала бы 2.4:1. */
+  --color-on-accent: #12161d;
+
+  /* Декоративные нейтральные подложки */
+  --color-surface-tint: #262d38;
+  --color-surface-tint-strong: #313945;
+  --color-surface-hover-1: #232a34;
+  --color-surface-hover-2: #2c333f;
+
+  /* Схема метро. Весь блок --map-* правит агент карты — значения здесь
+     оставлены как были. Под нейтральный интерфейс полотну нужны
+     #12161d / #0d1015, вуали #10141a / #0c0f14, подписи #dfe3ea / #9aa1ad,
+     заливка станций #202730, ореол rgba(10,13,18,.94). */
   --map-canvas-top: #140c18;
   --map-canvas-bottom: #0d0711;
   --map-canvas-veil-1: #100914;
   --map-canvas-veil-2: #0b0610;
-
-  /* Стекло, границы, поля */
-  --color-bg-body: #16101c;
-  --color-bg-body-alt: #241528;
-  --color-surface-glass: rgba(43, 29, 51, 0.82);
-  --color-surface-glass-strong: rgba(43, 29, 51, 0.92);
-  --color-surface-glass-soft: rgba(43, 29, 51, 0.7);
-  --color-surface-glass-dark: rgba(0, 0, 0, 0.35);
-  --color-border-soft: rgba(214, 118, 172, 0.26);
-  --color-border-strong: rgba(214, 118, 172, 0.5);
-  --color-border-pink-strong: rgba(214, 118, 172, 0.55);
-  --color-border-neutral-soft: #3a2942;
-  --color-border-neutral-strong: #4d3958;
-  --color-bg-input: #2a1b31;
-  --color-bg-input-hover: #34213c;
-  --color-neutral-200: #3a2942;
-  --color-neutral-300: #55405f;
-  --color-surface-white: #33223b;
-
-  /* Акценты */
-  /* Тёмная тема берёт верхний край шкалы светлоты (L*66–83) — линий там
-     нет вовсе, поэтому запас до палитры вдвое больше, чем в светлой:
-     минимум ΔE00 20.0. Оттенок — светлая орхидея, тот же тёплый
-     розово-сиреневый род, что и слива светлой темы. */
-  --color-accent: #f290da;
-  --color-accent-soft: rgba(242, 144, 218, 0.22);
-  --color-accent-subtle: rgba(242, 144, 218, 0.12);
-  --color-accent-outline: #ff9ed3;
-  --color-accent-berry: #e47ccc;
-  --color-accent-salmon: #ff9ec4;
-  --color-danger: #ff8f8a;
-  --color-warning: #fb923c;
-  --color-text-success-strong: #7fe3a3;
-
-  /* Текст */
-  --color-text-primary: #fbeaf6;
-  --color-text-secondary: #e6cbdd;
-  --color-text-muted: #c5a5bb;
-  --color-text-muted-soft: #b291a8;
-  --color-text-strong-muted: #e2c9da;
-  --color-text-plum: #f6dcee;
-  --color-text-deep-plum: #fdeaf6;
-  --color-text-transfer-pink: #ffa4cf;
-  --color-text-raspberry: #ff9ac9;
-  --color-text-crimson: #ff9fb8;
-  --color-text-violet: #d0b6f8;
-  --color-text-placeholder-pink: #b98cae;
-  /* Текст на ярких розовых кнопках: на тёмной теме акцент светлее,
-     поэтому подпись становится тёмной — иначе контраст падает до 2.4:1. */
-  --color-surface-rose-25: #33112a;
-  --color-surface-rose-50: #3d0c26;
-  --color-surface-rose-highlight: #3d0c26;
-
-  /* Декоративные поверхности (логотипы, аватары, бейджи). Значения
-     --color-surface-rose-25/50/highlight намеренно остаются светлыми:
-     это цвет текста на розовых кнопках. */
-  --color-surface-rose-100: #2a1730;
-  --color-surface-rose-150: #331a38;
-  --color-surface-rose-200: #5c2a46;
-  --color-surface-rose-220: #5a2c44;
-  --color-surface-rose-225: #6b3040;
-  --color-surface-rose-230: #6d2f4f;
-  --color-surface-rose-300: #7a3450;
-  --color-surface-lilac-50: #241a2e;
-  --color-surface-lilac-100: #1e1a35;
-  --color-surface-sky-100: #23384d;
-  --color-surface-violet-100: #2d2450;
-  --color-surface-amber-50: #4a3a1c;
-  --color-surface-amber-100: #6b5320;
-  --color-surface-cream-100: #3a3016;
-
-  /* Схема метро: цвета линий приходят из данных и не меняются, поэтому
-     тёмной делаем «среду» — ореол под линиями, заливку станций, подписи. */
   --map-label-color-strong: #f2dcec;
   --map-label-color-weak: #a894b0;
   --map-line-halo-color: rgba(14, 8, 18, 0.94);
@@ -569,10 +486,10 @@ optgroup {
   --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.5);
   --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.62);
   --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.75);
-  --color-primary-surface: #f899e0;
-  --color-primary-surface-hover: #ffb5f1;
-  --color-primary-on: #3d0c26;
-  --color-focus-ring: #ffaaec;
+  --color-primary-surface: #928bbc;
+  --color-primary-surface-hover: #9790c2;
+  --color-primary-on: #12161d;
+  --color-focus-ring: #9790c2;
 }
 
 :root[data-theme='light'] {

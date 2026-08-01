@@ -38,6 +38,7 @@ import {
   pluralRu,
 } from './utils/plural.ts'
 import { useBottomSheet } from './hooks/useBottomSheet.ts'
+import { useDragScroll } from './hooks/useDragScroll.ts'
 import { useErrorLogPanel } from './hooks/useErrorLogPanel.ts'
 import { markInstallGuideEarned, useInstallGuide } from './hooks/useInstallGuide.ts'
 import { useIsDesktop } from './hooks/useIsDesktop.ts'
@@ -190,6 +191,8 @@ function App() {
   const sheetMinVisibleRef = useRef<HTMLDivElement | null>(null)
   const routeDetailsRef = useRef<HTMLDivElement | null>(null)
   const stationPickPopoverRef = useRef<HTMLDivElement | null>(null)
+  // Лента вариантов маршрута: прокрутка зажатой мышью (см. useDragScroll).
+  const routeChoicesScrollRef = useDragScroll<HTMLDivElement>()
 
   const hasRoute = routeAlternatives.length > 0 && !errorMessage
 
@@ -399,10 +402,12 @@ function App() {
   }, [stationById, stationTitleById, routeWorker])
 
   const {
-    fromSuggestions,
-    toSuggestions,
-    fromNoMatches,
-    toNoMatches,
+    fromSuggestions: fromTypedSuggestions,
+    toSuggestions: toTypedSuggestions,
+    fromDefaultSuggestions,
+    toDefaultSuggestions,
+    fromNoMatches: fromNoMatchesRaw,
+    toNoMatches: toNoMatchesRaw,
     fromFieldHint,
     toFieldHint,
   } = useStationSuggestions({
@@ -414,7 +419,98 @@ function App() {
     fromFixed,
     toFixed,
     sameStationField,
+    fromStationId,
+    toStationId,
+    recentRoutes: savedRoutes.recents,
+    favoriteRoutes: savedRoutes.favorites,
+    nearbyStations: nearby.stations,
   })
+
+  /**
+   * Подсказки в ПУСТОМ поле: раньше список открывался только после ввода, и
+   * клик в поле не давал ничего — человек упирался в пустой прямоугольник и
+   * должен был угадать, что делать. Теперь фокус на пустом поле показывает
+   * короткий список «рядом / недавнее / избранное» (см. useStationSuggestions).
+   *
+   * Список закрывается по Escape (флаг dismissed) и по уходу фокуса. Закрытие
+   * по blur отложено: на тач-экране палец сначала снимает фокус с поля и лишь
+   * потом доводит click до строки списка — без задержки строка исчезала бы
+   * из-под пальца.
+   */
+  const SUGGESTIONS_BLUR_CLOSE_MS = 180
+  const [isFromFieldFocused, setIsFromFieldFocused] = useState(false)
+  const [isToFieldFocused, setIsToFieldFocused] = useState(false)
+  const [areFromSuggestionsDismissed, setAreFromSuggestionsDismissed] = useState(false)
+  const [areToSuggestionsDismissed, setAreToSuggestionsDismissed] = useState(false)
+  const fromBlurTimeoutRef = useRef<number | null>(null)
+  const toBlurTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (fromBlurTimeoutRef.current != null) window.clearTimeout(fromBlurTimeoutRef.current)
+      if (toBlurTimeoutRef.current != null) window.clearTimeout(toBlurTimeoutRef.current)
+    }
+  }, [])
+
+  const handleFromFocus = () => {
+    if (fromBlurTimeoutRef.current != null) {
+      window.clearTimeout(fromBlurTimeoutRef.current)
+      fromBlurTimeoutRef.current = null
+    }
+    setAreFromSuggestionsDismissed(false)
+    setIsFromFieldFocused(true)
+  }
+
+  const handleFromBlur = () => {
+    if (fromBlurTimeoutRef.current != null) window.clearTimeout(fromBlurTimeoutRef.current)
+    fromBlurTimeoutRef.current = window.setTimeout(() => {
+      fromBlurTimeoutRef.current = null
+      setIsFromFieldFocused(false)
+    }, SUGGESTIONS_BLUR_CLOSE_MS)
+  }
+
+  const handleToFocus = () => {
+    if (toBlurTimeoutRef.current != null) {
+      window.clearTimeout(toBlurTimeoutRef.current)
+      toBlurTimeoutRef.current = null
+    }
+    setAreToSuggestionsDismissed(false)
+    setIsToFieldFocused(true)
+  }
+
+  const handleToBlur = () => {
+    if (toBlurTimeoutRef.current != null) window.clearTimeout(toBlurTimeoutRef.current)
+    toBlurTimeoutRef.current = window.setTimeout(() => {
+      toBlurTimeoutRef.current = null
+      setIsToFieldFocused(false)
+    }, SUGGESTIONS_BLUR_CLOSE_MS)
+  }
+
+  const showFromDefaultSuggestions =
+    isFromFieldFocused && !fromStation.trim() && fromDefaultSuggestions.length > 0
+  const showToDefaultSuggestions =
+    isToFieldFocused && !toStation.trim() && toDefaultSuggestions.length > 0
+
+  /**
+   * Единственный список, с которым дальше работают и разметка, и клавиатура:
+   * иначе Enter и стрелки ходили бы по одному набору, а на экране был другой.
+   */
+  const fromSuggestions = areFromSuggestionsDismissed
+    ? []
+    : fromTypedSuggestions.length > 0
+      ? fromTypedSuggestions
+      : showFromDefaultSuggestions
+        ? fromDefaultSuggestions
+        : []
+  const toSuggestions = areToSuggestionsDismissed
+    ? []
+    : toTypedSuggestions.length > 0
+      ? toTypedSuggestions
+      : showToDefaultSuggestions
+        ? toDefaultSuggestions
+        : []
+  const fromNoMatches = fromNoMatchesRaw && !areFromSuggestionsDismissed
+  const toNoMatches = toNoMatchesRaw && !areToSuggestionsDismissed
 
   const { shareHint, shareRoute } = useShareRoute({
     fromStationId,
@@ -475,6 +571,8 @@ function App() {
 
   const handleFromChange = (value: string) => {
     dismissOnboardingHint()
+    // Любой ввод возвращает список, закрытый Escape'ом.
+    setAreFromSuggestionsDismissed(false)
     setFromStation(value)
     setFromStationId(null)
     setFromFixed(false)
@@ -487,6 +585,7 @@ function App() {
 
   const handleToChange = (value: string) => {
     dismissOnboardingHint()
+    setAreToSuggestionsDismissed(false)
     setToStation(value)
     setToStationId(null)
     setToFixed(false)
@@ -618,41 +717,43 @@ function App() {
   }
 
   /**
-   * Тап по станции без поповера: первый тап — «Откуда», второй — «Куда».
+   * Тап по станции: пока есть пустое поле — заполняем его молча (первый тап —
+   * «Откуда», второй — «Куда»), это и есть быстрый путь.
    *
-   * Когда обе точки уже заданы, тап заменяет «Куда» и сразу пересчитывает
-   * маршрут. Причина: «Откуда» — это почти всегда «где я сейчас», значение
-   * липкое, а меняется обычно цель поездки. К тому же замена «Куда» даёт
-   * полезный результат за один тап, тогда как замена «Откуда» со сбросом
-   * «Куда» оставила бы пользователя без маршрута и потребовала второй тап.
-   * Сменить точку отправления по-прежнему можно долгим нажатием.
+   * Когда обе точки уже заданы, тап НИЧЕГО не меняет сам: раньше он подменял
+   * «Куда» и маршрут перестраивался неожиданно для человека, который просто
+   * ткнул в карту. Теперь такой тап возвращает 'ask', и хук открывает поповер
+   * с выбором поля — там же видно, какая станция какую заменит.
    */
-  const applyStationByTap = (stationId: string, stationName: string) => {
+  const applyStationByTap = (stationId: string, stationName: string): 'handled' | 'ask' => {
     const fromId = fromStationId
     const toId = toStationId
 
-    if (!fromId) {
-      if (toId && stationId === toId) {
-        showStationHint('info', `${stationName} уже выбрана как «Куда»`)
-        return
-      }
-      applyStationToField('from', stationId, stationName)
-      showStationHint('from', `Откуда: ${stationName}`)
-      return
-    }
-
-    if (stationId === fromId) {
+    // Тап по уже выбранной станции — почти всегда промах: сообщаем и выходим,
+    // поповер тут ничего полезного не предложит.
+    if (fromId && stationId === fromId) {
       showStationHint('info', `${stationName} уже выбрана как «Откуда»`)
-      return
+      return 'handled'
     }
 
     if (toId && stationId === toId) {
       showStationHint('info', `${stationName} уже выбрана как «Куда»`)
-      return
+      return 'handled'
     }
 
-    applyStationToField('to', stationId, stationName)
-    showStationHint('to', `Куда: ${stationName}`)
+    if (!fromId) {
+      applyStationToField('from', stationId, stationName)
+      showStationHint('from', `Откуда: ${stationName}`)
+      return 'handled'
+    }
+
+    if (!toId) {
+      applyStationToField('to', stationId, stationName)
+      showStationHint('to', `Куда: ${stationName}`)
+      return 'handled'
+    }
+
+    return 'ask'
   }
 
   const stationPickPopover = useStationPickPopover({
@@ -740,6 +841,16 @@ function App() {
   }
 
   const handleFromKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    // Escape закрывает список, не трогая ни фокус, ни введённый текст.
+    if (event.key === 'Escape') {
+      if (fromSuggestions.length > 0 || fromNoMatches) {
+        event.preventDefault()
+        setAreFromSuggestionsDismissed(true)
+        setFromSuggestionIndex(-1)
+      }
+      return
+    }
+
     if (event.key === 'ArrowDown') {
       if (fromSuggestions.length === 0) return
       event.preventDefault()
@@ -804,6 +915,15 @@ function App() {
   }
 
   const handleToKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      if (toSuggestions.length > 0 || toNoMatches) {
+        event.preventDefault()
+        setAreToSuggestionsDismissed(true)
+        setToSuggestionIndex(-1)
+      }
+      return
+    }
+
     if (event.key === 'ArrowDown') {
       if (toSuggestions.length === 0) return
       event.preventDefault()
@@ -875,8 +995,9 @@ function App() {
   }, [markPerfInteraction, isDesktop, routeResult, errorMessage, setRouteSheetOpenState])
 
   // Какое поле получит следующий тап по карте. Совпадает с логикой
-  // applyStationByTap: пусто → «Откуда», иначе → «Куда» (в том числе когда обе
-  // точки уже заданы — тап заменяет именно цель поездки).
+  // applyStationByTap: пустое «Откуда» → «Откуда», иначе → «Куда». Когда заняты
+  // оба поля, тап ничего не заполняет сам (спрашивает), но подсветку карты
+  // оставляем на «Куда» — это самый частый выбор в поповере.
   const currentSelectionMode: 'from' | 'to' = !fromStationId ? 'from' : 'to'
   const isSplashActive = isSplashMounted
 
@@ -981,6 +1102,8 @@ function App() {
           position={stationPickPopover.position}
           popoverRef={stationPickPopoverRef}
           lineColor={getPopoverLineColor(stationPickPopover.data.stationId)}
+          currentFromTitle={fromStationId ? fromStation : null}
+          currentToTitle={toStationId ? toStation : null}
           onPick={handleStationPickPopoverPick}
         />
       )}
@@ -1062,8 +1185,8 @@ function App() {
                 {showOnboardingHint && (
                   <div className="onboarding-hint" role="note">
                     <span className="onboarding-hint-text">
-                      Первый тап по станции — «Откуда», второй — «Куда». Долгое нажатие даёт выбор
-                      поля.
+                      Первый тап по станции — «Откуда», второй — «Куда». Когда оба поля заняты, тап
+                      спросит, что заменить. Долгое нажатие даёт выбор поля всегда.
                     </span>
                     <button
                       type="button"
@@ -1270,6 +1393,10 @@ function App() {
                   onToChange={handleToChange}
                   onFromKeyDown={handleFromKeyDown}
                   onToKeyDown={handleToKeyDown}
+                  onFromFocus={handleFromFocus}
+                  onFromBlur={handleFromBlur}
+                  onToFocus={handleToFocus}
+                  onToBlur={handleToBlur}
                   onSelectFromSuggestion={handleSelectFromSuggestion}
                   onSelectToSuggestion={handleSelectToSuggestion}
                   onSwap={handleSwapStations}
@@ -1325,7 +1452,7 @@ function App() {
 
                 {routeAlternatives.length > 1 && !errorMessage && !isDesktop && !isRouteLoading && (
                   <div className="bottom-route-summary-wrapper">
-                    <div className="bottom-route-summary-scroll">
+                    <div className="bottom-route-summary-scroll" ref={routeChoicesScrollRef}>
                       {routeAlternatives.map((route, index) => {
                         const isActive = index === activeRouteIndex
                         const label = getRouteVariantLabel(index, routeAlternatives)

@@ -68,7 +68,7 @@
      резкие подписи станций (VQA-10). Теперь фон гасит схему сам, а блюр —
      только украшение и может отсутствовать. */
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.72), rgba(var(--rgb-card), 0.6)),
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.72), rgba(var(--rgb-card), 0.6)),
     radial-gradient(circle at 100% 100%, rgba(var(--rgb-card-tint), 0.68), rgba(var(--rgb-scrim), 0.1));
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
@@ -97,11 +97,11 @@
   padding: var(--space-6) var(--space-5);
   border-radius: var(--radius-lg);
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.96), rgba(var(--rgb-rose-wash), 0.4)),
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.96), rgba(var(--rgb-wash), 0.4)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.98), rgba(var(--rgb-card-tint), 0.98));
   box-shadow:
     var(--shadow-overlay),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.7);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.7);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -134,7 +134,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(var(--rgb-card), 0.9);
-  box-shadow: 0 0 0 1px rgba(var(--rgb-border-pink), 0.6);
+  box-shadow: 0 0 0 1px rgba(var(--rgb-border-hair), 0.6);
   overflow: hidden;
 }
 
@@ -335,7 +335,7 @@
 .station-pick-popover-title {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-deep-plum);
+  color: var(--color-text-heading-strong);
   line-height: 1.2;
   text-align: center;
   white-space: nowrap;
@@ -376,6 +376,28 @@
     filter 140ms ease-out,
     background-color 140ms ease-out,
     border-color 140ms ease-out;
+}
+
+/* Две строки в кнопке: что произойдёт и что при этом заменится.
+   В разметке между спанами стоит пробел (на случай отсутствия стилей) —
+   `display: block` у нижней строки его схлопывает, дополнительной правки
+   разметки не нужно. Уточнение слабее основной подписи и по кеглю, и по
+   цвету: выбирают по «Откуда/Куда», а «вместо …» только подтверждает. */
+.station-pick-popover-button-label {
+  display: block;
+}
+
+.station-pick-popover-button-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-normal);
+  letter-spacing: normal;
+  line-height: 1.25;
+  color: var(--color-text-muted);
+  /* Названия станций бывают длинными («Улица Старокачаловская»), а кнопки
+     делят ширину поповера пополам — переносим по словам, а не рвём макет. */
+  overflow-wrap: anywhere;
 }
 
 .station-pick-popover-button[data-pressed='true'] {
@@ -506,12 +528,13 @@
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-pill);
-  background:
-    radial-gradient(circle at 30% 0%, var(--color-surface-rose-200), var(--color-surface-rose-300)),
-    radial-gradient(circle at 80% 100%, var(--color-surface-sky-100), var(--color-surface-violet-100));
+  /* Было четыре цвета на кружке 2rem: розовый→персиковый поверх
+     голубого→сиреневого. Знак внутри и так несёт цвет — подложке достаточно
+     одной нейтральной ступеньки. */
+  background: linear-gradient(160deg, var(--color-surface-tint), var(--color-surface-tint-strong));
   box-shadow:
     var(--shadow-raised),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.85);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.85);
 }
 
 .app-header-logo-img {
@@ -557,18 +580,18 @@
 .app-header-action {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-xs);
-  background: linear-gradient(135deg, var(--color-accent-outline), var(--color-accent-hot-pink));
-  color: var(--color-surface-rose-25);
+  /* Второстепенное действие в шапке было залито ярко-розовым градиентом и
+     спорило с основным. Контурная кнопка: вес держит рамка, а не заливка. */
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   cursor: pointer;
 }
 
 .app-header-action:hover {
-  background: linear-gradient(
-    135deg,
-    var(--color-accent-soft-pink-1),
-    var(--color-accent-soft-pink-2)
-  );
+  background: var(--color-accent-subtle);
+  color: var(--color-text-primary);
 }
 
 .app-header-chip {
@@ -611,10 +634,13 @@
   outline-offset: 2px;
 }
 
+/* Чип с построенным маршрутом занимает почти всю ширину шапки и был залит
+   розовым градиентом — самый заметный прямоугольник экрана. Теперь состояние
+   «маршрут есть» показывает рамка акцентом и едва заметная подложка: чип
+   остаётся кнопкой, но перестаёт спорить со схемой. */
 .app-header-chip--has-route {
   border-color: var(--color-accent);
-  background:
-    linear-gradient(135deg, rgba(var(--rgb-rose-wash), 0.98), rgba(var(--rgb-border-pink), 0.96));
+  background: var(--color-accent-subtle);
 }
 
 .app-header-chip--sheet-open {
@@ -922,10 +948,10 @@
   margin-bottom: var(--space-1);
   border-radius: var(--radius-md);
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.9), rgba(var(--rgb-rose-wash), 0.3)),
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.9), rgba(var(--rgb-wash), 0.3)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.92), rgba(var(--rgb-card-tint), 0.98));
   box-shadow: none;
-  border: 1px solid rgba(var(--rgb-border-pink), 0.7);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.7);
 }
 
 .route-result-scroll {
@@ -1039,7 +1065,7 @@
 .route-favorite-button {
   margin-left: var(--space-2);
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.7);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.7);
   width: 2rem;
   height: 2rem;
   display: inline-flex;
@@ -1062,11 +1088,9 @@
 }
 
 .route-favorite-button--active {
-  background:
-    radial-gradient(circle at 30% 0%, var(--color-surface-rose-bright-1), var(--color-surface-rose-bright-2)),
-    linear-gradient(135deg, var(--color-accent), var(--color-accent-berry));
-  color: var(--color-surface-rose-50);
-  border-color: rgba(var(--rgb-border-pink), 0.9);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: rgba(var(--rgb-border-hair), 0.9);
   box-shadow:
     var(--shadow-overlay),
     var(--shadow-raised);
@@ -1134,7 +1158,7 @@
   background:
     linear-gradient(135deg, rgba(var(--rgb-card), 0.9), rgba(var(--rgb-card-tint), 0.95));
   box-shadow: none;
-  border: 1px solid rgba(var(--rgb-border-pink), 0.4);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.4);
   transition:
     transform 150ms ease-out,
     box-shadow 150ms ease-out,
@@ -1173,11 +1197,15 @@
   height: 10px;
   border-radius: var(--radius-pill);
   margin-top: var(--space-1);
-  background-color: var(--color-accent-bubblegum);
+  background-color: rgba(var(--rgb-border-slate), 0.75);
 }
 
+/* Пересадка — единственное место в списке шагов, где акцент несёт смысл,
+   поэтому он достаётся именно ей. Прежний --color-warning (#f97316) стоял в
+   3.5 ΔE00 от Калужско-Рижской линии, то есть на схеме читался бы как её
+   цвет, и вдобавок давал 2.8:1 к белой карточке при норме 3:1 для графики. */
 .step-dot--transfer {
-  background-color: var(--color-warning);
+  background-color: var(--color-accent);
 }
 
 .step-body {
@@ -1191,7 +1219,7 @@
 
 .step-subtitle {
   font-size: var(--font-size-xs);
-  color: var(--color-text-transfer-pink);
+  color: var(--color-text-transfer);
 }
 
 .step-meta {
@@ -1214,7 +1242,7 @@
   align-items: center;
   gap: var(--space-1);
   font-size: var(--font-size-sm);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   padding: var(--space-05) var(--space-05);
   border-radius: var(--radius-xs);
   background: transparent;
@@ -1243,7 +1271,7 @@
     linear-gradient(135deg, rgba(var(--rgb-card), 0.96), rgba(var(--rgb-card-tint), 0.98));
   box-shadow:
     var(--shadow-raised),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.55);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.55);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1303,7 +1331,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--rgb-border-pink), 0.2);
+  background: rgba(var(--rgb-border-hair), 0.2);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
@@ -1351,15 +1379,17 @@
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  background:
-    linear-gradient(135deg, rgba(var(--rgb-accent-pink), 0.12), rgba(var(--rgb-amber), 0.1));
+  /* Было два разных двухцветных градиента (розовый→янтарный и
+     индиго→голубой) на соседних чипах одного ряда: четыре цвета там, где
+     разница между «основной» и «второстепенной» подсказкой — это вес, а не
+     оттенок. Держим её плотностью одной и той же нейтрали. */
+  background: rgba(var(--rgb-accent), 0.1);
   color: var(--color-text-primary);
-  box-shadow: var(--shadow-raised);
+  box-shadow: none;
 }
 
 .smart-suggestion-chip--secondary {
-  background:
-    linear-gradient(135deg, rgba(var(--rgb-indigo), 0.12), rgba(var(--rgb-sky), 0.12));
+  background: rgba(var(--rgb-border-slate), 0.14);
 }
 
 .smart-suggestion-chip--ghost {
@@ -1415,12 +1445,27 @@
     linear-gradient(180deg, rgba(var(--rgb-card), 0.7), rgba(var(--rgb-border-slate), 0.5));
 }
 
+/* Свёрнутая шторка.
+
+   Было `flex: 0 0 auto` при `overflow: hidden` — базис auto означает «высота
+   по содержимому», и невидимый блок продолжал занимать всю высоту списка
+   шагов маршрута (легко пара тысяч пикселей). .bottom-sheet-inner — флекс-
+   колонка, поэтому шторка вырастала на эту высоту, а .bottom-sheet с
+   `overflow-x: hidden` (что делает overflow-y вычисленным в auto) получала
+   вертикальную прокрутку: на мобильном экран скроллился «в никуда», хотя
+   видимого содержимого под полями ввода не было.
+
+   `visibility: hidden` прячет пиксели, но не убирает бокс из раскладки —
+   высоту обязано занулить само правило. */
 .bottom-route-details--closed {
   opacity: 0;
   transform: translateY(6px);
   overflow: hidden;
-  flex: 0 0 auto;
+  flex: 0 0 0;
+  height: 0;
   min-height: 0;
+  max-height: 0;
+  margin-top: 0;
   pointer-events: none;
   visibility: hidden;
 }
@@ -1646,11 +1691,11 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border-pink-strong);
+  border: 1px solid var(--color-border-hair-strong);
   background:
-    radial-gradient(circle at 30% 0%, rgba(var(--rgb-rose-wash), 0.98), rgba(var(--rgb-rose-wash), 0.4)),
+    radial-gradient(circle at 30% 0%, rgba(var(--rgb-wash), 0.98), rgba(var(--rgb-wash), 0.4)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.96), rgba(var(--rgb-card-tint), 0.96));
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
   font-size: var(--font-size-xl);
   display: flex;
   align-items: center;
@@ -1668,8 +1713,8 @@
 .metro-map-zoom-button:hover {
   background: linear-gradient(
     135deg,
-    var(--color-surface-rose-bright-1),
-    var(--color-surface-rose-bright-2)
+    var(--color-surface-hover-1),
+    var(--color-surface-hover-2)
   );
   transform: translateY(-1px);
   box-shadow: var(--shadow-overlay);
@@ -1696,14 +1741,14 @@
   width: 2.3rem;
   height: 2.3rem;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border-pink-strong);
+  border: 1px solid var(--color-border-hair-strong);
   background:
-    radial-gradient(circle at 30% 0%, rgba(var(--rgb-rose-wash), 0.96), rgba(var(--rgb-rose-wash), 0.4)),
+    radial-gradient(circle at 30% 0%, rgba(var(--rgb-wash), 0.96), rgba(var(--rgb-wash), 0.4)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.96), rgba(var(--rgb-card-tint), 0.96));
   box-shadow:
     var(--shadow-overlay),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.8);
-  color: var(--color-text-raspberry);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.8);
+  color: var(--color-text-accent);
   font-size: var(--font-size-lg);
   display: flex;
   align-items: center;
@@ -1719,8 +1764,8 @@
 }
 
 .editor-fab--active {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-berry));
-  color: var(--color-surface-rose-25);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   box-shadow: var(--shadow-overlay);
 }
 
@@ -1745,9 +1790,9 @@
    max-width: min(360px, 84vw);
    border-radius: var(--radius-pill);
    padding: var(--space-1) var(--space-3);
-   border: 1px solid rgba(var(--rgb-border-pink), 0.8);
+   border: 1px solid rgba(var(--rgb-border-hair), 0.8);
    background: rgba(var(--rgb-card), 0.92);
-   color: var(--color-text-plum);
+   color: var(--color-text-heading);
    font-size: var(--font-size-xs);
    font-weight: 600;
    box-shadow: var(--shadow-overlay);
@@ -1765,13 +1810,13 @@
   font-size: var(--font-size-sm);
   box-shadow:
     var(--shadow-raised),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.75);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.75);
 }
 
 .editor-fab--secondary {
   border-style: dashed;
   background:
-    radial-gradient(circle at 30% 0%, rgba(var(--rgb-rose-wash), 0.94), rgba(var(--rgb-rose-wash), 0.4)),
+    radial-gradient(circle at 30% 0%, rgba(var(--rgb-wash), 0.94), rgba(var(--rgb-wash), 0.4)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.96), rgba(var(--rgb-card-tint), 0.96));
 }
 
@@ -1788,7 +1833,7 @@
   background: rgba(var(--rgb-card), 0.97);
   box-shadow:
     var(--shadow-overlay),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.6);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.6);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1807,7 +1852,7 @@
 .hub-editor-footer {
   margin-top: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px solid rgba(var(--rgb-border-pink), 0.6);
+  border-top: 1px solid rgba(var(--rgb-border-hair), 0.6);
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
@@ -1819,8 +1864,8 @@
   padding: var(--space-1) var(--space-4);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  background: linear-gradient(135deg, var(--color-accent-salmon), var(--color-accent));
-  color: var(--color-surface-rose-50);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   box-shadow: var(--shadow-raised);
   cursor: pointer;
 }
@@ -1847,7 +1892,7 @@
 }
 
 .hub-editor-header {
-  border-bottom: 1px solid rgba(var(--rgb-border-pink), 0.6);
+  border-bottom: 1px solid rgba(var(--rgb-border-hair), 0.6);
   padding-bottom: var(--space-2);
   margin-bottom: var(--space-1);
 }
@@ -1862,12 +1907,12 @@
 .hub-editor-title {
   font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
 }
 
 .hub-editor-close {
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.9);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.9);
   background: rgba(var(--rgb-card), 0.96);
   width: 1.4rem;
   height: 1.4rem;
@@ -1876,14 +1921,14 @@
   justify-content: center;
   font-size: var(--font-size-sm);
   line-height: 1;
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
   cursor: pointer;
 }
 
 .hub-editor-subtitle {
   margin-top: var(--space-1);
   font-size: var(--font-size-xs);
-  color: var(--color-text-violet);
+  color: var(--color-text-quiet);
 }
 
 .hub-editor-tabs {
@@ -1909,10 +1954,10 @@
 
 .hub-editor-tab--active {
   background: var(--color-surface-white);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   box-shadow:
     var(--shadow-raised),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.7);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.7);
 }
 
 .hub-editor-content {
@@ -1929,13 +1974,13 @@
 .hub-editor-section-title {
   font-size: var(--font-size-xs);
   font-weight: 600;
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   margin-bottom: var(--space-05);
 }
 
 .hub-editor-section-subtitle {
   font-size: var(--font-size-xs);
-  color: var(--color-text-violet);
+  color: var(--color-text-quiet);
   margin-bottom: var(--space-1);
 }
 
@@ -1957,7 +2002,7 @@
   padding: var(--space-05) var(--space-2);
   font-size: var(--font-size-2xs);
   background: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   cursor: pointer;
 }
 
@@ -1974,9 +2019,9 @@
 .hub-editor-filter-chip--active {
   border-color: rgba(var(--rgb-accent), 0.85);
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.96), rgba(var(--rgb-rose-wash), 0.5)),
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.96), rgba(var(--rgb-wash), 0.5)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.98), rgba(var(--rgb-card-tint), 0.98));
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
 }
 
 .hub-editor-list {
@@ -2034,7 +2079,7 @@
   background: transparent;
   text-align: left;
   font: inherit;
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
 }
 
 .hub-editor-connection-main--link {
@@ -2045,7 +2090,7 @@
 }
 
 .hub-editor-connection-main--link:hover {
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
 }
 
 .hub-editor-connection-meta {
@@ -2059,7 +2104,7 @@
   padding: var(--space-05) var(--space-2);
   font-size: var(--font-size-2xs);
   background: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -2067,9 +2112,9 @@
 .hub-editor-connection-toggle--transfer {
   border-color: rgba(var(--rgb-accent), 0.85);
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.96), rgba(var(--rgb-rose-wash), 0.5)),
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.96), rgba(var(--rgb-wash), 0.5)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.98), rgba(var(--rgb-card-tint), 0.98));
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
 }
 
 .hub-editor-connection-minutes {
@@ -2089,7 +2134,7 @@
 
 .hub-editor-edge-delete {
   border-radius: var(--radius-pill);
-  border: 1px dashed rgba(var(--rgb-border-pink), 0.9);
+  border: 1px dashed rgba(var(--rgb-border-hair), 0.9);
   padding: var(--space-05) var(--space-2);
   font-size: var(--font-size-2xs);
   background: rgba(var(--rgb-card), 0.96);
@@ -2113,22 +2158,22 @@
   flex: 1;
   min-width: 0;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.9);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.9);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.96), rgba(var(--rgb-rose-wash), 0.5));
-  color: var(--color-text-plum);
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.96), rgba(var(--rgb-wash), 0.5));
+  color: var(--color-text-heading);
 }
 
 .hub-editor-hub-new {
   flex-shrink: 0;
   border-radius: var(--radius-pill);
-  border: 1px dashed rgba(var(--rgb-border-pink), 0.9);
+  border: 1px dashed rgba(var(--rgb-border-hair), 0.9);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
   background: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
   cursor: pointer;
 }
 
@@ -2145,7 +2190,7 @@
 
 .hub-editor-hub-remove-station:hover {
   color: var(--color-danger);
-  border-color: var(--color-surface-rose-300);
+  border-color: var(--color-surface-tint-strong);
 }
 
 .hub-editor-field {
@@ -2157,24 +2202,24 @@
 
 .hub-editor-field-label {
   font-size: var(--font-size-xs);
-  color: var(--color-text-violet);
+  color: var(--color-text-quiet);
 }
 
 .hub-editor-station-title-input {
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.9);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.9);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
 }
 
 .hub-editor-line-select {
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.9);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.9);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.96), rgba(var(--rgb-rose-wash), 0.5));
-  color: var(--color-text-plum);
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.96), rgba(var(--rgb-wash), 0.5));
+  color: var(--color-text-heading);
 }
 
 .hub-editor-hub-meta-row {
@@ -2188,7 +2233,7 @@
 
 .hub-editor-hub-meta-label {
   font-size: var(--font-size-xs);
-  color: var(--color-text-violet);
+  color: var(--color-text-quiet);
 }
 
 .hub-editor-hub-meta-input-wrap {
@@ -2230,11 +2275,11 @@
 .hub-editor-hub-add-button {
   flex-shrink: 0;
   border-radius: var(--radius-pill);
-  border: 1px dashed rgba(var(--rgb-border-pink), 0.9);
+  border: 1px dashed rgba(var(--rgb-border-hair), 0.9);
   padding: var(--space-05) var(--space-2);
   font-size: var(--font-size-xs);
   background: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   cursor: pointer;
 }
 
@@ -2268,11 +2313,11 @@
 .hub-editor-edge-add-button {
   flex-shrink: 0;
   border-radius: var(--radius-pill);
-  border: 1px dashed rgba(var(--rgb-border-pink), 0.9);
+  border: 1px dashed rgba(var(--rgb-border-hair), 0.9);
   padding: var(--space-05) var(--space-2);
   font-size: var(--font-size-xs);
   background: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   cursor: pointer;
 }
 
@@ -2434,6 +2479,10 @@
   border: 1px solid rgba(var(--rgb-border-slate), 0.35);
   /* Правый отступ держит место под крестик очистки — на шкалу не переводится. */
   padding: 0.6rem 1.75rem 0.6rem 0.85rem;
+  /* ВНИМАНИЕ: 16px здесь не про типографику, а про поведение iOS Safari —
+     при фокусе на поле со шрифтом меньше 16px он принудительно зумит
+     страницу, и схема уезжает. Поэтому базовое значение уменьшать нельзя.
+     Спокойный размер добираем ниже, в @media (pointer: fine). */
   font-size: var(--font-size-md);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
@@ -2442,6 +2491,25 @@
     box-shadow 160ms ease-out,
     background-color 160ms ease-out,
     transform 120ms ease-out;
+}
+
+/* 16px в поле выглядят непропорционально крупно рядом с 14px соседних
+   подписей, поэтому там, где автозума не бывает, поле уходит на общий для
+   формы размер.
+
+   Условие намеренно записано «не грубый указатель», а не «(pointer: fine)»:
+   автозум — свойство ровно тач-ввода (pointer: coarse), и отрицание точно
+   очерчивает исключение. Прямая проверка на fine вдобавок промахивалась бы
+   мимо сред, которые репортят `pointer: none` — headless-Chromium стенда
+   визуальной приёмки как раз из них, и правило там просто не применялось. */
+@media not all and (pointer: coarse) {
+  .bottom-input {
+    font-size: var(--font-size-sm);
+  }
+
+  .bottom-input-clear {
+    font-size: var(--font-size-sm);
+  }
 }
 
 .bottom-input--with-line-dot {
@@ -2466,7 +2534,7 @@
 }
 
 .bottom-input::placeholder {
-  color: var(--color-text-placeholder-pink);
+  color: var(--color-text-placeholder);
 }
 
 .bottom-input:focus {
@@ -2493,7 +2561,7 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--color-text-placeholder-pink);
+  color: var(--color-text-placeholder);
   font-size: 0.95rem;
   line-height: 1;
   cursor: pointer;
@@ -2501,7 +2569,7 @@
 
 .bottom-input-clear:hover {
   background-color: var(--color-accent-subtle);
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
 }
 
 .bottom-input-clear:active {
@@ -2544,9 +2612,9 @@
   flex-shrink: 0;
   border-radius: var(--radius-pill);
   padding: var(--space-2) var(--space-4);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.7);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.7);
   background-color: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-deep-plum);
+  color: var(--color-text-heading-strong);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -2562,11 +2630,11 @@
 
 .bottom-route-chip:hover {
   transform: translateY(-1px);
-  border-color: rgba(var(--rgb-border-pink), 0.95);
+  border-color: rgba(var(--rgb-border-hair), 0.95);
 }
 
 .bottom-route-chip--active {
-  background-color: rgba(var(--rgb-rose-wash), 0.98);
+  background-color: rgba(var(--rgb-wash), 0.98);
   border-color: var(--color-accent);
   border-width: 2px;
   /* Компенсируем утолщение рамки, чтобы выбранный чип не «прыгал». */
@@ -2622,23 +2690,31 @@
   padding-bottom: var(--space-1);
 }
 
+/* Полоса прокрутки вариантов. Была толщиной 6px с непрерывной серой
+   «рельсой» во всю ширину панели и розовым бегунком: тяжёлая горизонтальная
+   черта под карточками, которую видно всегда, даже когда прокручивать нечего.
+
+   Стало: рельса прозрачная (её роль выполняет собственный отступ дорожки),
+   бегунок — тонкая нейтральная риска в 3px, набирающая плотность под
+   курсором. Аффорданс «есть куда прокрутить» и так держит растушёвка
+   правого края ниже, поэтому полосе достаточно быть подсказкой, а не
+   элементом оформления. Поведение (overflow-x, перетаскивание) не тронуто. */
 .route-choices-desktop-track::-webkit-scrollbar {
   width: 0;
-  height: 6px;
+  height: 3px;
 }
 
 .route-choices-desktop-track::-webkit-scrollbar-track {
-  border-radius: var(--radius-pill);
-  background: rgba(var(--rgb-border-slate), 0.16);
+  background: transparent;
 }
 
 .route-choices-desktop-track::-webkit-scrollbar-thumb {
   border-radius: var(--radius-pill);
-  background: rgba(var(--rgb-border-pink), 0.9);
+  background: rgba(var(--rgb-border-slate), 0.35);
 }
 
-.route-choices-desktop-track::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--rgb-accent-pink), 0.95);
+.route-choices-desktop-track:hover::-webkit-scrollbar-thumb {
+  background: rgba(var(--rgb-border-slate), 0.6);
 }
 
 /* Второй аффорданс, не зависящий от того, рисует ли платформа скроллбар
@@ -2666,6 +2742,24 @@
     rgb(0 0 0) calc(100% - var(--choices-fade-right)),
     transparent 100%
   );
+}
+
+/* Ленты вариантов тянутся мышью. Атрибут data-dragging ставит JS; здесь
+   только курсор — «схватить» в покое и «держу» во время тяги. Тач-устройств
+   правило не касается: там нет курсора, а pan-x работает и без него.
+   Условие — «не грубый указатель», как и у размера шрифта в полях выше. */
+@media not all and (pointer: coarse) {
+  .route-choices-desktop-track,
+  .bottom-route-summary-scroll {
+    cursor: grab;
+  }
+
+  .route-choices-desktop-track[data-dragging='true'],
+  .bottom-route-summary-scroll[data-dragging='true'] {
+    cursor: grabbing;
+    /* Во время тяги браузер иначе начинает выделять подписи внутри чипов. */
+    user-select: none;
+  }
 }
 
 @supports (animation-timeline: scroll()) {
@@ -2696,9 +2790,9 @@
   width: 1.9rem;
   height: 1.9rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.8);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.8);
   background-color: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2753,13 +2847,13 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.92), rgba(var(--rgb-rose-wash), 0.3)),
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.92), rgba(var(--rgb-wash), 0.3)),
     linear-gradient(135deg, rgba(var(--rgb-card), 0.94), rgba(var(--rgb-card-tint), 0.98));
   backdrop-filter: blur(18px) saturate(170%);
   -webkit-backdrop-filter: blur(18px) saturate(170%);
   box-shadow:
     var(--shadow-overlay),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.8);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.8);
   animation: banner-slide-up 320ms var(--ease-out-soft) both;
   will-change: transform, opacity;
 }
@@ -2770,8 +2864,8 @@
   padding: var(--space-1) var(--space-4);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  background: linear-gradient(135deg, var(--color-accent-salmon), var(--color-accent));
-  color: var(--color-surface-rose-50);
+  background: var(--color-primary-surface);
+  color: var(--color-on-accent);
   box-shadow: var(--shadow-raised);
   cursor: pointer;
 }
@@ -2787,14 +2881,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(circle at 30% 0%, var(--color-surface-rose-200), var(--color-surface-rose-300)),
-    radial-gradient(circle at 80% 100%, var(--color-surface-sky-100), var(--color-surface-violet-100));
+  /* Было четыре цвета на кружке 2rem: розовый→персиковый поверх
+     голубого→сиреневого. Знак внутри и так несёт цвет — подложке достаточно
+     одной нейтральной ступеньки. */
+  background: linear-gradient(160deg, var(--color-surface-tint), var(--color-surface-tint-strong));
   box-shadow:
     var(--shadow-raised),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.9);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.9);
   font-size: var(--font-size-md);
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
   animation: update-icon-pop 420ms cubic-bezier(0.16, 1, 0.3, 1) 140ms both;
 }
 
@@ -2807,7 +2902,7 @@
 .update-banner-title {
   font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
 }
 
 .update-banner-subtitle {
@@ -2822,13 +2917,13 @@
 }
 
 .update-banner-later {
-  border: 1px solid rgba(var(--rgb-border-pink), 0.85);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.85);
   border-radius: var(--radius-pill);
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-xs);
   font-weight: 600;
   background: rgba(var(--rgb-card), 0.88);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
   box-shadow: none;
   cursor: pointer;
 }
@@ -2865,11 +2960,11 @@
      backdrop root, поэтому размывать нечего, и сквозь карточку читались
      подписи станций (VQA-4). Читаемость держим фоном, а не блюром. */
   background:
-    radial-gradient(circle at 0% 0%, rgba(var(--rgb-rose-wash), 0.85), rgba(var(--rgb-rose-wash), 0.25)),
+    radial-gradient(circle at 0% 0%, rgba(var(--rgb-wash), 0.85), rgba(var(--rgb-wash), 0.25)),
     var(--color-surface-solid-gradient);
   box-shadow:
     var(--shadow-modal),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.8);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.8);
   transform: translateY(6px) scale(0.96);
   animation: modal-card-pop 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
@@ -2894,12 +2989,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(circle at 30% 0%, var(--color-surface-rose-200), var(--color-surface-rose-300)),
-    radial-gradient(circle at 80% 100%, var(--color-surface-sky-100), var(--color-surface-violet-100));
+  /* Было четыре цвета на кружке 2rem: розовый→персиковый поверх
+     голубого→сиреневого. Знак внутри и так несёт цвет — подложке достаточно
+     одной нейтральной ступеньки. */
+  background: linear-gradient(160deg, var(--color-surface-tint), var(--color-surface-tint-strong));
   box-shadow:
     var(--shadow-overlay),
-    0 0 0 1px rgba(var(--rgb-border-pink), 0.9);
+    0 0 0 1px rgba(var(--rgb-border-hair), 0.9);
   animation: install-logo-pop 360ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
 }
 
@@ -2918,7 +3014,7 @@
   font-size: var(--font-size-xl);
   line-height: 1.2;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
 }
 
 .install-guide-subtitle {
@@ -2939,9 +3035,9 @@
   border-radius: var(--radius-pill);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  background-color: rgba(var(--rgb-border-pink), 0.18);
-  color: var(--color-text-transfer-pink);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.7);
+  background-color: rgba(var(--rgb-border-hair), 0.18);
+  color: var(--color-text-transfer);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.7);
   animation: chip-pop-in 260ms cubic-bezier(0.16, 1, 0.3, 1) 220ms both;
 }
 
@@ -2949,7 +3045,7 @@
   margin: 0 0 0.75rem;
   padding-left: var(--space-4);
   font-size: var(--font-size-sm);
-  color: var(--color-text-plum);
+  color: var(--color-text-heading);
 }
 
 .install-guide-steps li + li {
@@ -3087,7 +3183,10 @@
 
   .bottom-input {
     padding: 0.6rem 1.75rem 0.6rem 0.85rem;
-    font-size: var(--font-size-md);
+    /* font-size здесь намеренно не задаётся: размер определяет правило
+       @media not all and (pointer: coarse) выше — оно идёт раньше в файле,
+       и повтор `--font-size-md` в этом блоке его перебивал, из-за чего на
+       десктопе поле оставалось 16-пиксельным. */
     border-radius: var(--radius-pill);
     border-color: rgba(var(--rgb-border-slate), 0.35);
     background: rgba(var(--rgb-card), 0.96);
@@ -3364,9 +3463,9 @@
   min-height: 44px;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.7);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.7);
   background: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
@@ -3390,7 +3489,7 @@
 
 .route-share-button {
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.7);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.7);
   width: 2rem;
   height: 2rem;
   position: relative;
@@ -3406,7 +3505,7 @@
 }
 
 .route-share-button:hover {
-  color: var(--color-text-raspberry);
+  color: var(--color-text-accent);
 }
 
 .route-share-button:active {
@@ -3430,8 +3529,8 @@
   gap: var(--space-2);
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-pink), 0.7);
-  background: linear-gradient(135deg, rgba(var(--rgb-accent-pink), 0.12), rgba(var(--rgb-amber), 0.1));
+  border: 1px solid rgba(var(--rgb-border-hair), 0.7);
+  background: rgba(var(--rgb-accent), 0.08);
   animation: chip-pop-in var(--motion-medium) var(--ease-out-soft) both;
 }
 

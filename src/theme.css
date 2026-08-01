@@ -19,24 +19,22 @@
   );
 }
 
+/* Подложка приложения.
+
+   Было: три радиальных вуали (розовая из левого верхнего угла, синяя из
+   правого нижнего, кремовая снизу) поверх диагонального градиента из
+   четырёх остановок — и ещё две белые вуали на #root сверху. Семь слоёв,
+   пять из которых цветные. На этом фоне схема метро переставала быть самым
+   цветным объектом экрана, а розовый угол читался как бренд.
+
+   Стало: одна вертикальная растяжка в два тона нейтрали. Глубину даёт
+   не цвет фона, а тени и стекло карточек. */
 body {
-  background:
-    radial-gradient(circle at 0% 0%, var(--app-backdrop-rose), var(--app-backdrop-rose-soft)),
-    radial-gradient(circle at 100% 100%, var(--app-backdrop-blue), var(--app-backdrop-blue-soft)),
-    radial-gradient(circle at 15% 100%, var(--app-backdrop-cream), transparent 60%),
-    linear-gradient(
-      135deg,
-      var(--app-bg-1) 0%,
-      var(--app-bg-2) 32%,
-      var(--app-bg-3) 68%,
-      var(--app-bg-4) 100%
-    );
+  background: linear-gradient(180deg, var(--app-bg-1) 0%, var(--app-bg-2) 100%);
+  background-attachment: fixed;
 }
 
 #root {
-  background:
-    radial-gradient(circle at 0% 0%, var(--app-backdrop-veil-1), var(--app-backdrop-veil-2)),
-    radial-gradient(circle at 100% 100%, var(--app-backdrop-veil-3), var(--app-backdrop-veil-4));
   color: var(--color-text-primary);
 }
 
