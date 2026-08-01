@@ -1,25 +1,42 @@
 :root {
   color-scheme: light;
+
+  /* ------------------------------------------------------------------
+     Непрозрачные поверхности.
+
+     Собраны из тех же RGB-триплетов, что и «стекло», но с alpha = 1.
+     Нужны там, где сквозь панель не должна читаться схема метро:
+     модальные окна и панель ввода. Отдельные токены (а не сырые цвета)
+     — чтобы тёмная тема подхватывалась автоматически вместе с
+     --rgb-card / --rgb-card-tint.
+     ------------------------------------------------------------------ */
+  --color-surface-solid: rgb(var(--rgb-card));
+  --color-surface-solid-tint: rgb(var(--rgb-card-tint));
+  --color-surface-solid-gradient: linear-gradient(
+    135deg,
+    var(--color-surface-solid),
+    var(--color-surface-solid-tint)
+  );
 }
 
 body {
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 228, 241, 0.96), rgba(255, 228, 241, 0.4)),
-    radial-gradient(circle at 100% 100%, rgba(219, 234, 254, 0.96), rgba(219, 234, 254, 0.4)),
-    radial-gradient(circle at 15% 100%, rgba(254, 249, 195, 0.9), transparent 60%),
+    radial-gradient(circle at 0% 0%, var(--app-backdrop-rose), var(--app-backdrop-rose-soft)),
+    radial-gradient(circle at 100% 100%, var(--app-backdrop-blue), var(--app-backdrop-blue-soft)),
+    radial-gradient(circle at 15% 100%, var(--app-backdrop-cream), transparent 60%),
     linear-gradient(
       135deg,
-      var(--color-surface-lilac-50) 0%,
-      var(--color-surface-rose-200) 32%,
-      var(--color-surface-lilac-100) 68%,
-      var(--color-surface-cream-100) 100%
+      var(--app-bg-1) 0%,
+      var(--app-bg-2) 32%,
+      var(--app-bg-3) 68%,
+      var(--app-bg-4) 100%
     );
 }
 
 #root {
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.7)),
-    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.96), rgba(229, 231, 235, 0.75));
+    radial-gradient(circle at 0% 0%, var(--app-backdrop-veil-1), var(--app-backdrop-veil-2)),
+    radial-gradient(circle at 100% 100%, var(--app-backdrop-veil-3), var(--app-backdrop-veil-4));
   color: var(--color-text-primary);
 }
 
@@ -60,12 +77,19 @@ body {
 .route-result,
 .route-step,
 .update-banner,
-.install-guide-card,
 .app-splash-card {
   background: var(--color-surface-glass-strong);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-soft);
   box-shadow: var(--shadow-soft);
+}
+
+/* Карточка установки — модальное окно, а не «стекло»: сквозь неё не должны
+   читаться подписи станций (VQA-4). Фон полностью непрозрачный, декоративная
+   розовая подсветка лежит поверх непрозрачного слоя. */
+.install-guide-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-soft);
 }
 
 /* Более компактные элементы */
@@ -105,7 +129,7 @@ body {
   background: var(--color-surface-glass-strong);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border-soft);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.35);
+  box-shadow: 0 16px 40px rgba(var(--rgb-shadow-ink), 0.35);
   color: var(--color-text-primary);
 }
 
@@ -156,13 +180,14 @@ body {
 /* Карта и зум-контролы */
 .metro-map-wrapper {
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.96), rgba(229, 231, 235, 0.9));
+    radial-gradient(circle at 0% 0%, var(--map-canvas-veil-1), var(--map-canvas-veil-2));
 }
 
-/* Модалка установки PWA поверх лёгкого стеклянного диммера */
+/* Модалка установки PWA: подложка должна честно гасить схему, иначе карточка
+   читается как «полупрозрачная наклейка» поверх карты (VQA-4). */
 .install-guide-backdrop {
   background:
-    radial-gradient(circle at top, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.4));
+    radial-gradient(circle at top, rgba(var(--rgb-scrim), 0.58), rgba(var(--rgb-scrim), 0.76));
 }
 
 /* Мелкие штрихи */

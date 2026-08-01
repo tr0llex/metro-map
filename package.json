@@ -1,7 +1,7 @@
 {
-  "name": "windsurf-project-4",
+  "name": "kitty-metro",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,8 +15,14 @@
     "test": "vitest",
     "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/kitty-metro-icon-maskable.svg",
     "build:data": "cd go-layout-solver && go run . -csv ../new_map_source/metro.ru.csv -connections ../new_map_source/connections.json -yandex ../normalized/yandex_coords.json -editor_overrides ../normalized/editor_overrides.json -out ../normalized/fullGraph.json",
-    "extract:yandex": "npx ts-node --transpile-only scripts/extract_yandex_coords.ts",
-    "analyze:layout": "npx ts-node --transpile-only scripts/analyze_layout_advanced.ts"
+    "extract:yandex": "tsx scripts/extract_yandex_coords.ts",
+    "quality": "tsx scripts/quality/analyze.ts",
+    "quality:check": "tsx scripts/quality/analyze.ts --check",
+    "check:bundle": "node scripts/check-prod-bundle.mjs",
+    "deploy": "npm run build && bash scripts/deploy.sh",
+    "deploy:config": "bash scripts/deploy.sh --config",
+    "deploy:app": "npm run build && bash scripts/deploy.sh --app",
+    "deploy:dry": "bash scripts/deploy.sh --dry-run"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -24,11 +30,11 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
-    "@vite-pwa/assets-generator": "^1.0.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@vite-pwa/assets-generator": "^1.0.0",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
@@ -37,6 +43,7 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
+    "tsx": "^4.23.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",

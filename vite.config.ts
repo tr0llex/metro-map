@@ -1,7 +1,58 @@
- import { defineConfig } from 'vite'
+ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
+import {
+  ROUTING_GRAPH_ASSET_PATH,
+  encodeRoutingGraph,
+  type RoutingGraphSource,
+} from './src/metro/routingGraphPayload'
+
+/**
+ * Отдаёт воркеру маршрутизации компактный граф отдельным ассетом.
+ *
+ * Воркер собирается Vite в отдельный rollup-бандл, поэтому общий чанк с главным
+ * бандлом невозможен: статический импорт `normalized/fullGraph.json` в воркере
+ * укладывал те же ~123 КБ данных в сборку второй раз. Здесь из исходных данных
+ * собирается срез, нужный только для поиска маршрута (рёбра + id станций) —
+ * это ~20 КБ, которые воркер подгружает на старте.
+ *
+ * Имя ассета фиксированное (без хеша), чтобы воркер знал его на этапе сборки;
+ * актуальность обеспечивает Workbox — он кладёт файл в precache с revision-хешем
+ * (для этого файл лежит в корне сборки, см. ROUTING_GRAPH_ASSET_PATH).
+ */
+function routingGraphAssetPlugin(): Plugin {
+  const sourcePath = fileURLToPath(new URL('./normalized/fullGraph.json', import.meta.url))
+  const buildPayload = () => {
+    const raw = JSON.parse(readFileSync(sourcePath, 'utf8')) as RoutingGraphSource
+    return JSON.stringify(encodeRoutingGraph(raw))
+  }
+
+  return {
+    name: 'kitty-metro:routing-graph-asset',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const path = req.url?.split('?')[0]
+        if (path !== `/${ROUTING_GRAPH_ASSET_PATH}`) {
+          next()
+          return
+        }
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Cache-Control', 'no-store')
+        res.end(buildPayload())
+      })
+      server.watcher.add(sourcePath)
+    },
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: ROUTING_GRAPH_ASSET_PATH,
+        source: buildPayload(),
+      })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -13,6 +64,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      routingGraphAssetPlugin(),
       VitePWA({
         registerType: 'prompt',
         includeAssets: [
@@ -70,10 +122,14 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          // json обязателен: граф маршрутизации лежит отдельным ассетом
+          // assets/kitty-metro-routing-graph.json, и без него офлайн-режим
+          // не сможет построить ни одного маршрута.
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,json}'],
           cleanupOutdatedCaches: true,
-          clientsClaim: true,
-          skipWaiting: true,
+          // Никаких skipWaiting/clientsClaim: при registerType: 'prompt' новый SW
+          // должен ждать явного подтверждения пользователя в баннере обновления,
+          // иначе версия меняется посреди сессии и уже загруженные lazy-чанки дают 404.
         },
       }),
     ],
@@ -94,10 +150,7 @@ export default defineConfig(({ mode }) => {
 
             if (p.includes('/src/components/MetroMap')) return 'map'
 
-            if (
-              isEditorBuild &&
-              (p.includes('/src/components/HubEditorPanel') || p.includes('/src/editor/'))
-            ) {
+            if (isEditorBuild && p.includes('/src/components/HubEditorPanel')) {
               return 'editor'
             }
 

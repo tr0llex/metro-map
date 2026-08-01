@@ -121,11 +121,28 @@ export interface FullGraphTransferHub {
   rotationDeg?: number;
 }
 
+/**
+ * Аналитическая форма кольцевой линии, посчитанная оффлайн-солвером.
+ *
+ * Рантайм рисует кольца ctx.arc/ctx.ellipse ровно по этой форме и НЕ пересчитывает
+ * её по координатам станций: точки могут лежать на кривой неравномерно, и повторная
+ * подгонка по центроиду увела бы форму от данных.
+ */
+export type FullGraphRingShape =
+  | { kind: 'circle'; cx: number; cy: number; r: number }
+  | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number };
+
 export interface FullGraphExport {
   lines: FullGraphLine[];
   stations: FullGraphStation[];
   edges: FullGraphEdge[];
   transferHubs: FullGraphTransferHub[];
+  /**
+   * Формы кольцевых линий: ключ — числовой ID линии строкой ("5", "95", "97").
+   * Поле необязательное: для данных, собранных до появления проекции в солвере,
+   * рантайм откатывается на подгонку формы по станциям.
+   */
+  ringShapes?: Record<string, FullGraphRingShape>;
 }
 
 export interface EditorOverridesStation {
@@ -161,28 +178,28 @@ export interface EditorOverridesGrid {
   stepPx?: number;
 }
 
+/**
+ * Форма кольцевой линии в редакторских оверрайдах.
+ *
+ * Совпадает с контрактом `ringShapes` в fullGraph.json: ровно circle/ellipse.
+ * Раньше эллипс назывался `superellipse` и нёс `n`, `thickness`, `rotateDeg`,
+ * `clockwise`, `thetaShift` — но суперэллипс с n=2 это и есть эллипс, а
+ * остальные поля не читал никто: ни солвер, ни рантайм. Держать в формате
+ * то, что нельзя нарисовать, — прямой путь к расхождению данных и картинки.
+ */
 export type EditorOverridesRingShape =
   | {
       kind: 'circle';
       cx?: number;
       cy?: number;
       r?: number;
-      thickness?: number;
-      rotateDeg?: number;
-      clockwise?: boolean;
-      thetaShift?: number;
     }
   | {
-      kind: 'superellipse';
+      kind: 'ellipse';
       cx?: number;
       cy?: number;
       rx?: number;
       ry?: number;
-      n?: number;
-      thickness?: number;
-      rotateDeg?: number;
-      clockwise?: boolean;
-      thetaShift?: number;
     };
 
 export interface EditorOverridesStationLayoutParams {

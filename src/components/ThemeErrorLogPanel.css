@@ -1,0 +1,161 @@
+/* Журнал ошибок. Собственный файл стилей — см. ThemeToggle.css. */
+
+.theme-error-log-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+.theme-error-log {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(80vh, 560px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg, 1.25rem);
+  border: 1px solid rgba(var(--rgb-border-slate), 0.45);
+  background: linear-gradient(135deg, rgba(var(--rgb-card), 0.99), rgba(var(--rgb-card-tint), 0.99));
+  box-shadow: var(--shadow-strong);
+  color: var(--color-text-primary);
+}
+
+.theme-error-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.theme-error-log-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.theme-error-log-close {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: none;
+  border-radius: 9999px;
+  background: rgba(var(--rgb-border-slate), 0.2);
+  color: var(--color-text-secondary);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.theme-error-log-note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+
+.theme-error-log-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.theme-error-log-empty {
+  padding: 0.75rem 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.theme-error-log-item {
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(var(--rgb-border-slate), 0.3);
+  background: rgba(var(--rgb-border-slate), 0.1);
+}
+
+.theme-error-log-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+
+.theme-error-log-kind {
+  font-weight: 700;
+  color: var(--color-text-raspberry, var(--color-accent));
+}
+
+.theme-error-log-count {
+  margin-left: auto;
+}
+
+.theme-error-log-message,
+.theme-error-log-source {
+  margin-top: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.theme-error-log-source {
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+
+.theme-error-log-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.theme-error-log-button {
+  flex: 1;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(var(--rgb-border-slate), 0.45);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.theme-error-log-button--primary {
+  border-color: transparent;
+  background: var(--color-accent);
+  color: var(--color-surface-rose-highlight, #fff);
+}
+
+.theme-error-log-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Кнопка вызова журнала: живёт в шторке рядом с быстрыми чипами и появляется
+   только тогда, когда в журнале реально что-то есть. */
+.theme-error-log-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(var(--rgb-border-slate), 0.45);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.theme-error-log-trigger:focus-visible {
+  outline: 2px solid var(--color-accent-outline);
+  outline-offset: 2px;
+}

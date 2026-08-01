@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, RefObject } from 'react'
 import { createPortal } from 'react-dom'
+import { IconClose, IconSwap } from './icons.tsx'
 
 export type RouteSuggestionItem = {
   id: string
@@ -326,6 +327,8 @@ export function RouteForm({
           ref={fromInputRef}
           onChange={(e) => onFromChange(e.target.value)}
           onKeyDown={onFromKeyDown}
+          role="combobox"
+          aria-label="Станция отправления"
           aria-autocomplete="list"
           aria-controls={fromListboxId}
           aria-expanded={fromSuggestions.length > 0}
@@ -338,7 +341,7 @@ export function RouteForm({
             onClick={onClearFrom}
             aria-label="Очистить поле Откуда"
           >
-            ×
+            <IconClose />
           </button>
         )}
       </div>
@@ -349,7 +352,7 @@ export function RouteForm({
         onClick={onSwap}
         aria-label="Поменять местами станции Откуда и Куда"
       >
-        ⇅
+        <IconSwap />
       </button>
 
       <div className="bottom-field">
@@ -379,6 +382,8 @@ export function RouteForm({
           ref={toInputRef}
           onChange={(e) => onToChange(e.target.value)}
           onKeyDown={onToKeyDown}
+          role="combobox"
+          aria-label="Станция назначения"
           aria-autocomplete="list"
           aria-controls={toListboxId}
           aria-expanded={toSuggestions.length > 0}
@@ -391,7 +396,7 @@ export function RouteForm({
             onClick={onClearTo}
             aria-label="Очистить поле Куда"
           >
-            ×
+            <IconClose />
           </button>
         )}
       </div>
