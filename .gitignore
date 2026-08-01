@@ -31,3 +31,6 @@ go-layout-solver/metro_layout_solver
 
 # Локальные настройки запуска Claude Code
 .claude/
+
+# Артефакты ревью (скриншоты и пробники) — рабочий мусор, не версионируем
+.review-*
