@@ -11,7 +11,11 @@ export type MetricCategory = 'integrity' | 'hubs' | 'rings' | 'geometry' | 'labe
 /** Направление «лучше»: lower — меньше значит лучше, higher — больше значит лучше. */
 export type MetricDirection = 'lower' | 'higher'
 
-export type Verdict = 'PASS' | 'WARN' | 'FAIL'
+/**
+ * INFO — справочная величина: считается и печатается, но целью не является,
+ * в сводку и оценку не входит.
+ */
+export type Verdict = 'PASS' | 'WARN' | 'FAIL' | 'INFO'
 
 /** Конкретный виновник провала метрики — используется как список задач. */
 export interface Offender {
@@ -37,6 +41,11 @@ export interface MetricResult {
   fail: number
   direction: MetricDirection
   verdict: Verdict
+  /**
+   * Справочная величина: печатается, но целью не является и в сводку/оценку
+   * не входит. Для таких метрик `target`/`fail` не имеют смысла.
+   */
+  informational?: boolean
   /** Одно-два предложения: что видит пользователь, если метрика проваливается. */
   description: string
   offenders: Offender[]
@@ -149,7 +158,9 @@ export function makeMetric(
     target: round(input.target),
     fail: round(input.fail),
     offenders,
-    verdict: input.verdict ?? verdictFor(input.value, input.target, input.fail, input.direction),
+    verdict: input.informational
+      ? 'INFO'
+      : (input.verdict ?? verdictFor(input.value, input.target, input.fail, input.direction)),
   }
 }
 

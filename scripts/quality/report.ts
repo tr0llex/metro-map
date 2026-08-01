@@ -20,7 +20,7 @@ const dim = (s: string) => c('2', s)
 const bold = (s: string) => c('1', s)
 
 const paintVerdict = (v: Verdict) =>
-  v === 'PASS' ? green('PASS') : v === 'WARN' ? yellow('WARN') : red('FAIL')
+  v === 'PASS' ? green('PASS') : v === 'WARN' ? yellow('WARN') : v === 'INFO' ? dim('справочно') : red('FAIL')
 
 const pad = (s: string, n: number) => (s.length >= n ? s : s + ' '.repeat(n - s.length))
 const padLeft = (s: string, n: number) => (s.length >= n ? s : ' '.repeat(n - s.length) + s)
@@ -31,17 +31,24 @@ function fmt(v: number): string {
 }
 
 export function buildReport(source: string, metrics: MetricResult[]): QualityReport {
-  const pass = metrics.filter((m) => m.verdict === 'PASS').length
-  const warn = metrics.filter((m) => m.verdict === 'WARN').length
-  const fail = metrics.filter((m) => m.verdict === 'FAIL').length
+  // Справочные метрики (verdict === 'INFO') в сводку и оценку не входят.
+  const scored = metrics.filter((m) => m.verdict !== 'INFO')
+  const pass = scored.filter((m) => m.verdict === 'PASS').length
+  const warn = scored.filter((m) => m.verdict === 'WARN').length
+  const fail = scored.filter((m) => m.verdict === 'FAIL').length
   const verdict: Verdict = fail > 0 ? 'FAIL' : warn > 0 ? 'WARN' : 'PASS'
-  const score = metrics.length > 0 ? Math.round(((pass * 100 + warn * 50) / metrics.length) * 10) / 10 : 0
+  const score = scored.length > 0 ? Math.round(((pass * 100 + warn * 50) / scored.length) * 10) / 10 : 0
   return {
     // 2: labels.crossedByLines стала зонально-взвешенной, добавлена
     //    labels.crossedByLinesCenter — набор метрик изменился несовместимо.
-    schemaVersion: 2,
+    // 3: цель «октолинейность» (сходство со стилем Яндекс.Метро) заменена на цель
+    //    «однородность». geometry.octilinearity стала справочной (verdict 'INFO'),
+    //    geometry.segmentLengthSpread удалена как глобальная (её локальная замена —
+    //    geometry.spacingRhythm), добавлены geometry.spacingRhythm и
+    //    geometry.densityOutliers. Появился вердикт 'INFO' и поле informational.
+    schemaVersion: 3,
     source,
-    summary: { total: metrics.length, pass, warn, fail, verdict, score },
+    summary: { total: scored.length, pass, warn, fail, verdict, score },
     metrics,
   }
 }
@@ -70,13 +77,15 @@ export function printReport(report: QualityReport, showOffenders: boolean): void
       const value = `${fmt(m.value)}${m.unit === '%' ? '%' : ''}`
       const unitSuffix = m.unit === '%' ? '' : ` ${m.unit}`
       const goal =
-        m.direction === 'lower'
-          ? `≤${fmt(m.target)} / >${fmt(m.fail)}`
-          : `≥${fmt(m.target)} / <${fmt(m.fail)}`
+        m.verdict === 'INFO'
+          ? '—'
+          : m.direction === 'lower'
+            ? `≤${fmt(m.target)} / >${fmt(m.fail)}`
+            : `≥${fmt(m.target)} / <${fmt(m.fail)}`
       lines.push(
         `  ${pad(m.name, NAME_W)}${padLeft(value, VAL_W)}${dim(pad(unitSuffix, 5))}${pad(goal, TGT_W)}${paintVerdict(m.verdict)}`,
       )
-      if (showOffenders && m.verdict !== 'PASS' && m.offenders.length > 0) {
+      if (showOffenders && m.verdict !== 'PASS' && m.verdict !== 'INFO' && m.offenders.length > 0) {
         for (const o of m.offenders.slice(0, 5)) {
           lines.push(dim(`      • ${o.label}${o.detail ? ` — ${o.detail}` : ` (${fmt(o.value)})`}`))
         }
