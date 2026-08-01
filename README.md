@@ -1,18 +1,22 @@
 # Hello Kitty Метро Москва
 
-Розовое офлайн‑PWA для построения маршрутов в московском метро во вселенной Hello Kitty.
+Офлайн-PWA для построения маршрутов по московскому метро, оформленная в стиле Hello Kitty.
+Схема рисуется на Canvas по предрасчитанным координатам, маршрут считается на клиенте —
+приложение полностью работает без сети.
 
-Цель проекта — получить схему уровня Яндекс.Метро: октолинейная геометрия, аккуратные кольца и радиалы, корректные пересадочные хабы и удобный интерфейс маршрутизации, работающий полностью офлайн.
+Ориентир качества схемы — Яндекс.Метро: октолинейная геометрия, выпуклые кольца,
+радиалы-хорды, слитые пересадочные хабы.
 
 ---
 
-## 1. Технологический стек
+## 1. Стек
 
-- **Фронтенд:** React + TypeScript + Vite  
-- **Рендер карты:** Canvas 2D ([MetroMap.tsx](src/components/MetroMap.tsx))  
-- **PWA:** `vite-plugin-pwa` (авто‑обновляемый service worker, offline‑режим)  
-- **Данные метро:** новый датасет из `metro.ru.csv` и `connections.json`  
-- **Node‑скрипты:** TypeScript (ESM) для оффлайн‑пайплайна (`scripts/*.ts`)
+- **UI:** React 19 + TypeScript, сборка Vite 7
+- **Рендер схемы:** Canvas 2D — `src/components/MetroMap.tsx`
+- **PWA:** `vite-plugin-pwa` в режиме `generateSW` (`registerType: 'prompt'`)
+- **Маршрутизация:** собственный модуль `src/metro/`, тяжёлые расчёты вынесены в `src/routeWorker.ts`
+- **Пайплайн данных:** Go-решатель `go-layout-solver/` + вспомогательные TS-скрипты (запуск через `tsx`)
+- **Тесты:** Vitest, линт — ESLint 9 (flat config)
 
 ---
 
@@ -21,402 +25,200 @@
 ```bash
 npm install
 
-# Дев‑режим (Vite)
-npm run dev
+npm run dev          # дев-сервер
+npm run dev:pwa      # дев-сервер с включённым service worker
+npm run dev:editor   # редактор схемы (editor.html)
 
-# Сборка и предпросмотр продакшн‑версии
-npm run build
-npm run preview
+npm run build        # tsc -b && vite build -> dist/
+npm run preview      # предпросмотр продакшн-сборки
 
-# Пересобрать полный граф и схему
-npm run build:data        # пересобрать граф из новых данных
-npx ts-node --transpile-only scripts/analyze_layout_advanced.ts  # анализ качества схемы
+npm run lint         # ESLint
+npm test             # Vitest (watch); в CI — npx vitest run
 ```
 
-> **Важно:** UI использует предрасчитанные координаты `layoutX/layoutY` из [normalized/fullGraph.json](normalized/fullGraph.json). После любых правок layout‑алгоритма обязательно запускайте пересборку графа и анализ.
+Пересборка данных и проверка качества схемы:
+
+```bash
+npm run build:data     # пересобрать normalized/fullGraph.json (нужен Go)
+npm run quality        # анализ качества схемы -> normalized/quality_report.json
+npm run quality:check  # то же, но с ненулевым кодом выхода при регрессе (для CI)
+```
+
+> **Важно:** UI не пересчитывает layout. Он использует готовые `layoutX/layoutY`
+> из `normalized/fullGraph.json`. После любых правок Go-решателя обязательно
+> запускайте `npm run build:data`, а затем `npm run quality`.
 
 ---
 
-## 3. Пайплайн данных метро
+## 3. Пайплайн данных
 
-### 3.1. Источники данных
+```
+new_map_source/metro.ru.csv      ─┐
+new_map_source/connections.json  ─┼─> go-layout-solver ─> normalized/fullGraph.json ─> UI
+normalized/yandex_coords.json    ─┤
+normalized/editor_overrides.json ─┘
+```
 
-**Новый пайплайн (текущий):**
+### 3.1. Источники
 
-- **`new_map_source/metro.ru.csv`** — основной датасет со всеми линиями и станциями метро и МЦК
-  - Содержит: `cityId`, `cityName`, `lineId`, `lineName`, `lineColorHex`, `stationNumericId`, `stationName`, `lat`, `lng`, `order`
-  - Включает все линии метро, МЦК и БКЛ
-  - Исключает МЦД (D1-D4)
-  
-- **`new_map_source/connections.json`** — данные о всех пересадках между станциями
-  - Содержит: типы соединений (`interchange`, `cross_platform`, `mcc`, `out-of-station`)
-  - Включает все типы пересадок, включая `out-of-station`
+- **`new_map_source/metro.ru.csv`** — станции и линии: `cityId`, `cityName`, `lineId`, `lineName`,
+  `lineColorHex`, `stationNumericId`, `stationName`, `lat`, `lng`, `order`.
+  Покрытие: метро Москвы + МЦК (включая БКЛ). МЦД (D1–D4) исключены.
+- **`new_map_source/connections.json`** — пересадки, включая `interchange`, `cross_platform`,
+  `mcc`, `out-of-station`.
+- **`normalized/yandex_coords.json`** — референсные координаты со схемы Яндекса; получаются
+  скриптом `scripts/extract_yandex_coords.ts` (`npm run extract:yandex`) из сохранённого
+  `new_map_source/yandex_metro.html`.
+- **`normalized/editor_overrides.json`** — ручные правки из редактора схемы
+  (координаты станций, подписи, параметры хабов и рёбер).
 
-### 3.2. Построение полного графа
+### 3.2. Решатель
 
-- **Скрипт:** Go-решатель [go-layout-solver](go-layout-solver) (см. `go-layout-solver/main.go`)  
-- **Вход:** `new_map_source/metro.ru.csv`, `new_map_source/connections.json`  
-- **Выход:** [normalized/fullGraph.json](normalized/fullGraph.json)
+`go-layout-solver/` (Go) читает всё перечисленное и пишет `normalized/fullGraph.json`.
+Точная последовательность проходов живёт в коде — `main.go`, `graph.go`, `graph_overrides.go`;
+здесь важен только порядок по смыслу:
 
-**Основные шаги:**
+1. фильтрация данных (только Москва, без МЦД) и проекция `lat/lng` в плоскость;
+2. сборка линий, станций, рёбер и пересадочных хабов;
+3. геометрия колец (Кольцевая, МЦК, БКЛ), включая канонические формы из оверрайдов;
+4. снап станций хаба в одну точку с приоритетом кольцевых линий;
+5. раздвижение станций внутри кольца и сглаживание некольцевых линий;
+6. октолинейные коридоры и итеративная оптимизация позиций;
+7. финальное масштабирование карты.
 
-1. **Загрузка данных** из CSV и JSON
-2. **Фильтрация** — только Москва, исключение МЦД
-3. **Проекция координат** — `lat/lng` → `layoutX/layoutY` (Web Mercator проекция)
-4. **Построение линий** — создание `FullGraphLine` для каждой линии
-5. **Построение станций** — создание `FullGraphStation` с координатами
-6. **Построение рёбер** — связи между соседними станциями на линиях
-7. **Построение хабов** — группировка станций по пересадкам из `connections.json`
-8. **Layout оптимизация** — последовательность алгоритмов:
-   - Построение колец (Кольцевая, МЦК, БКЛ) с увеличенными радиусами
-   - Снап всех хабов к кольцевым линиям (приоритет)
-   - Раздвижение станций внутри кольцевой линии
-   - Сглаживание не-кольцевых линий
-   - Итеративная оптимизация позиций станций
-   - Финальное масштабирование карты
+Параметры оптимизатора — `normalized/best_params.json`.
+Ручные канонические позиции и формы колец — `normalized/editor_overrides.json`.
 
-**Структуры данных:**
+### 3.3. Формат `fullGraph.json`
 
 ```ts
-interface FullGraphLine {
-  id: number
-  title: string
-  colorHex: string
-  stationIds: string[]
-}
+interface FullGraphLine { id: number; title: string; colorHex: string; stationIds: string[] }
 
 interface FullGraphStation {
-  id: string
-  title: string
+  id: string; title: string
   lineNumericId: number | null
   isTransfer: boolean
   hubId?: string
-  layoutX?: number
-  layoutY?: number
-  lat?: number
-  lon?: number
+  layoutX?: number; layoutY?: number
+  lat?: number; lon?: number
 }
 
 interface FullGraphEdge {
-  fromStationId: string
-  toStationId: string
+  fromStationId: string; toStationId: string
   lineNumericId?: number
   medianTravelSeconds: number
   isTransfer?: boolean
 }
 
-interface FullGraphTransferHub {
-  id: string
-  stationIds: string[]
-  minTransferSeconds: number
-}
+interface FullGraphTransferHub { id: string; stationIds: string[]; minTransferSeconds: number }
 ```
 
-### 3.3. Особенности нового пайплайна
-
-- ✅ **Все станции и линии** метро и МЦК включены
-- ✅ **Все пересадки** обработаны, включая `out-of-station`
-- ✅ **Все хабы компактные** — станции в одном хабе принудительно слипаются
-- ✅ **Кольца выпуклые** — Кольцевая, МЦК и БКЛ всегда выпуклые многоугольники
-- ✅ **Координаты из данных** — используется реальная проекция координат
+Актуальные размеры графа (линии / станции / рёбра / хабы) здесь намеренно не продублированы —
+они меняются вместе с данными. Смотрите вывод `npm run quality`.
 
 ---
 
-## 4. Алгоритм построения схемы
+## 4. Рантайм (`src/`)
 
-### 4.1. Порядок операций
-
-1. **Построение колец** (`enforceRingConvexity`)
-   - Кольцевая линия (id=5): радиус ×7
-   - МЦК (id=95): радиус ×6
-   - БКЛ (id=97): радиус ×7.5
-   - Все станции кольца размещаются на окружности
-
-2. **Снап всех хабов** (`snapAllTransferHubs`)
-   - Приоритет кольцевым линиям
-   - Все станции в хабе получают координаты якорной станции
-   - Результат: все хабы компактные (0px расстояние между станциями)
-
-3. **Раздвижение внутренних станций** (`explodeInnerStationsAroundRing`)
-   - Агрессивное раздвижение станций внутри Кольцевой линии
-   - Фактор раздвижения: 7-13 (настраивается)
-   - Зона раздвижения: до 95-98% радиуса кольца
-
-4. **Сглаживание линий** (`smoothNonRingLines`)
-   - Детекция резких поворотов (<135°)
-   - Агрессивное сглаживание для резких углов
-   - Многократные итерации (12-20)
-
-5. **Оптимизация позиций** (`optimizeStationPositions`)
-   - Раздвижение слишком близких станций
-   - Минимальное расстояние: 50px
-   - Критические зоны: <30px (агрессивное раздвижение), <15px (экстремальное)
-   - Многократные итерации (50-60)
-
-6. **Финальное масштабирование** (`scaleEntireMap`)
-   - Целевой размер: 2200×1700px
-   - Отступы: 150px
-   - Сохранение пропорций
-
-### 4.2. Параметры алгоритма
-
-**Текущие оптимальные параметры** (найдены автоматическим поиском):
-
-```json
-{
-  "koltsevayaRadiusScale": 7,
-  "mccRadiusScale": 6,
-  "bklRadiusScale": 7.5,
-  "innerMaxRatio": 0.55,
-  "innerBorderRatio": 0.95,
-  "innerExplosionFactor": 7,
-  "minDistance": 50,
-  "criticalDistance": 30,
-  "extremeDistance": 15,
-  "smoothingIterations1": 12,
-  "optimizationIterations": 50,
-  "smoothingIterations2": 10
-}
-```
-
-См. [normalized/best_params.json](normalized/best_params.json) для актуальных значений.
+- **`main.tsx`** — bootstrap приложения; **`editor-main.tsx`** — точка входа редактора (`editor.html`).
+- **`App.tsx`** — состояние «Откуда/Куда», вызов маршрутизатора, передача подсветки в карту,
+  режим редактора.
+- **`routeWorker.ts`** — расчёт маршрутов в Web Worker, чтобы не блокировать рендер.
+- **`metro/types.ts`** — типы линий, станций, рёбер, хабов и результата маршрута.
+- **`metro/fullGraph.ts`** — типизированный импорт `normalized/fullGraph.json`.
+- **`metro/graphCore.ts`** — низкоуровневая работа с графом: ключи рёбер, список смежности,
+  поиск кратчайшего пути, сборка `RouteResult`.
+- **`metro/routing.ts`** — публичный API: `findShortestRouteFullGraph`,
+  `findRouteAlternativesFullGraph`; поддерживает оверрайды и дополнительные рёбра редактора.
+- **`metro/layoutEngine.ts`** — fallback-layout на случай, если у станций нет `layoutX/layoutY`.
+- **`components/MetroMap.tsx`** — Canvas-схема: линии, станции, хабы, коллизионное размещение
+  подписей, pan/zoom мышью и тачем, выбор станции по клику, drag & drop в режиме редактора.
+- **`components/`** — остальной UI: форма маршрута, шторка деталей, шапка, сплэш,
+  баннер обновления PWA, карточка установки, панель редактора хабов.
+- **`public/sw.js`** — клинер старых регистраций `/sw.js`; не удалять до срока,
+  указанного в `docs/DEPLOY.md`.
 
 ---
 
-## 5. Система оптимизации параметров
+## 5. Качество схемы
 
-### 5.1. Анализ качества схемы
-
-**Скрипт:** [scripts/analyze_layout_advanced.ts](scripts/analyze_layout_advanced.ts)
-
-**Метрики:**
-
-- **Кольца:**
-  - Радиус каждого кольца
-  - Эксцентриситет (отклонение от идеальной окружности)
-  
-- **Расстояния:**
-  - Среднее расстояние между станциями
-  - Минимальное расстояние
-  - Количество близких пар (<40px, <20px)
-  - Плотность внутри и снаружи кольца
-
-- **Геометрия:**
-  - Количество резких поворотов (>120°)
-  - Средний и максимальный углы поворота
-  - Октолинейность (количество идеальных сегментов)
-  - Гладкость каждой линии
-
-- **Хабы:**
-  - Компактность каждого хаба (расстояние между станциями)
-  - Количество некомпактных хабов
-
-- **Общий скоринг** — взвешенная сумма всех метрик
-
-**Использование:**
+Метрики считает `scripts/quality/analyze.ts`:
 
 ```bash
-npx ts-node --transpile-only scripts/analyze_layout_advanced.ts
+npm run quality         # человекочитаемый отчёт + normalized/quality_report.json
+npm run quality:check   # режим CI: ненулевой код выхода при нарушении порогов
 ```
 
-Результаты сохраняются в [normalized/layout_metrics.json](normalized/layout_metrics.json).
+Что именно проверяется и какие пороги приняты — в [`docs/QUALITY.md`](docs/QUALITY.md).
+Сырой дамп геометрических метрик предыдущего поколения лежит в `normalized/layout_metrics.json`.
+
+**Числовые значения метрик в этом README сознательно не приводятся.** Любая зафиксированная
+здесь цифра протухает после первой же пересборки данных — единственный источник правды
+это `npm run quality`.
+
+Открытые направления работы по схеме перечислены в [`ROADMAP.md`](ROADMAP.md) —
+там же указано, какой метрикой мерить каждое из них.
 
 ---
 
-## 6. Архитектура рантайма (`src/`)
+## 6. Где что лежит
 
-### 6.1. Точка входа и оболочка
+```
+new_map_source/     исходные данные (CSV, connections.json, HTML-схема Яндекса)
+go-layout-solver/   Go-решатель: строит граф и layout
+normalized/         производные данные: fullGraph.json, quality_report.json, оверрайды, параметры
+scripts/            extract_yandex_coords.ts (парсер схемы Яндекса)
+scripts/quality/    анализатор качества схемы
+src/                приложение (React + Canvas) и модуль метро
+public/             иконки, favicon, легаси sw.js
+docs/               DEPLOY.md, QUALITY.md, LICENSING.md
+.github/workflows/  CI
+```
 
-- `src/main.tsx` — bootstrap React/Vite  
-- `src/index.css` — базовые стили  
-- `src/App.tsx` — главный компонент:
-  - управляет выбором станций «Откуда/Куда»
-  - вызывает `findRouteAlternativesFullGraph` из `routing.ts` (альтернативные маршруты по полному графу)
-  - передаёт `routeStationIds` и `routeEdgeKeys` в [MetroMap](src/components/MetroMap.tsx) для подсветки маршрута
-  - включает режим редактора для ручной правки координат, параметров хабов и рёбер
-
-### 6.2. Модуль метро (`src/metro`)
-
-- **`types.ts`** — базовые типы для линий, станций, рёбер, хабов, маршрутов
-- **`fullGraph.ts`** — импорт `normalized/fullGraph.json`
-- **`graphCore.ts`** — низкоуровневые функции работы с графом (`undirectedEdgeKey`, `buildAdjacencyListFromFullGraph`, поиск кратчайшего пути, сборка `RouteResult`). Константа `TRANSFER_PENALTY_MINUTES` теперь равна `0` — искусственный штраф за пересадки по умолчанию отключён.
-- **`routing.ts`** — высокоуровневый API маршрутизатора (`findShortestRouteFullGraph`, `findRouteAlternativesFullGraph`), использует `graphCore` и полный граф, поддерживает оверрайды рёбер и дополнительные рёбра редактора.
-- **`layoutEngine.ts`** — fallback‑алгоритм layout'а (если нет `layoutX/layoutY`)
-
-### 6.3. Компонент MetroMap (Canvas‑схема)
-
-**Файл:** [src/components/MetroMap.tsx](src/components/MetroMap.tsx)
-
-**Функциональность:**
-
-- Загрузка `fullGraphLines` и `fullGraphStations`
-- Построение `positionedStations` из `layoutX/layoutY` или fallback
-- Рендер на Canvas:
-  - Линии — полилинии через все станции линии (кольца замкнуты)
-  - Маршрут — подсветка пути по `routeEdgeKeys`
-  - Станции — кружки с обводкой в цвет линии
-  - Подписи — размещение с коллизионным алгоритмом
-- Интерактив:
-  - Pan/zoom (мышь, колесо, touch)
-  - Клик на станцию для выбора
-  - Режим редактора — drag & drop станций и подписей
-- Viewport:
-  - Автоматическое центрирование и масштабирование при загрузке
-  - Ограничение pan/zoom границами карты
-  - Zoom относительно курсора мыши
+Манифест PWA и имя service worker генерируются `vite-plugin-pwa` из секции `manifest`
+в `vite.config.ts` — отдельного `.webmanifest` в `public/` нет и заводить его не нужно.
 
 ---
 
-## 7. Текущее состояние проекта
+## 7. Рабочие сценарии
 
-### 7.1. Статистика данных
+**Поменялись данные метро** (`metro.ru.csv` / `connections.json`)
+или **алгоритм layout** (`go-layout-solver/*.go`):
 
-Актуальные числа линий, станций, рёбер и хабов берутся из [normalized/fullGraph.json](normalized/fullGraph.json) и зависят от входных данных `metro.ru.csv`/`connections.json` и параметров layout‑алгоритма. Сейчас в графе описана полная сеть метро Москвы и МЦК (МЦД по‑прежнему исключены).
+```bash
+npm run build:data && npm run quality
+```
 
-### 7.2. Текущие метрики качества
+затем визуальная проверка: центр схемы, три кольца, 5–10 крупных хабов.
 
-**Последний анализ** ([normalized/layout_metrics.json](normalized/layout_metrics.json)) показывает, что:
+**Поменялись ручные правки в редакторе:** экспортировать `normalized/editor_overrides.json`
+из `npm run dev:editor`, затем те же две команды.
 
-- ✅ **Кольца:**
-  - Кольцевая: радиус ≈275px, эксцентриситет ≈5.9%
-  - МЦК: радиус ≈496px, эксцентриситет ≈11.7%
-  - БКЛ: радиус ≈540px, эксцентриситет ≈16.4% (нужно улучшать)
+**Перед коммитом:**
 
-- ⚠️ **Расстояния:**
-  - Минимальное расстояние между станциями: ≈0.9px (критично мало по сравнению с целевыми 50px)
-  - Близких пар (`closePairsCount`): 121
-  - Очень близких пар (`veryClosePairsCount`): 76
+```bash
+npx tsc -b && npm run lint && npx vitest run && npm run build
+```
 
-- ✅ **Геометрия линий:**
-  - Резких поворотов (`sharpTurnsCount`): 9 (в пределах целевого <10)
-  - Средний угол поворота ≈22.7°, максимальный ≈179.3°
-
-- ⚠️ **Хабы и компактность:**
-  - Часть хабов остаётся не снапнутой (`hubsNotSnapped`: 22)
-
-- **Общий скоринг:** `overallScore ≈ 1228` (см. `layout_metrics.json` для точного значения и деталей по линиям/хабам).
-
-### 7.3. Известные проблемы
-
-1. **Слишком близкие станции** — минимальное расстояние < 1px вместо желаемых 50px; много «очень близких» пар.
-2. **Неидеальные кольца (особенно БКЛ)** — эксцентриситет БКЛ значительно выше целевых 5%, МЦК тоже требует доработки.
-3. **Частично неснапнутые хабы** — `hubsNotSnapped` > 0, часть пересадок визуально выглядит разорванной.
-4. **Нерегулярное распределение станций** — центр остаётся перегруженным по плотности, на периферии есть провалы (см. `innerRingDensity`/`outerRingDensity`).
-
-### 7.4. Приоритетные задачи
-
-**HIGH:**
-- Увеличить минимальное расстояние между станциями до 50px и сократить число очень близких пар
-- Улучшить компактность хабов (добиться `hubsNotSnapped = 0`)
-- Снизить эксцентриситет БКЛ и МЦК до целевых значений
-- Сохранить/поддерживать число резких поворотов на уровне <10 и улучшать гладкость линий
-
-**MEDIUM:**
-- Продолжить итеративную оптимизацию параметров
-- Улучшить алгоритм раздвижения станций
-- Добавить больше итераций сглаживания
-
-**LOW:**
-- Полировка UI
-- Hello Kitty стиль
-- Дополнительные фичи
+Тот же набор гоняет CI — `.github/workflows/ci.yml`.
 
 ---
 
-## 8. Файловая структура
+## 8. Деплой
 
-### 8.1. Данные
-
-- **`new_map_source/`**
-  - `metro.ru.csv` — основной датасет станций и линий
-  - `connections.json` — данные о пересадках
-
-- **`normalized/`**
-  - `fullGraph.json` — полный граф с координатами (основной файл для приложения)
-  - `layout_metrics.json` — метрики качества схемы
-  - `best_params.json` — лучшие найденные параметры оптимизации
-
-### 8.2. Скрипты
-
-- **`go-layout-solver/`** — Go-решатель построения графа из `metro.ru.csv` и `connections.json`
-- **`scripts/extract_yandex_coords.ts`** — парсер HTML Яндекс-схемы в `normalized/yandex_coords.json`
-- **`scripts/analyze_layout_advanced.ts`** — расширенный анализ качества схемы
-
-### 8.3. Исходный код
-
-- **`src/components/MetroMap.tsx`** — Canvas‑компонент карты
-- **`src/metro/`** — модули данных и логики метро
-- **`src/App.tsx`** — главный компонент приложения
-
-### 8.4. Документация
-
-- **`README.md`** (этот файл) — основная документация
-- **`ROADMAP.md`** — единственный актуальный роадмап проекта
-- **`OPTIMIZATION_SYSTEM.md`** — deprecated (см. `ROADMAP.md`)
-- **`ALGORITHM_IMPROVEMENTS.md`** — deprecated (см. `ROADMAP.md`)
-- **`METRO_STYLE_BACKLOG.md`** — deprecated (см. `ROADMAP.md`)
+См. [`docs/DEPLOY.md`](docs/DEPLOY.md): сборка, конфигурация Netlify, правила кэширования
+для своего nginx (хешированные ассеты, service worker, манифест, SPA-фоллбэк).
 
 ---
 
-## 9. Рабочий процесс разработки
+## 9. Лицензия и бренд
 
-### 9.1. Изменение данных
-
-1. Обновить `new_map_source/metro.ru.csv` или `new_map_source/connections.json`
-2. Запустить пересборку:
-   ```bash
-   npm run build:data
-   ```
-3. Проверить результаты:
-   ```bash
-   npx ts-node --transpile-only scripts/analyze_layout_advanced.ts
-   ```
-
-### 9.2. Изменение алгоритма layout
-
-1. Изменить параметры в Go-решателе (`go-layout-solver/layout.go` и/или `go-layout-solver/graph.go`)
-2. Пересобрать граф:
-   ```bash
-   npm run build:data
-   ```
-3. Проанализировать:
-   ```bash
-   npx ts-node --transpile-only scripts/analyze_layout_advanced.ts
-   ```
----
-
-## 10. Дорожная карта
-Единственный актуальный роадмап проекта: **`ROADMAP.md`**.
+Лицензии у проекта пока нет — из-за использования имени и айдентики Hello Kitty
+(товарный знак Sanrio). Разбор рисков и вариантов — в [`docs/LICENSING.md`](docs/LICENSING.md).
+До решения вопроса с брендом проект не стоит публиковать под открытой лицензией.
 
 ---
 
-## 11. Спецификация схемы (ТЗ)
+## 10. Планы
 
-### 11.1. Цели и принципы
-
-Визуальный ориентир — **Яндекс.Метро**.
-
-**Принципы:**
-
-- **Октолинейность:** предпочтение углам 0°, 45°, 90°, 135°
-- **Реальные кольца:** Кольцевая, МЦК и БКЛ — выпуклые многоугольники
-- **Радиалы как хорды:** пересекают кольца в точках пересадок
-- **Корректные хабы:** несколько станций в одном узле сливаются визуально
-- **Минимум поворотов:** избегать резких углов (>120°)
-- **Читаемость:** минимум пересечений, читаемые подписи
-- **Минимальное расстояние:** станции не ближе 50px
-
-### 11.2. Текущие ограничения
-
-- Минимальное расстояние: 50px (желательно, но не всегда достигается)
-- Резкие повороты: <10 (цель)
-- Эксцентриситет колец: <5% (для Кольцевой и МЦК достигнуто)
-
----
-
-## 12. Детальный беклог и требования к приложению
-Детальный беклог перенесён в **`ROADMAP.md`**.
-
----
-
-Этот README — единая точка входа: здесь собраны архитектура, пайплайн данных и спецификация схемы. Дорожная карта и планы работ ведутся в `ROADMAP.md`.
+Единственный актуальный роадмап — [`ROADMAP.md`](ROADMAP.md).

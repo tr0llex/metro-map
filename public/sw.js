@@ -1,5 +1,12 @@
-// Legacy service worker cleanup for old /sw.js registrations
-// This worker forces network requests, clears its caches, and unregisters itself
+// Legacy service worker cleanup for old /sw.js registrations.
+// This worker forces network requests, clears its caches, and unregisters itself.
+//
+// НЕ УДАЛЯТЬ до 2027-02-01 (ориентир — 6 месяцев после релиза 1.0.0).
+// Актуальный service worker генерируется vite-plugin-pwa и называется
+// /kitty-metro-sw.js. Этот файл нужен только для браузеров, где ещё
+// зарегистрирован старый /sw.js: он снимает регистрацию сам с себя.
+// Пока файл раздаётся, старые установки самоочищаются.
+// Подробности и правила кэширования — docs/DEPLOY.md.
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()

@@ -1,0 +1,220 @@
+{
+  "probes": [
+    {
+      "probe": "scroll",
+      "profile": "mobile",
+      "metrics": {
+        ".bottom-sheet": {
+          "clientHeight": 658,
+          "scrollHeight": 1488,
+          "scrollTopBefore": 0,
+          "overflowY": "auto",
+          "cssHeight": "658.312px",
+          "maxHeight": "none",
+          "scrollTopAfter": 830
+        },
+        ".bottom-sheet-inner": {
+          "clientHeight": 1486,
+          "scrollHeight": 1486,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "1488.06px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".bottom-route-details": {
+          "clientHeight": 1264,
+          "scrollHeight": 1264,
+          "scrollTopBefore": 0,
+          "overflowY": "auto",
+          "cssHeight": "1263.58px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result": {
+          "clientHeight": 1247,
+          "scrollHeight": 1247,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "1217.59px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result-scroll": {
+          "clientHeight": 1218,
+          "scrollHeight": 1218,
+          "scrollTopBefore": 0,
+          "overflowY": "auto",
+          "cssHeight": "1205.59px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        "viewportH": 844,
+        "lastStepBottom": 1622,
+        "stepsCount": 5
+      }
+    },
+    {
+      "probe": "scroll-after-wheel",
+      "profile": "mobile",
+      "metrics": {
+        ".bottom-sheet": {
+          "clientHeight": 658,
+          "scrollHeight": 1488,
+          "scrollTopBefore": 830,
+          "overflowY": "auto",
+          "cssHeight": "658.312px",
+          "maxHeight": "none",
+          "scrollTopAfter": 830
+        },
+        ".bottom-sheet-inner": {
+          "clientHeight": 1486,
+          "scrollHeight": 1486,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "1488.06px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".bottom-route-details": {
+          "clientHeight": 1264,
+          "scrollHeight": 1264,
+          "scrollTopBefore": 0,
+          "overflowY": "auto",
+          "cssHeight": "1263.58px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result": {
+          "clientHeight": 1247,
+          "scrollHeight": 1247,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "1217.59px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result-scroll": {
+          "clientHeight": 1218,
+          "scrollHeight": 1218,
+          "scrollTopBefore": 0,
+          "overflowY": "auto",
+          "cssHeight": "1205.59px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        "viewportH": 844,
+        "lastStepBottom": 792,
+        "stepsCount": 5
+      }
+    },
+    {
+      "probe": "scroll",
+      "profile": "desktop",
+      "metrics": {
+        ".bottom-sheet": {
+          "clientHeight": 790,
+          "scrollHeight": 790,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "790.391px",
+          "maxHeight": "790.4px",
+          "scrollTopAfter": 0
+        },
+        ".bottom-sheet-inner": {
+          "clientHeight": 788,
+          "scrollHeight": 788,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "790.391px",
+          "maxHeight": "100%",
+          "scrollTopAfter": 0
+        },
+        ".bottom-route-details": {
+          "clientHeight": 614,
+          "scrollHeight": 614,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "614.469px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result": {
+          "clientHeight": 598,
+          "scrollHeight": 598,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "568.484px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result-scroll": {
+          "clientHeight": 477,
+          "scrollHeight": 1218,
+          "scrollTopBefore": 0,
+          "overflowY": "auto",
+          "cssHeight": "465.141px",
+          "maxHeight": "none",
+          "scrollTopAfter": 741
+        },
+        "viewportH": 900,
+        "lastStepBottom": 1562,
+        "stepsCount": 5
+      }
+    },
+    {
+      "probe": "scroll-after-wheel",
+      "profile": "desktop",
+      "metrics": {
+        ".bottom-sheet": {
+          "clientHeight": 790,
+          "scrollHeight": 790,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "790.391px",
+          "maxHeight": "790.4px",
+          "scrollTopAfter": 0
+        },
+        ".bottom-sheet-inner": {
+          "clientHeight": 788,
+          "scrollHeight": 788,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "790.391px",
+          "maxHeight": "100%",
+          "scrollTopAfter": 0
+        },
+        ".bottom-route-details": {
+          "clientHeight": 614,
+          "scrollHeight": 614,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "614.469px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result": {
+          "clientHeight": 598,
+          "scrollHeight": 598,
+          "scrollTopBefore": 0,
+          "overflowY": "visible",
+          "cssHeight": "568.484px",
+          "maxHeight": "none",
+          "scrollTopAfter": 0
+        },
+        ".route-result-scroll": {
+          "clientHeight": 477,
+          "scrollHeight": 1218,
+          "scrollTopBefore": 741,
+          "overflowY": "auto",
+          "cssHeight": "465.141px",
+          "maxHeight": "none",
+          "scrollTopAfter": 741
+        },
+        "viewportH": 900,
+        "lastStepBottom": 821,
+        "stepsCount": 5
+      }
+    }
+  ]
+}
