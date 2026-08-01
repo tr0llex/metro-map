@@ -36,6 +36,14 @@ import { ThemeStationHint } from './components/ThemeStationHint.tsx'
 import type { StationHint, StationHintKind } from './components/ThemeStationHint.tsx'
 import { ThemeErrorLogPanel } from './components/ThemeErrorLogPanel.tsx'
 import { copyTextToClipboard } from './utils/clipboard.ts'
+import { normalizeStationText, rankStationCandidates } from './utils/stationSearch.ts'
+import type { StationSearchCandidate } from './utils/stationSearch.ts'
+import {
+  formatTransfersCount,
+  formatTransfersForAria,
+  formatVariantsCount,
+  pluralRu,
+} from './utils/plural.ts'
 import { readErrorLog, subscribeErrorLog } from './utils/errorLog.ts'
 import type { ErrorLogEntry } from './utils/errorLog.ts'
 import { useRegisterSW } from 'virtual:pwa-register/react'
@@ -65,6 +73,13 @@ const SPLASH_MIN_DURATION_MS = 1200
 // таймаута индикатор загрузки висел бы вечно.
 const ROUTE_REQUEST_TIMEOUT_MS = 9000
 
+// Первый запрос — особый случай: воркер отвечает только после загрузки графа
+// (отдельный ассет, ~сотни килобайт), и на медленной сети или холодном старте
+// PWA девяти секунд не хватает. Считать таймаут от готовности графа нельзя —
+// воркер о ней не сообщает, — поэтому первому запросу даём отдельный бюджет и
+// отдельный текст ошибки: «данные ещё грузятся» вместо «расчёт завис».
+const ROUTE_FIRST_REQUEST_TIMEOUT_MS = 30000
+
 // Обычный расчёт укладывается в единицы миллисекунд, и если показывать индикатор
 // сразу, пользователь видит не «загрузку», а мигание скелетона на каждый запрос.
 // Поэтому индикатор появляется, только если расчёт реально затянулся...
@@ -73,6 +88,10 @@ const ROUTE_LOADING_SHOW_DELAY_MS = 220
 const ROUTE_LOADING_MIN_VISIBLE_MS = 420
 
 const ONBOARDING_HINT_STORAGE_KEY = 'kitty-metro-onboarding-hint-seen'
+
+// Сколько подсказок показываем. Лимит применяется ПОСЛЕ ранжирования, поэтому
+// его можно держать выше прежних шести: нужная станция уже наверху списка.
+const SUGGESTIONS_LIMIT = 8
 
 // --- Тап по станции ---------------------------------------------------------
 // Первый тап ставит «Откуда», второй — «Куда» (стандарт Яндекс.Метро и Google
@@ -212,6 +231,9 @@ function App() {
   const [isRouteLoadingVisible, setIsRouteLoadingVisible] = useState(false)
   const routeLoadingShownAtRef = useRef<number | null>(null)
   const [shareHint, setShareHint] = useState<string | null>(null)
+  // Текст для скринридера: и «строим», и готовый результат живут в одной
+  // aria-live-области, иначе результат расчёта не объявляется вовсе.
+  const [routeAnnouncement, setRouteAnnouncement] = useState('')
   const [isRouteSheetOpen, setIsRouteSheetOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fromFixed, setFromFixed] = useState(false)
@@ -263,7 +285,6 @@ function App() {
   const sheetMaxOffsetPxRef = useRef(0)
   const sheetMinHeightPxRef = useRef(0)
   const sheetOpenHeightPxRef = useRef(0)
-  const savedRouteCounterRef = useRef(1)
 
   const routeWorkerRef = useRef<Worker | null>(null)
   const routeWorkerRequestIdRef = useRef(0)
@@ -282,6 +303,9 @@ function App() {
 
   // Таймер «воркер не ответил» для текущего запроса маршрута.
   const routeRequestTimeoutRef = useRef<number | null>(null)
+  // Ответил ли воркер хоть раз: пока нет — граф ещё может грузиться, и запросу
+  // положен увеличенный таймаут (см. ROUTE_FIRST_REQUEST_TIMEOUT_MS).
+  const hasWorkerRespondedRef = useRef(false)
   // Параметры последнего запроса — чтобы кнопка «Повторить» могла его переиграть.
   const lastRouteRequestRef = useRef<{ fromId: string; toId: string } | null>(null)
   const shareHintTimeoutRef = useRef<number | null>(null)
@@ -1121,12 +1145,21 @@ function App() {
           }
         }
 
-        setMapVisibleInsets((prev: typeof mapVisibleInsets) => ({
-          top,
-          right,
-          bottom: prev.bottom,
-          left,
-        }))
+        // Возвращаем ПРЕЖНИЙ объект, если ничего не изменилось.
+        // React сравнивает состояние по Object.is, поэтому новый объект с теми
+        // же числами — это перерендер App, перерендер MetroMap (мемоизация по
+        // `visibleInsets` не срабатывает) и перезапуск эффекта автофита. А сюда
+        // мы приходим 16 раз подряд на «всплеске» и на каждом resize/scroll.
+        setMapVisibleInsets((prev: typeof mapVisibleInsets) => {
+          if (
+            prev.top === top &&
+            prev.right === right &&
+            prev.left === left
+          ) {
+            return prev
+          }
+          return { top, right, bottom: prev.bottom, left }
+        })
       })
     }
 
@@ -1336,6 +1369,9 @@ function App() {
 
       if (!msg || typeof msg.requestId !== 'number') return
 
+      // Воркер жив и граф загружен — дальше действует обычный таймаут.
+      hasWorkerRespondedRef.current = true
+
       const ctx = pending.get(msg.requestId)
       // Ответ на устаревший (отменённый) запрос: молча игнорируем,
       // индикатор при этом продолжает относиться к актуальному запросу.
@@ -1365,7 +1401,10 @@ function App() {
             toStationId: ctx.toId,
             fromTitle: ctx.fromTitleEffective,
             toTitle: ctx.toTitleEffective,
-            lastUsedAt: savedRouteCounterRef.current++,
+            // Именно время, а не порядковый номер: поле называется «когда
+            // использовали», избранное пишет туда Date.now(), и после
+            // перезагрузки счётчик всё равно начинался заново с единицы.
+            lastUsedAt: Date.now(),
           },
           ...filtered,
         ].slice(0, 5)
@@ -1373,6 +1412,17 @@ function App() {
         persistRoutesToStorage(RECENTS_STORAGE_KEY, next)
         return next
       })
+
+      // A11Y: раньше живая область говорила только «Строим маршрут…», а сам
+      // результат не объявлялся вообще — незрячий пользователь после Enter
+      // не узнавал ничего.
+      const best = routes[0]
+      setRouteAnnouncement(
+        `Маршрут построен: ${ctx.fromTitleEffective} — ${ctx.toTitleEffective}. ` +
+          `${best.totalMinutes} ${pluralRu(best.totalMinutes, ['минута', 'минуты', 'минут'])}, ` +
+          `${formatTransfersForAria(best.transfersCount)}. ` +
+          (routes.length > 1 ? `Всего ${formatVariantsCount(routes.length)}.` : 'Один вариант.'),
+      )
 
       startTransition(() => {
         setRouteAlternatives(routes)
@@ -1400,6 +1450,8 @@ function App() {
       pending.clear()
       stopRouteLoading()
       deepLinkAppliedRef.current = false
+      // Новый воркер — новая загрузка графа, значит снова «первый запрос».
+      hasWorkerRespondedRef.current = false
       worker.terminate()
     }
   }, [stopRouteLoading])
@@ -1484,6 +1536,7 @@ function App() {
       console.log(`[perf][route] buildRouteByIds from=${fromId} to=${toId}`)
     }
     setErrorMessage(null)
+    setRouteAnnouncement('')
     clearRoutes()
     setRouteSheetOpenState(false)
     stopRouteLoading()
@@ -1556,6 +1609,11 @@ function App() {
     setPendingRouteRequestId(requestId)
 
     if (typeof window !== 'undefined') {
+      const isFirstRequest = !hasWorkerRespondedRef.current
+      const timeoutMs = isFirstRequest
+        ? ROUTE_FIRST_REQUEST_TIMEOUT_MS
+        : ROUTE_REQUEST_TIMEOUT_MS
+
       routeRequestTimeoutRef.current = window.setTimeout(() => {
         routeRequestTimeoutRef.current = null
         // Ответа так и нет: считаем запрос потерянным, снимаем его из pending,
@@ -1563,8 +1621,12 @@ function App() {
         if (!routeWorkerPendingRef.current.has(requestId)) return
         routeWorkerPendingRef.current.delete(requestId)
         setPendingRouteRequestId(null)
-        setErrorMessage('Расчёт маршрута занял слишком много времени. Попробуй ещё раз.')
-      }, ROUTE_REQUEST_TIMEOUT_MS)
+        setErrorMessage(
+          isFirstRequest
+            ? 'Данные схемы всё ещё загружаются. Проверь связь и попробуй ещё раз.'
+            : 'Расчёт маршрута занял слишком много времени. Попробуй ещё раз.',
+        )
+      }, timeoutMs)
     }
   }
 
@@ -1650,53 +1712,76 @@ function App() {
     showHint(copied ? 'Ссылка на маршрут скопирована' : 'Не удалось скопировать ссылку')
   }, [fromStationId, toStationId, stationTitleById])
 
-  const fromSuggestions = useMemo(() => {
-    const q = fromStation.trim().toLowerCase()
-    if (!q || fromFixed) return []
-    const result: RouteSuggestionItem[] = []
-    for (const s of allStations) {
+  /**
+   * Кандидаты автодополнения. Считаются один раз на набор станций, а не на
+   * каждое нажатие клавиши: наложение оверрайдов на 300+ станций в обработчике
+   * ввода — лишняя работа на слабом телефоне.
+   *
+   * Название линии заполняется ТОЛЬКО у неуникальных названий (Киевская ×3,
+   * Арбатская ×2, Деловой центр ×3 …): в остальных строках это лишний шум.
+   */
+  const stationSearchCandidates = useMemo<StationSearchCandidate[]>(() => {
+    const titleCounts = new Map<string, number>()
+
+    const rows = allStations.map((s) => {
       const ov = stationOverrides[s.id]
       const title = ov?.title?.trim() || s.title
-      if (title.toLowerCase().includes(q)) {
-        const effectiveLineNumericId =
-          ov && ov.lineNumericId !== undefined ? ov.lineNumericId : s.lineNumericId
+      const effectiveLineNumericId =
+        ov && ov.lineNumericId !== undefined ? ov.lineNumericId : s.lineNumericId
+      const line =
+        effectiveLineNumericId != null ? lineByNumericId.get(effectiveLineNumericId) : undefined
 
-        const color =
-          effectiveLineNumericId != null
-            ? lineByNumericId.get(effectiveLineNumericId)?.colorHex
-            : undefined
+      const key = normalizeStationText(title)
+      titleCounts.set(key, (titleCounts.get(key) ?? 0) + 1)
 
-        result.push({ id: s.id, title, color })
-        if (result.length >= 6) break
-      }
-    }
-    return result
-  }, [fromStation, fromFixed, allStations, stationOverrides, lineByNumericId])
+      return { id: s.id, title, color: line?.colorHex, lineTitle: line?.title, key }
+    })
 
-  const toSuggestions = useMemo(() => {
-    const q = toStation.trim().toLowerCase()
-    if (!q || toFixed) return []
-    const result: RouteSuggestionItem[] = []
-    for (const s of allStations) {
-      const ov = stationOverrides[s.id]
-      const title = ov?.title?.trim() || s.title
-      if (title.toLowerCase().includes(q)) {
-        const effectiveLineNumericId =
-          ov && ov.lineNumericId !== undefined ? ov.lineNumericId : s.lineNumericId
+    return rows.map(({ key, id, title, color, lineTitle }) => ({
+      id,
+      title,
+      color,
+      lineTitle: (titleCounts.get(key) ?? 0) > 1 ? lineTitle : undefined,
+    }))
+  }, [allStations, stationOverrides, lineByNumericId])
 
-        const color =
-          effectiveLineNumericId != null
-            ? lineByNumericId.get(effectiveLineNumericId)?.colorHex
-            : undefined
+  const fromSuggestions = useMemo<RouteSuggestionItem[]>(() => {
+    if (fromFixed) return []
+    return rankStationCandidates(stationSearchCandidates, fromStation, SUGGESTIONS_LIMIT)
+  }, [fromStation, fromFixed, stationSearchCandidates])
 
-        result.push({ id: s.id, title, color })
-        if (result.length >= 6) break
-      }
-    }
-    return result
-  }, [toStation, toFixed, allStations, stationOverrides, lineByNumericId])
+  const toSuggestions = useMemo<RouteSuggestionItem[]>(() => {
+    if (toFixed) return []
+    return rankStationCandidates(stationSearchCandidates, toStation, SUGGESTIONS_LIMIT)
+  }, [toStation, toFixed, stationSearchCandidates])
 
   const routeResult = routeAlternatives[activeRouteIndex] ?? null
+
+  // «Прибытие ~HH:MM» считалось один раз при смене маршрута: с открытой шторкой
+  // через двадцать минут значение врало ровно на двадцать минут. Тикаем по
+  // границе минуты и только когда есть что показывать.
+  const [arrivalClockTick, setArrivalClockTick] = useState(0)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!routeResult) return
+
+    let timeoutId: number | undefined
+
+    const scheduleNext = () => {
+      const msToNextMinute = 60_000 - (Date.now() % 60_000)
+      timeoutId = window.setTimeout(() => {
+        setArrivalClockTick((v) => v + 1)
+        scheduleNext()
+      }, msToNextMinute + 50)
+    }
+
+    scheduleNext()
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+    }
+  }, [routeResult])
 
   const routeArrivalTimeLabel = useMemo(() => {
     if (!routeResult) return null
@@ -1708,7 +1793,10 @@ function App() {
       hour: '2-digit',
       minute: '2-digit',
     })
-  }, [routeResult])
+    // arrivalClockTick — намеренная зависимость-таймер: без неё значение
+    // замерзает на моменте построения маршрута.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeResult, arrivalClockTick])
 
   const activeRouteEndpoints = useMemo(() => {
     if (!routeResult) return null
@@ -2149,6 +2237,11 @@ function App() {
 
     const toId = toStationId
     if (toId && stationId === toId) {
+      // Раньше здесь был молчаливый return: подсказка «съедалась», поле не
+      // менялось, сообщения не было — пользователь упирался в тупик без causa.
+      const name = stationTitleById.get(stationId) ?? station.title
+      setErrorMessage(`«${name}» уже выбрана как станция назначения. Выбери другую.`)
+      setFromSuggestionIndex(-1)
       return
     }
 
@@ -2387,6 +2480,11 @@ function App() {
 
     const fromId = fromStationId
     if (fromId && stationId === fromId) {
+      // См. handleSelectFromSuggestion: молчаливый выход давал тупик без
+      // единого сообщения, хотя нужный текст в приложении уже есть.
+      const name = stationTitleById.get(stationId) ?? station.title
+      setErrorMessage(`«${name}» уже выбрана как станция отправления. Выбери другую.`)
+      setToSuggestionIndex(-1)
       return
     }
 
@@ -2433,11 +2531,25 @@ function App() {
     [closeStationPickPopoverImmediate],
   )
 
-  const applyStationToField = (mode: 'from' | 'to', stationId: string, stationName: string) => {
+  /**
+   * Результат попытки поставить станцию в поле.
+   *
+   * Раньше функция при конфликте молча делала `return`, а вызывающий код всё
+   * равно показывал подтверждение «B Куда: Мнёвники» — пользователю сообщали
+   * об успехе действия, которого не произошло. Теперь решение о подсказке
+   * принимает вызывающий, по факту.
+   */
+  type ApplyStationResult = 'applied' | 'same-station'
+
+  const applyStationToField = (
+    mode: 'from' | 'to',
+    stationId: string,
+    stationName: string,
+  ): ApplyStationResult => {
     if (mode === 'from') {
       const toId = toStationId
       if (toId && stationId === toId) {
-        return
+        return 'same-station'
       }
 
       setFromStation(stationName)
@@ -2452,12 +2564,12 @@ function App() {
         clearRoutes()
         setRouteSheetOpenState(false)
       }
-      return
+      return 'applied'
     }
 
     const fromId = fromStationId
     if (fromId && stationId === fromId) {
-      return
+      return 'same-station'
     }
 
     setToStation(stationName)
@@ -2472,6 +2584,8 @@ function App() {
       clearRoutes()
       setRouteSheetOpenState(false)
     }
+
+    return 'applied'
   }
 
   /**
@@ -2955,11 +3069,24 @@ function App() {
                 if (import.meta.env.DEV) {
                   console.log(`[perf][popover] button=from station=${stationPickPopover.stationId}`)
                 }
+                // Подсказку показываем ПОСЛЕ проверки результата: раньше она
+                // всплывала безусловно и врала при конфликте станций.
+                const result = applyStationToField(
+                  'from',
+                  stationPickPopover.stationId,
+                  stationPickPopover.stationName,
+                )
                 startTransition(() => {
                   setStationPickPopoverPressed('from')
-                  applyStationToField('from', stationPickPopover.stationId, stationPickPopover.stationName)
                 })
-                showStationHint('from', `Откуда: ${stationPickPopover.stationName}`)
+                if (result === 'applied') {
+                  showStationHint('from', `Откуда: ${stationPickPopover.stationName}`)
+                } else {
+                  showStationHint(
+                    'info',
+                    `${stationPickPopover.stationName} уже выбрана как «Куда»`,
+                  )
+                }
                 closeStationPickPopoverAnimated({ delayMs: 120 })
               }}
             >
@@ -2974,11 +3101,22 @@ function App() {
                 if (import.meta.env.DEV) {
                   console.log(`[perf][popover] button=to station=${stationPickPopover.stationId}`)
                 }
+                const result = applyStationToField(
+                  'to',
+                  stationPickPopover.stationId,
+                  stationPickPopover.stationName,
+                )
                 startTransition(() => {
                   setStationPickPopoverPressed('to')
-                  applyStationToField('to', stationPickPopover.stationId, stationPickPopover.stationName)
                 })
-                showStationHint('to', `Куда: ${stationPickPopover.stationName}`)
+                if (result === 'applied') {
+                  showStationHint('to', `Куда: ${stationPickPopover.stationName}`)
+                } else {
+                  showStationHint(
+                    'info',
+                    `${stationPickPopover.stationName} уже выбрана как «Откуда»`,
+                  )
+                }
                 closeStationPickPopoverAnimated({ delayMs: 120 })
               }}
             >
@@ -3279,7 +3417,7 @@ function App() {
                 {/* Честное состояние загрузки: пока воркер считает, шторка
                     показывает скелетон, а не «ничего не произошло». */}
                 <div className="route-loading-live" role="status" aria-live="polite">
-                  {isRouteLoading ? 'Строим маршрут…' : ''}
+                  {isRouteLoading ? 'Строим маршрут…' : routeAnnouncement}
                 </div>
 
                 {isRouteLoading && (
@@ -3323,7 +3461,7 @@ function App() {
                                 setRouteSheetOpenState(true)
                               }
                             }}
-                            aria-label={`Выбрать маршрут: ${label}, ~${route.totalMinutes} мин, пересадок ${route.transfersCount}`}
+                            aria-label={`Выбрать маршрут: ${label}, ~${route.totalMinutes} мин, ${formatTransfersForAria(route.transfersCount)}`}
                           >
                             <div className="bottom-route-chip-main">
                               <span className="bottom-route-chip-time">
@@ -3333,7 +3471,7 @@ function App() {
                             </div>
                             <RouteLinePills colors={routeAlternativeLineColors[index] ?? []} />
                             <div className="bottom-route-chip-sub">
-                              Пересадок: {route.transfersCount}
+                              {formatTransfersCount(route.transfersCount)}
                             </div>
                           </button>
                         )

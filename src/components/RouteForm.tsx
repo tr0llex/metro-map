@@ -7,6 +7,11 @@ export type RouteSuggestionItem = {
   id: string
   title: string
   color?: string
+  /**
+   * Название линии. Заполняется только у одноимённых станций (Киевская ×3,
+   * Арбатская ×2 …), где без него строки списка неразличимы.
+   */
+  lineTitle?: string
 }
 
 interface RouteFormProps {
@@ -62,10 +67,16 @@ export function RouteForm({
 
   const exitMs = 160
 
+  /**
+   * A11Y: пока по списку не ходили стрелками, индекс равен -1, и раньше
+   * `aria-activedescendant` не выставлялся вовсе — скринридер не называл ни
+   * одного варианта, хотя Enter уже выбирал первый. Поэтому при открытом
+   * списке указываем на тот элемент, который сработает по Enter.
+   */
   const getActiveOptionId = (listboxId: string, activeIndex: number, suggestions: RouteSuggestionItem[]) => {
-    if (activeIndex < 0) return undefined
-    if (activeIndex >= suggestions.length) return undefined
-    return `${listboxId}-opt-${activeIndex}`
+    if (suggestions.length === 0) return undefined
+    const index = activeIndex >= 0 && activeIndex < suggestions.length ? activeIndex : 0
+    return `${listboxId}-opt-${index}`
   }
 
   const fromActiveOptionId = getActiveOptionId(fromListboxId, fromSuggestionIndex, fromSuggestions)
@@ -283,6 +294,7 @@ export function RouteForm({
               }}
               role="option"
               aria-selected={isActive}
+              aria-label={s.lineTitle ? `${s.title}, ${s.lineTitle}` : s.title}
               onClick={() => onSelect(s.id)}
             >
               <span
@@ -290,6 +302,24 @@ export function RouteForm({
                 style={s.color ? { backgroundColor: s.color } : undefined}
               />
               <span className="suggestion-item-label">{s.title}</span>
+              {s.lineTitle && (
+                /* Инлайн-стили намеренно: файлы CSS правит другой агент,
+                   а без визуального различия одноимённые станции неотличимы. */
+                <span
+                  className="suggestion-item-line"
+                  style={{
+                    flexShrink: 0,
+                    maxWidth: '45%',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    opacity: 0.65,
+                    fontWeight: 400,
+                  }}
+                >
+                  {s.lineTitle}
+                </span>
+              )}
             </li>
           )
         })}

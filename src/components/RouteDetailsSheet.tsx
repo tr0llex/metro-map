@@ -3,6 +3,11 @@ import type { CSSProperties, Ref } from 'react'
 import type { RouteResult } from '../metro/types'
 import { RouteLinePills } from './RouteLinePills.tsx'
 import { IconClock, IconShare, IconStar } from './icons.tsx'
+import {
+  formatStationsCount,
+  formatTransfersCount,
+  formatTransfersForAria,
+} from '../utils/plural.ts'
 
 export type DecoratedRideSegment = {
   type: 'ride'
@@ -110,7 +115,7 @@ export function RouteDetailsSheet({
                         onClick={() => {
                           onChangeActiveRoute(index)
                         }}
-                        aria-label={`Выбрать маршрут: ~${route.totalMinutes} мин, пересадок ${route.transfersCount}`}
+                        aria-label={`Выбрать маршрут: ~${route.totalMinutes} мин, ${formatTransfersForAria(route.transfersCount)}`}
                       >
                         <div className="bottom-route-chip-main">
                           <span className="bottom-route-chip-time">
@@ -120,7 +125,7 @@ export function RouteDetailsSheet({
                         </div>
                         <RouteLinePills colors={routeLineColors?.[index] ?? []} />
                         <div className="bottom-route-chip-sub">
-                          Пересадок: {route.transfersCount}
+                          {formatTransfersCount(route.transfersCount)}
                         </div>
                       </button>
                     )
@@ -141,7 +146,7 @@ export function RouteDetailsSheet({
                     </span>
                   )}
                   <span className="summary-transfers">
-                    Пересадок: {routeResult.transfersCount}
+                    {formatTransfersCount(routeResult.transfersCount)}
                   </span>
                 </div>
                 <div className="route-summary-actions">
@@ -241,7 +246,7 @@ export function RouteDetailsSheet({
                           Поезд: {segment.fromTitle} → {segment.toTitle}
                         </div>
                         <div className="step-meta">
-                          Поездка • {segment.stationTitles.length} станций • ~
+                          Поездка • {formatStationsCount(segment.stationTitles.length)} • ~
                           {Math.round(segment.travelMinutes)} мин
                         </div>
                         <ul className="step-station-list">
