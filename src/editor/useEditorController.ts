@@ -7,7 +7,7 @@ import {
 } from '../metro/fullGraph.ts'
 import type {
   EdgeOverride,
-  EditorOverridesRingShape,
+  LayoutRingShape,
   FullGraphEdge,
   FullGraphStation,
 } from '../metro/types.ts'
@@ -60,7 +60,7 @@ export function useEditorController(): EditorController {
   const [edgeOverrides, setEdgeOverrides] = useState<Record<string, EdgeOverride>>({})
   const [hubMinOverrides, setHubMinOverrides] = useState<Record<string, number>>({})
   const [canonicalRingShapes, setCanonicalRingShapes] = useState<
-    Record<string, EditorOverridesRingShape>
+    Record<string, LayoutRingShape>
   >({})
   const [manualStations, setManualStations] = useState<Record<string, FullGraphStation>>({})
   const [manualEdges, setManualEdges] = useState<Record<string, FullGraphEdge>>({})

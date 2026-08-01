@@ -89,8 +89,6 @@ export interface RawStation {
   lon?: number
   layoutX?: number
   layoutY?: number
-  yandexX?: number
-  yandexY?: number
 }
 
 export interface RawEdge {

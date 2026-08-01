@@ -1,0 +1,190 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 10,
+  "title": "Люблинско-Дмитровская",
+  "color": "#BED12C",
+  "ring": false,
+  "stations": [
+    {
+      "id": "10/fiztekh",
+      "title": "Физтех",
+      "lat": 55.921389,
+      "lon": 37.546389,
+      "toNextSeconds": 124
+    },
+    {
+      "id": "10/lianozovo",
+      "title": "Лианозово",
+      "lat": 55.931111,
+      "lon": 37.543611,
+      "toNextSeconds": 585
+    },
+    {
+      "id": "10/yakhromskaya",
+      "title": "Яхромская",
+      "lat": 55.8775,
+      "lon": 37.545833,
+      "toNextSeconds": 156
+    },
+    {
+      "id": "10/seligerskaya",
+      "title": "Селигерская",
+      "lat": 55.86483,
+      "lon": 37.55005,
+      "toNextSeconds": 143
+    },
+    {
+      "id": "10/verkhnie-likhobory",
+      "title": "Верхние Лихоборы",
+      "lat": 55.85566,
+      "lon": 37.56282,
+      "toNextSeconds": 107
+    },
+    {
+      "id": "10/okruzhnaya",
+      "title": "Окружная",
+      "lat": 55.848889,
+      "lon": 37.571111,
+      "toNextSeconds": 151
+    },
+    {
+      "id": "10/petrovsko-razumovskaya",
+      "title": "Петровско-Разумовская",
+      "lat": 55.836667,
+      "lon": 37.575556,
+      "toNextSeconds": 184
+    },
+    {
+      "id": "10/fonvizinskaya",
+      "title": "Фонвизинская",
+      "lat": 55.822778,
+      "lon": 37.588056,
+      "toNextSeconds": 152
+    },
+    {
+      "id": "10/butyrskaya",
+      "title": "Бутырская ",
+      "lat": 55.813333,
+      "lon": 37.602778,
+      "toNextSeconds": 241
+    },
+    {
+      "id": "10/marina-roshcha",
+      "title": "Марьина Роща",
+      "lat": 55.793723,
+      "lon": 37.61618,
+      "toNextSeconds": 148
+    },
+    {
+      "id": "10/dostoevskaya",
+      "title": "Достоевская",
+      "lat": 55.781667,
+      "lon": 37.613889,
+      "toNextSeconds": 175
+    },
+    {
+      "id": "10/trubnaya",
+      "title": "Трубная",
+      "lat": 55.76771,
+      "lon": 37.621926,
+      "toNextSeconds": 103
+    },
+    {
+      "id": "10/sretenskiy-bulvar",
+      "title": "Сретенский бульвар",
+      "lat": 55.766106,
+      "lon": 37.635688,
+      "toNextSeconds": 196
+    },
+    {
+      "id": "10/chkalovskaya",
+      "title": "Чкаловская",
+      "lat": 55.755951,
+      "lon": 37.659293,
+      "toNextSeconds": 175
+    },
+    {
+      "id": "10/rimskaya",
+      "title": "Римская",
+      "lat": 55.747027,
+      "lon": 37.679996,
+      "toNextSeconds": 198
+    },
+    {
+      "id": "10/krestyanskaya-zastava",
+      "title": "Крестьянская застава",
+      "lat": 55.732278,
+      "lon": 37.665325,
+      "toNextSeconds": 183
+    },
+    {
+      "id": "10/dubrovka",
+      "title": "Дубровка",
+      "lat": 55.71807,
+      "lon": 37.676259,
+      "toNextSeconds": 157
+    },
+    {
+      "id": "10/kozhukhovskaya",
+      "title": "Кожуховская",
+      "lat": 55.706156,
+      "lon": 37.68544,
+      "toNextSeconds": 310
+    },
+    {
+      "id": "10/pechatniki",
+      "title": "Печатники",
+      "lat": 55.692921,
+      "lon": 37.728338,
+      "toNextSeconds": 176
+    },
+    {
+      "id": "10/volzhskaya",
+      "title": "Волжская",
+      "lat": 55.690446,
+      "lon": 37.754314,
+      "toNextSeconds": 172
+    },
+    {
+      "id": "10/lyublino",
+      "title": "Люблино",
+      "lat": 55.676596,
+      "lon": 37.761639,
+      "toNextSeconds": 223
+    },
+    {
+      "id": "10/bratislavskaya",
+      "title": "Братиславская",
+      "lat": 55.658817,
+      "lon": 37.748415,
+      "toNextSeconds": 125
+    },
+    {
+      "id": "10/marino",
+      "title": "Марьино",
+      "lat": 55.649158,
+      "lon": 37.743844,
+      "toNextSeconds": 196
+    },
+    {
+      "id": "10/borisovo",
+      "title": "Борисово",
+      "lat": 55.6325,
+      "lon": 37.743333,
+      "toNextSeconds": 134
+    },
+    {
+      "id": "10/shipilovskaya",
+      "title": "Шипиловская",
+      "lat": 55.621667,
+      "lon": 37.743611,
+      "toNextSeconds": 123
+    },
+    {
+      "id": "10/zyablikovo",
+      "title": "Зябликово",
+      "lat": 55.611944,
+      "lon": 37.745278
+    }
+  ]
+}

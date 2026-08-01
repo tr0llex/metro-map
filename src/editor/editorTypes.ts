@@ -1,7 +1,7 @@
 import type {
   EdgeOverride,
-  EditorOverridesRingShape,
-  EditorOverridesStationLayoutParams,
+  LayoutRingShape,
+  StationLayoutParams,
   FullGraphEdge,
   FullGraphLine,
   FullGraphStation,
@@ -54,8 +54,8 @@ export type EditorFocusCommand = { stationId: string; token: number }
 
 export type CanonicalLayoutPayload = {
   grid: { stepPx: number }
-  ringShapes: Record<string, EditorOverridesRingShape>
-  stationParams: Record<string, EditorOverridesStationLayoutParams>
+  ringShapes: Record<string, LayoutRingShape>
+  stationParams: Record<string, StationLayoutParams>
 }
 
 /**
@@ -106,9 +106,9 @@ export interface EditorOverlayApi {
   /**
    * Формы колец, посчитанные картой. `grid` и `stationParams` из
    * `CanonicalLayoutPayload` сюда не попадают: солвер их не читает
-   * (см. комментарий к `buildEditorOverrides`), поэтому редактор их не хранит.
+   * (см. комментарий к `buildLayoutFile`), поэтому редактор их не хранит.
    */
-  canonicalRingShapes: Record<string, EditorOverridesRingShape>
+  canonicalRingShapes: Record<string, LayoutRingShape>
 
   availableHubIds: string[]
   stationById: Map<string, FullGraphStation>

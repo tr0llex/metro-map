@@ -1,0 +1,226 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке (у последней — до первой, линия кольцевая).",
+  "id": 97,
+  "title": "Большая кольцевая линия",
+  "color": "#88CDCF",
+  "ring": true,
+  "stations": [
+    {
+      "id": "97/michurinskiy-prospekt",
+      "title": "Мичуринский проспект",
+      "lat": 55.688333,
+      "lon": 37.485,
+      "toNextSeconds": 175
+    },
+    {
+      "id": "97/prospekt-vernadskogo",
+      "title": "Проспект Вернадского",
+      "lat": 55.677778,
+      "lon": 37.505,
+      "toNextSeconds": 130
+    },
+    {
+      "id": "97/novatorskaya",
+      "title": "Новаторская",
+      "lat": 55.670833,
+      "lon": 37.52,
+      "toNextSeconds": 192
+    },
+    {
+      "id": "97/vorontsovskaya",
+      "title": "Воронцовская",
+      "lat": 55.658333,
+      "lon": 37.540833,
+      "toNextSeconds": 220
+    },
+    {
+      "id": "97/zyuzino",
+      "title": "Зюзино",
+      "lat": 55.655158,
+      "lon": 37.575786,
+      "toNextSeconds": 149
+    },
+    {
+      "id": "97/kakhovskaya",
+      "title": "Каховская",
+      "lat": 55.653056,
+      "lon": 37.598333,
+      "toNextSeconds": 139
+    },
+    {
+      "id": "97/varshavskaya",
+      "title": "Варшавская",
+      "lat": 55.653333,
+      "lon": 37.619444,
+      "toNextSeconds": 186
+    },
+    {
+      "id": "97/kashirskaya",
+      "title": "Каширская",
+      "lat": 55.655,
+      "lon": 37.648611,
+      "toNextSeconds": 286
+    },
+    {
+      "id": "97/klenovyy-bulvar",
+      "title": "Кленовый бульвар",
+      "lat": 55.674444,
+      "lon": 37.680833,
+      "toNextSeconds": 183
+    },
+    {
+      "id": "97/nagatinskiy-zaton",
+      "title": "Нагатинский Затон",
+      "lat": 55.684444,
+      "lon": 37.703611,
+      "toNextSeconds": 190
+    },
+    {
+      "id": "97/pechatniki",
+      "title": "Печатники",
+      "lat": 55.694722,
+      "lon": 37.7275,
+      "toNextSeconds": 156
+    },
+    {
+      "id": "97/tekstilshchiki",
+      "title": "Текстильщики",
+      "lat": 55.708333,
+      "lon": 37.728333,
+      "toNextSeconds": 262
+    },
+    {
+      "id": "97/nizhegorodskaya",
+      "title": "Нижегородская",
+      "lat": 55.7325,
+      "lon": 37.728611,
+      "toNextSeconds": 233
+    },
+    {
+      "id": "97/aviamotornaya",
+      "title": "Авиамоторная",
+      "lat": 55.753056,
+      "lon": 37.718611,
+      "toNextSeconds": 165
+    },
+    {
+      "id": "97/lefortovo",
+      "title": "Лефортово",
+      "lat": 55.764444,
+      "lon": 37.702778,
+      "toNextSeconds": 197
+    },
+    {
+      "id": "97/elektrozavodskaya",
+      "title": "Электрозаводская",
+      "lat": 55.782057,
+      "lon": 37.7053,
+      "toNextSeconds": 194
+    },
+    {
+      "id": "97/sokolniki",
+      "title": "Сокольники",
+      "lat": 55.791111,
+      "lon": 37.678889,
+      "toNextSeconds": 273
+    },
+    {
+      "id": "97/rizhskaya",
+      "title": "Рижская",
+      "lat": 55.792222,
+      "lon": 37.633889,
+      "toNextSeconds": 132
+    },
+    {
+      "id": "97/marina-roshcha",
+      "title": "Марьина Роща",
+      "lat": 55.798333,
+      "lon": 37.617222,
+      "toNextSeconds": 194
+    },
+    {
+      "id": "97/savelovskaya",
+      "title": "Савёловская",
+      "lat": 55.794054,
+      "lon": 37.587163,
+      "toNextSeconds": 176
+    },
+    {
+      "id": "97/petrovskiy-park",
+      "title": "Петровский парк",
+      "lat": 55.79233,
+      "lon": 37.55952,
+      "toNextSeconds": 170
+    },
+    {
+      "id": "97/tsska",
+      "title": "ЦСКА",
+      "lat": 55.78643,
+      "lon": 37.53502,
+      "toNextSeconds": 152
+    },
+    {
+      "id": "97/khoroshevskaya",
+      "title": "Хорошевская",
+      "lat": 55.77643,
+      "lon": 37.51981,
+      "toNextSeconds": 215
+    },
+    {
+      "id": "97/shelepikha",
+      "title": "Шелепиха",
+      "lat": 55.75723,
+      "lon": 37.52571,
+      "toNextSeconds": 132
+    },
+    {
+      "id": "97/delovoy-tsentr",
+      "title": "Деловой центр",
+      "lat": 55.7491,
+      "lon": 37.5395,
+      "toNextSeconds": 427
+    },
+    {
+      "id": "97/narodnoe-opolchenie",
+      "title": "Народное Ополчение",
+      "lat": 55.77592,
+      "lon": 37.485073,
+      "toNextSeconds": 187
+    },
+    {
+      "id": "97/mnevniki",
+      "title": "Мнёвники",
+      "lat": 55.761153,
+      "lon": 37.47139,
+      "toNextSeconds": 166
+    },
+    {
+      "id": "97/terekhovo",
+      "title": "Терехово",
+      "lat": 55.748108,
+      "lon": 37.459738,
+      "toNextSeconds": 215
+    },
+    {
+      "id": "97/kuntsevskaya",
+      "title": "Кунцевская",
+      "lat": 55.730278,
+      "lon": 37.445833,
+      "toNextSeconds": 174
+    },
+    {
+      "id": "97/davydkovo",
+      "title": "Давыдково",
+      "lat": 55.715278,
+      "lon": 37.451667,
+      "toNextSeconds": 214
+    },
+    {
+      "id": "97/aminevskaya",
+      "title": "Аминьевская",
+      "lat": 55.697222,
+      "lon": 37.464167,
+      "toNextSeconds": 167
+    }
+  ]
+}

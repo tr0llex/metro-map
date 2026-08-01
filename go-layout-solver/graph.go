@@ -1,13 +1,24 @@
+// Чтение схемы из каталога `data/` — единственного источника истины.
+//
+// Раньше вход был другим: дамп `metro.ru.csv` по всем городам России плюс
+// `connections.json`, где пересадки ссылались на станции ТЕКСТОМ («Библиотека
+// им.Ленина» на «Арбатско-Покровская линия»). Отсюда рос целый слой нормализации
+// имён и индексов «линия -> станция по имени», а поверх результата ещё
+// накладывались оверрайды координат, времён и названий. Править вход стало
+// нельзя: настоящие данные жили в результате сборки, а не во входе.
+//
+// Теперь станции и пересадки связаны идентификаторами, а не именами, поэтому
+// сопоставление по именам исчезло целиком. Взамен появилась проверка входа:
+// данные правятся руками, и любая опечатка обязана останавливать сборку с
+// внятным сообщением, а не молча выбрасывать станцию из схемы.
 package main
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,8 +43,6 @@ type FullGraphStation struct {
 	Lon           float64 `json:"lon,omitempty"`
 	LayoutX       float64 `json:"layoutX,omitempty"`
 	LayoutY       float64 `json:"layoutY,omitempty"`
-	YandexX       float64 `json:"yandexX,omitempty"`
-	YandexY       float64 `json:"yandexY,omitempty"`
 }
 
 type FullGraphEdge struct {
@@ -74,265 +83,578 @@ type FullGraphExport struct {
 	RingShapes map[string]FullGraphRingShape `json:"ringShapes,omitempty"`
 }
 
-// yandexCoordsMap хранит координаты со схемы Яндекса по нормализованному имени станции.
-// Формат JSON (normalized/yandex_coords.json), который пишет scripts/extract_yandex_coords.ts:
+// --- Формат каталога data/ ---
+
+// dataStation — станция в файле линии (data/lines/*.json).
+// ToNextSeconds — время до СЛЕДУЮЩЕЙ станции в списке; у последней станции
+// некольцевой линии его нет, у последней станции кольцевой — это время до первой.
+type dataStation struct {
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	Lat           *float64 `json:"lat"`
+	Lon           *float64 `json:"lon"`
+	ToNextSeconds *int     `json:"toNextSeconds"`
+}
+
+// dataBranch — ответвление линии: цепочка станций, отходящая от станции From.
 //
-//	{
-//	  "библиотека им ленина": [ { "title": "Библиотека имени Ленина", "x": 1234, "y": 567 }, ... ],
-//	  ...
-//	}
-type yandexCoordEntry struct {
-	Title string  `json:"title"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
+// Нужно потому, что линия не всегда простой путь. У Филёвской ветка на
+// «Москва-Сити» отходит от «Киевской», а основной ход идёт до «Александровского
+// сада». Пока линия описывалась одним плоским списком, ветка неизбежно
+// пришивалась к последней станции списка — и маршруты через неё считались
+// неверно.
+type dataBranch struct {
+	Title string `json:"title"`
+	// From — станция ЭТОЙ ЖЕ линии, от которой отходит ветка.
+	From string `json:"from"`
+	// FromSeconds — время от From до первой станции ветки.
+	FromSeconds *int          `json:"fromSeconds"`
+	Stations    []dataStation `json:"stations"`
 }
 
-// --- Internal helpers ---
-
-type csvRow struct {
-	CityID           int
-	CityName         string
-	LineID           int
-	LineName         string
-	LineColorHex     string
-	StationNumericID string
-	StationName      string
-	Lat              float64
-	Lng              float64
-	Order            int
+type dataLine struct {
+	ID       int           `json:"id"`
+	Title    string        `json:"title"`
+	Color    string        `json:"color"`
+	Ring     bool          `json:"ring"`
+	Stations []dataStation `json:"stations"`
+	Branches []dataBranch  `json:"branches"`
 }
 
-type connectionRecord struct {
-	FromStation string `json:"from_station"`
-	FromLine    string `json:"from_line"`
-	ToStation   string `json:"to_station"`
-	ToLine      string `json:"to_line"`
-	Type        string `json:"type"`
+type dataTransfer struct {
+	Stations []string `json:"stations"`
+	Kind     string   `json:"kind"`
+	Seconds  *int     `json:"seconds"`
 }
 
-const (
-	minTravelSeconds      = 40
-	avgTrainSpeedKmH      = 40
-	baseTransferSeconds   = 240
-	maxCompactHubDistance = 0.35
-	targetCityName        = "Москва"
-	// baseRunSeconds — константная надбавка на старт/остановку поезда для каждого перегона.
-	baseRunSeconds = 20
-)
+type dataTransfersFile struct {
+	Defaults struct {
+		RideSeconds   int            `json:"rideSeconds"`
+		HubMinSeconds int            `json:"hubMinSeconds"`
+		KindSeconds   map[string]int `json:"kindSeconds"`
+	} `json:"defaults"`
+	Transfers []dataTransfer `json:"transfers"`
+}
 
-var (
-	ringLineIDs = map[int]struct{}{
-		5:  {}, // Кольцевая
-		95: {}, // МЦК
-		97: {}, // БКЛ
-	}
+type dataLayoutFile struct {
+	Stations map[string][]float64          `json:"stations"`
+	Rings    map[string]FullGraphRingShape `json:"rings"`
+}
 
-	allowedConnectionTypes = map[string]struct{}{
-		"interchange":    {},
-		"cross_platform": {},
-		"mcc":            {},
-		"out-of-station": {},
-	}
+// ringLineIDs заполняется при загрузке из флага `ring` в файлах линий.
+// Читается в rings.go: кольцевые линии проецируются на подогнанную форму.
+var ringLineIDs = map[int]struct{}{}
 
-	mcdRe = regexp.MustCompile(`(?i)мцд`)
-)
+// transferKinds — типы пересадок, которые понимает рантайм (src/metro/types.ts).
+// Незнакомый тип — ошибка сборки, а не молчаливое приведение к "near":
+// опечатка в типе меняет и время пересадки, и отрисовку узла.
+var transferKinds = map[string]struct{}{
+	"near":           {},
+	"far":            {},
+	"mcc":            {},
+	"out_of_station": {},
+}
 
-// BuildFullGraph читает metro.ru.csv, connections.json и, опционально, координаты Яндекс-схемы,
-// после чего возвращает полный граф.
-// yandexPath может быть пустой строкой — тогда координаты Яндекс просто игнорируются.
+// BuildFullGraph читает каталог data/ и собирает полный граф.
 //
-// times — конфиг времён (new_map_source/travel_times.json). Если он передан,
-// времена перегонов и пересадок берутся ТОЛЬКО из него (запись по ключу пары
-// либо defaults), без всякой геометрии. Если times == nil, работает старая
-// оценка по расстоянию — это запасной путь, а не режим по умолчанию.
-func BuildFullGraph(csvPath, connPath, yandexPath string, times *TravelTimes) (FullGraphExport, error) {
-	absCSV, err := resolvePath(csvPath)
-	if err != nil {
-		return FullGraphExport{}, err
-	}
-	absConn, err := resolvePath(connPath)
+// Времена перегонов и пересадок берутся ТОЛЬКО из данных (toNextSeconds у
+// станции, seconds у пересадки либо значение по умолчанию для её типа). Оценки
+// по географическому расстоянию больше нет: она давала правдоподобные числа
+// там, где данных на самом деле не было, и отличить одно от другого было никак.
+func BuildFullGraph(dataDir string) (FullGraphExport, error) {
+	root, err := resolvePath(dataDir)
 	if err != nil {
 		return FullGraphExport{}, err
 	}
 
-	rows, err := loadCSVRows(absCSV)
+	lines, err := loadDataLines(filepath.Join(root, "lines"))
 	if err != nil {
 		return FullGraphExport{}, err
 	}
-	if len(rows) == 0 {
-		return FullGraphExport{}, fmt.Errorf("no rows for %s", targetCityName)
+
+	var transfersFile dataTransfersFile
+	if err := readJSONFile(filepath.Join(root, "transfers.json"), &transfersFile); err != nil {
+		return FullGraphExport{}, err
+	}
+	if transfersFile.Defaults.RideSeconds <= 0 {
+		return FullGraphExport{}, fmt.Errorf("transfers.json: defaults.rideSeconds должен быть больше нуля")
+	}
+	if transfersFile.Defaults.HubMinSeconds <= 0 {
+		return FullGraphExport{}, fmt.Errorf("transfers.json: defaults.hubMinSeconds должен быть больше нуля")
 	}
 
-	linesMap := groupRowsByLine(rows)
-
-	// Опционально подгружаем координаты станций со схемы Яндекса.
-	var yandexByName map[string][]yandexCoordEntry
-	if strings.TrimSpace(yandexPath) != "" {
-		absYandex, err := resolvePath(yandexPath)
-		if err == nil {
-			data, readErr := os.ReadFile(absYandex)
-			if readErr == nil {
-				var raw map[string][]yandexCoordEntry
-				if jsonErr := json.Unmarshal(data, &raw); jsonErr == nil {
-					// Перенормализуем ключи тем же normalizeStationName, что и у станций,
-					// чтобы не было расхождений вроде "Библиотека имени Ленина" vs "Библиотека им.Ленина".
-					normalized := make(map[string][]yandexCoordEntry)
-					for key, entries := range raw {
-						norm := normalizeStationName(key)
-						bucket := normalized[norm]
-						bucket = append(bucket, entries...)
-						normalized[norm] = bucket
-					}
-					yandexByName = normalized
-				} else {
-					fmt.Fprintf(os.Stderr, "warn: cannot parse yandex coords json: %v\n", jsonErr)
-				}
-			} else {
-				fmt.Fprintf(os.Stderr, "warn: cannot read yandex coords file: %v\n", readErr)
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "warn: cannot resolve yandex coords path: %v\n", err)
-		}
+	var layoutFile dataLayoutFile
+	if err := readJSONFile(filepath.Join(root, "layout.json"), &layoutFile); err != nil {
+		return FullGraphExport{}, err
 	}
-
-	// Индекс станций по (нормализованное имя линии, нормализованное имя станции)
-	lineKeyToStationName := make(map[string]map[string]string)
 
 	stationByID := make(map[string]*FullGraphStation)
-	var lines []FullGraphLine
+	lineOfStation := make(map[string]int)
+	outLines := make([]FullGraphLine, 0, len(lines))
 	var edges []FullGraphEdge
 
-	// Порядок линий обязан быть детерминированным: он определяет и порядок
-	// станций/рёбер в выгрузке, и порядок отрисовки в рантайме. Кольцевые линии
-	// идут первыми (рисуются под остальными), дальше — по возрастанию ID.
-	lineIDsOrdered := make([]int, 0, len(linesMap))
-	for id := range linesMap {
-		lineIDsOrdered = append(lineIDsOrdered, id)
-	}
-	sort.Slice(lineIDsOrdered, func(i, j int) bool {
-		a, b := lineIDsOrdered[i], lineIDsOrdered[j]
-		_, aRing := ringLineIDs[a]
-		_, bRing := ringLineIDs[b]
-		if aRing != bRing {
-			return aRing
-		}
-		return a < b
-	})
-
-	for _, lineID := range lineIDsOrdered {
-		agg := linesMap[lineID]
-		lineKey := normalizeLineKeyFromCSV(agg.LineName)
-
-		// сортируем станции по order
-		ordered := make([]csvRow, len(agg.Rows))
-		copy(ordered, agg.Rows)
-		sort.Slice(ordered, func(i, j int) bool { return ordered[i].Order < ordered[j].Order })
-
-		stationIDsForLine := make([]string, 0, len(ordered))
-
-		for _, r := range ordered {
-			id := fmt.Sprintf("mos-%d-%s", r.LineID, r.StationNumericID)
-			st, exists := stationByID[id]
-			if !exists {
-				st = &FullGraphStation{
-					ID:            id,
-					Title:         r.StationName,
-					LineNumericID: r.LineID,
-					IsTransfer:    false,
-					Lat:           r.Lat,
-					Lon:           r.Lng,
-				}
-				stationByID[id] = st
-
-				// Индекс по имени для маппинга пересадок
-				normTitle := normalizeStationName(r.StationName)
-				nameMap := lineKeyToStationName[lineKey]
-				if nameMap == nil {
-					nameMap = make(map[string]string)
-					lineKeyToStationName[lineKey] = nameMap
-				}
-				if _, ok := nameMap[normTitle]; !ok {
-					nameMap[normTitle] = id
-				}
-			}
-			stationIDsForLine = append(stationIDsForLine, id)
+	for _, ln := range lines {
+		if ln.Ring {
+			ringLineIDs[ln.ID] = struct{}{}
 		}
 
-		lines = append(lines, FullGraphLine{
-			ID:         agg.LineID,
-			Title:      agg.LineName,
-			ColorHex:   "#" + agg.ColorHex,
-			StationIDs: stationIDsForLine,
+		lineEdges, ids, err := buildLine(ln, transfersFile.Defaults.RideSeconds, stationByID, lineOfStation)
+		if err != nil {
+			return FullGraphExport{}, err
+		}
+		edges = append(edges, lineEdges...)
+		outLines = append(outLines, FullGraphLine{
+			ID:         ln.ID,
+			Title:      ln.Title,
+			ColorHex:   ln.Color,
+			StationIDs: ids,
 		})
-
-		// Рёбра между соседними станциями
-		for i := 0; i < len(stationIDsForLine)-1; i++ {
-			fromID := stationIDsForLine[i]
-			toID := stationIDsForLine[i+1]
-			travel := rideSeconds(times, agg.LineID, stationByID, fromID, toID)
-			edges = append(edges, FullGraphEdge{
-				FromStationID:       fromID,
-				ToStationID:         toID,
-				LineNumericID:       agg.LineID,
-				MedianTravelSeconds: travel,
-				IsTransfer:          false,
-			})
-		}
-
-		// Замыкаем кольцевые линии
-		if _, isRing := ringLineIDs[agg.LineID]; isRing && len(stationIDsForLine) >= 3 {
-			lastID := stationIDsForLine[len(stationIDsForLine)-1]
-			firstID := stationIDsForLine[0]
-			travel := rideSeconds(times, agg.LineID, stationByID, lastID, firstID)
-			edges = append(edges, FullGraphEdge{
-				FromStationID:       lastID,
-				ToStationID:         firstID,
-				LineNumericID:       agg.LineID,
-				MedianTravelSeconds: travel,
-				IsTransfer:          false,
-			})
-		}
 	}
 
-	// Если загружены координаты со схемы Яндекса — проставляем их на станции по нормализованному имени.
-	if len(yandexByName) > 0 {
-		for _, st := range stationByID {
-			nameNorm := normalizeStationName(st.Title)
-			entries := yandexByName[nameNorm]
-			if len(entries) == 0 {
-				continue
-			}
-			// Если совпадений несколько (одинаковое имя в разных местах), берём первую.
-			st.YandexX = entries[0].X
-			st.YandexY = entries[0].Y
-		}
+	hubs, transferEdges, err := buildTransfers(transfersFile, stationByID, lineOfStation)
+	if err != nil {
+		return FullGraphExport{}, err
 	}
-
-	// Пересадки и хабы
-	transferHubs, transferEdges := buildTransferHubs(absConn, lineKeyToStationName, stationByID, times)
 	edges = append(edges, transferEdges...)
 
-	// Собираем итоговый граф
-	// Порядок станций в выгрузке тоже детерминирован (map даёт случайный обход).
-	stationIDsOrdered := make([]string, 0, len(stationByID))
-	for id := range stationByID {
-		stationIDsOrdered = append(stationIDsOrdered, id)
+	if err := applyLayout(layoutFile, stationByID); err != nil {
+		return FullGraphExport{}, err
 	}
-	sort.Strings(stationIDsOrdered)
-	stations := make([]FullGraphStation, 0, len(stationByID))
-	for _, id := range stationIDsOrdered {
+
+	// Порядок станций в выгрузке детерминирован: обход map даёт случайный.
+	ordered := make([]string, 0, len(stationByID))
+	for id := range stationByID {
+		ordered = append(ordered, id)
+	}
+	sort.Strings(ordered)
+	stations := make([]FullGraphStation, 0, len(ordered))
+	for _, id := range ordered {
 		stations = append(stations, *stationByID[id])
 	}
 
 	return FullGraphExport{
-		Lines:        lines,
+		Lines:        outLines,
 		Stations:     stations,
 		Edges:        edges,
-		TransferHubs: transferHubs,
+		TransferHubs: hubs,
+		RingShapes:   layoutFile.Rings,
 	}, nil
 }
 
-// resolvePath интерпретирует путь относительно корня проекта, если он относительный.
+// buildLine раскладывает одну линию в станции и перегоны, включая ответвления.
+// Возвращает рёбра и полный список идентификаторов станций линии (основной ход,
+// затем ветки в порядке объявления).
+func buildLine(
+	ln dataLine,
+	defaultRideSeconds int,
+	stationByID map[string]*FullGraphStation,
+	lineOfStation map[string]int,
+) ([]FullGraphEdge, []string, error) {
+	var edges []FullGraphEdge
+	ids := make([]string, 0, len(ln.Stations))
+
+	register := func(st dataStation, pos string) error {
+		if strings.TrimSpace(st.ID) == "" {
+			return fmt.Errorf("линия %d: у станции %s пустой id", ln.ID, pos)
+		}
+		if strings.TrimSpace(st.Title) == "" {
+			return fmt.Errorf("линия %d: у станции %s пустое название", ln.ID, st.ID)
+		}
+		if prev, dup := stationByID[st.ID]; dup {
+			return fmt.Errorf("дубль идентификатора станции %s: %q (линия %d) и %q (линия %d)",
+				st.ID, prev.Title, prev.LineNumericID, st.Title, ln.ID)
+		}
+		s := &FullGraphStation{ID: st.ID, Title: st.Title, LineNumericID: ln.ID}
+		if st.Lat != nil {
+			s.Lat = *st.Lat
+		}
+		if st.Lon != nil {
+			s.Lon = *st.Lon
+		}
+		stationByID[st.ID] = s
+		lineOfStation[st.ID] = ln.ID
+		ids = append(ids, st.ID)
+		return nil
+	}
+
+	rideSeconds := func(v *int) int {
+		if v != nil {
+			return *v
+		}
+		return defaultRideSeconds
+	}
+
+	addEdge := func(from, to string, seconds int) error {
+		if seconds <= 0 {
+			return fmt.Errorf("линия %d: перегон %s -> %s имеет время %d с", ln.ID, from, to, seconds)
+		}
+		edges = append(edges, FullGraphEdge{
+			FromStationID:       from,
+			ToStationID:         to,
+			LineNumericID:       ln.ID,
+			MedianTravelSeconds: seconds,
+		})
+		return nil
+	}
+
+	for i, st := range ln.Stations {
+		if err := register(st, fmt.Sprintf("№%d (%q)", i+1, st.Title)); err != nil {
+			return nil, nil, err
+		}
+	}
+	if len(ids) < 2 {
+		return nil, nil, fmt.Errorf("линия %d (%s): станций %d, нужно минимум 2", ln.ID, ln.Title, len(ids))
+	}
+
+	last := len(ln.Stations) - 1
+	for i, st := range ln.Stations {
+		switch {
+		case i < last:
+			if err := addEdge(st.ID, ids[i+1], rideSeconds(st.ToNextSeconds)); err != nil {
+				return nil, nil, err
+			}
+		case ln.Ring:
+			if err := addEdge(st.ID, ids[0], rideSeconds(st.ToNextSeconds)); err != nil {
+				return nil, nil, err
+			}
+		case st.ToNextSeconds != nil:
+			return nil, nil, fmt.Errorf(
+				"линия %d (%s): у конечной станции %s задан toNextSeconds, но следующей станции нет; для замыкания в кольцо нужен \"ring\": true",
+				ln.ID, ln.Title, st.ID)
+		}
+	}
+
+	if len(ln.Branches) > 0 && ln.Ring {
+		return nil, nil, fmt.Errorf("линия %d (%s): у кольцевой линии не может быть ответвлений", ln.ID, ln.Title)
+	}
+
+	for bi, br := range ln.Branches {
+		where := fmt.Sprintf("линия %d, ответвление №%d", ln.ID, bi+1)
+		if len(br.Stations) == 0 {
+			return nil, nil, fmt.Errorf("%s: нет ни одной станции", where)
+		}
+		if _, ok := stationByID[br.From]; !ok {
+			return nil, nil, fmt.Errorf("%s: станции %s, от которой оно отходит, нет", where, br.From)
+		}
+		if lineOfStation[br.From] != ln.ID {
+			return nil, nil, fmt.Errorf("%s: станция %s принадлежит линии %d, а не %d",
+				where, br.From, lineOfStation[br.From], ln.ID)
+		}
+
+		firstIdx := len(ids)
+		for i, st := range br.Stations {
+			if err := register(st, fmt.Sprintf("№%d ветки %q", i+1, br.Title)); err != nil {
+				return nil, nil, err
+			}
+		}
+
+		if err := addEdge(br.From, ids[firstIdx], rideSeconds(br.FromSeconds)); err != nil {
+			return nil, nil, err
+		}
+		blast := len(br.Stations) - 1
+		for i, st := range br.Stations {
+			if i < blast {
+				if err := addEdge(st.ID, ids[firstIdx+i+1], rideSeconds(st.ToNextSeconds)); err != nil {
+					return nil, nil, err
+				}
+			} else if st.ToNextSeconds != nil {
+				return nil, nil, fmt.Errorf("%s: у конечной станции %s задан toNextSeconds, но следующей станции нет",
+					where, st.ID)
+			}
+		}
+	}
+
+	return edges, ids, nil
+}
+
+// loadDataLines читает data/lines/*.json.
+//
+// Порядок линий определяет и порядок в выгрузке, и порядок отрисовки в рантайме:
+// кольцевые идут первыми (рисуются под остальными), дальше — по возрастанию id.
+// Он задаётся здесь явно, а не именами файлов: переименование файла не должно
+// менять картинку.
+func loadDataLines(dir string) ([]dataLine, error) {
+	names, err := filepath.Glob(filepath.Join(dir, "*.json"))
+	if err != nil {
+		return nil, fmt.Errorf("поиск файлов линий в %s: %w", dir, err)
+	}
+	if len(names) == 0 {
+		return nil, fmt.Errorf("в %s нет ни одного файла линии", dir)
+	}
+	sort.Strings(names)
+
+	lines := make([]dataLine, 0, len(names))
+	seen := make(map[int]string)
+	for _, name := range names {
+		var ln dataLine
+		if err := readJSONFile(name, &ln); err != nil {
+			return nil, err
+		}
+		base := filepath.Base(name)
+		if ln.ID <= 0 {
+			return nil, fmt.Errorf("%s: не задан id линии", base)
+		}
+		if prev, dup := seen[ln.ID]; dup {
+			return nil, fmt.Errorf("id линии %d встречается дважды: %s и %s", ln.ID, prev, base)
+		}
+		if !strings.HasPrefix(ln.Color, "#") || (len(ln.Color) != 7 && len(ln.Color) != 4) {
+			return nil, fmt.Errorf("%s: цвет %q не в формате #RRGGBB", base, ln.Color)
+		}
+		seen[ln.ID] = base
+		lines = append(lines, ln)
+	}
+
+	sort.SliceStable(lines, func(i, j int) bool {
+		if lines[i].Ring != lines[j].Ring {
+			return lines[i].Ring
+		}
+		return lines[i].ID < lines[j].ID
+	})
+	return lines, nil
+}
+
+// buildTransfers строит рёбра пересадок и пересадочные узлы (хабы).
+//
+// Хабы в данных не хранятся: узел — это связная компонента списка пересадок.
+// Хранить их отдельно значило бы держать два описания одного факта, которые
+// разъезжаются при первой же правке.
+func buildTransfers(
+	file dataTransfersFile,
+	stationByID map[string]*FullGraphStation,
+	lineOfStation map[string]int,
+) ([]FullGraphTransferHub, []FullGraphEdge, error) {
+	adj := make(map[string]map[string]struct{})
+	seenPair := make(map[string]struct{})
+	var edges []FullGraphEdge
+
+	pairKey := func(a, b string) string {
+		if a < b {
+			return a + "|" + b
+		}
+		return b + "|" + a
+	}
+
+	for i, t := range file.Transfers {
+		where := fmt.Sprintf("transfers.json, пересадка №%d", i+1)
+		if len(t.Stations) != 2 {
+			return nil, nil, fmt.Errorf("%s: в stations должно быть ровно 2 станции, а их %d", where, len(t.Stations))
+		}
+		a, b := t.Stations[0], t.Stations[1]
+		if _, ok := stationByID[a]; !ok {
+			return nil, nil, fmt.Errorf("%s: станции %s нет ни на одной линии", where, a)
+		}
+		if _, ok := stationByID[b]; !ok {
+			return nil, nil, fmt.Errorf("%s: станции %s нет ни на одной линии", where, b)
+		}
+		if lineOfStation[a] == lineOfStation[b] {
+			return nil, nil, fmt.Errorf("%s: %s и %s на одной линии %d — это перегон, а не пересадка",
+				where, a, b, lineOfStation[a])
+		}
+		if _, ok := transferKinds[t.Kind]; !ok {
+			return nil, nil, fmt.Errorf("%s: неизвестный тип %q (допустимые: far, mcc, near, out_of_station)", where, t.Kind)
+		}
+
+		key := pairKey(a, b)
+		if _, dup := seenPair[key]; dup {
+			return nil, nil, fmt.Errorf("%s: пересадка %s <-> %s описана дважды", where, a, b)
+		}
+		seenPair[key] = struct{}{}
+
+		seconds, ok := file.Defaults.KindSeconds[t.Kind]
+		if !ok {
+			return nil, nil, fmt.Errorf("%s: для типа %q нет значения в defaults.kindSeconds", where, t.Kind)
+		}
+		if t.Seconds != nil {
+			seconds = *t.Seconds
+		}
+		if seconds <= 0 {
+			return nil, nil, fmt.Errorf("%s: время пересадки %d с", where, seconds)
+		}
+
+		// Уличные переходы не схлопываются в общий узел: это две разные станции,
+		// между которыми надо выйти в город, а не один пересадочный узел.
+		if t.Kind != "out_of_station" {
+			if adj[a] == nil {
+				adj[a] = make(map[string]struct{})
+			}
+			if adj[b] == nil {
+				adj[b] = make(map[string]struct{})
+			}
+			adj[a][b] = struct{}{}
+			adj[b][a] = struct{}{}
+		}
+
+		edges = append(edges, FullGraphEdge{
+			FromStationID:       a,
+			ToStationID:         b,
+			MedianTravelSeconds: seconds,
+			IsTransfer:          true,
+			TransferKind:        t.Kind,
+		})
+	}
+
+	// Компоненты связности -> хабы. Обход по отсортированным ключам: номера
+	// хабов и порядок станций внутри не должны зависеть от обхода map.
+	starts := make([]string, 0, len(adj))
+	for id := range adj {
+		starts = append(starts, id)
+	}
+	sort.Strings(starts)
+
+	var hubs []FullGraphTransferHub
+	visited := make(map[string]struct{})
+
+	for _, start := range starts {
+		if _, ok := visited[start]; ok {
+			continue
+		}
+		queue := []string{start}
+		visited[start] = struct{}{}
+		component := make([]string, 0, 4)
+
+		for len(queue) > 0 {
+			cur := queue[0]
+			queue = queue[1:]
+			component = append(component, cur)
+
+			nexts := make([]string, 0, len(adj[cur]))
+			for nxt := range adj[cur] {
+				nexts = append(nexts, nxt)
+			}
+			sort.Strings(nexts)
+			for _, nxt := range nexts {
+				if _, ok := visited[nxt]; ok {
+					continue
+				}
+				visited[nxt] = struct{}{}
+				queue = append(queue, nxt)
+			}
+		}
+
+		// Хаб из одной станции пересадки не даёт, но рисуется как узел —
+		// таких не создаём. При out_of_station станция остаётся без hubId,
+		// сама пересадка живёт в ребре.
+		if len(component) < 2 {
+			continue
+		}
+		sort.Strings(component)
+		id := fmt.Sprintf("hub-%d", len(hubs)+1)
+		hubs = append(hubs, FullGraphTransferHub{
+			ID:                 id,
+			StationIDs:         component,
+			MinTransferSeconds: file.Defaults.HubMinSeconds,
+			Source:             "data",
+		})
+		for _, sid := range component {
+			stationByID[sid].IsTransfer = true
+			stationByID[sid].HubID = id
+		}
+	}
+
+	// Станция с уличным переходом тоже пересадочная, хотя хаба у неё нет.
+	for _, e := range edges {
+		stationByID[e.FromStationID].IsTransfer = true
+		stationByID[e.ToStationID].IsTransfer = true
+	}
+
+	return hubs, edges, nil
+}
+
+// applyLayout проставляет координаты схемы.
+//
+// Станция без координат просто не рисуется, а лишняя запись означает, что
+// станцию переименовали или удалили и забыли про раскладку. И то и другое —
+// ошибка сборки: молча получить схему с дырой хуже, чем не собрать её вовсе.
+func applyLayout(file dataLayoutFile, stationByID map[string]*FullGraphStation) error {
+	var missing, extra []string
+
+	for id, xy := range file.Stations {
+		st, ok := stationByID[id]
+		if !ok {
+			extra = append(extra, id)
+			continue
+		}
+		if len(xy) != 2 || !isFinite(xy[0]) || !isFinite(xy[1]) {
+			return fmt.Errorf("layout.json: у станции %s координаты должны быть [x, y], а там %v", id, xy)
+		}
+		st.LayoutX = xy[0]
+		st.LayoutY = xy[1]
+	}
+
+	for id := range stationByID {
+		if _, ok := file.Stations[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+
+	sort.Strings(missing)
+	sort.Strings(extra)
+
+	if len(missing) > 0 {
+		return fmt.Errorf("layout.json: нет координат у %d станций: %s\n"+
+			"Добавьте их в data/layout.json (или расставьте в редакторе: npm run dev:editor)",
+			len(missing), strings.Join(missing, ", "))
+	}
+	if len(extra) > 0 {
+		return fmt.Errorf("layout.json: координаты заданы для %d несуществующих станций: %s\n"+
+			"Станцию переименовали или удалили — уберите запись из data/layout.json",
+			len(extra), strings.Join(extra, ", "))
+	}
+
+	for key := range file.Rings {
+		id, err := strconv.Atoi(key)
+		if err != nil {
+			return fmt.Errorf("layout.json: ключ rings.%q — не номер линии", key)
+		}
+		if _, ok := ringLineIDs[id]; !ok {
+			return fmt.Errorf("layout.json: rings.%s задаёт форму кольца для линии %d, а она не кольцевая", key, id)
+		}
+	}
+
+	return nil
+}
+
+// ringShapeOverrides переводит формы колец из data/layout.json во внутренний вид
+// для rings.go. Пустая карта означает автоподгонку формы по координатам станций.
+func ringShapeOverrides(shapes map[string]FullGraphRingShape) map[int]ringShape {
+	if len(shapes) == 0 {
+		return nil
+	}
+	out := make(map[int]ringShape, len(shapes))
+	for key, s := range shapes {
+		id, err := strconv.Atoi(key)
+		if err != nil {
+			continue
+		}
+		v := ringShape{kind: s.Kind, cx: s.Cx, cy: s.Cy}
+		if s.R != nil {
+			v.r = *s.R
+		}
+		if s.Rx != nil {
+			v.rx = *s.Rx
+		}
+		if s.Ry != nil {
+			v.ry = *s.Ry
+		}
+		out[id] = v
+	}
+	return out
+}
+
+// --- Мелкие помощники ---
+
+func readJSONFile(path string, dst any) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("чтение %s: %w", path, err)
+	}
+	if err := json.Unmarshal(data, dst); err != nil {
+		return fmt.Errorf("разбор %s: %w", path, err)
+	}
+	return nil
+}
+
+// resolvePath интерпретирует путь относительно рабочего каталога, если он относительный.
 func resolvePath(p string) (string, error) {
 	if filepath.IsAbs(p) {
 		return p, nil
@@ -344,444 +666,7 @@ func resolvePath(p string) (string, error) {
 	return filepath.Join(cwd, p), nil
 }
 
-func loadCSVRows(csvPath string) ([]csvRow, error) {
-	f, err := os.Open(csvPath)
-	if err != nil {
-		return nil, fmt.Errorf("open csv: %w", err)
-	}
-	defer f.Close()
-
-	r := csv.NewReader(f)
-	r.FieldsPerRecord = -1
-	r.ReuseRecord = true
-
-	headers, err := r.Read()
-	if err != nil {
-		return nil, fmt.Errorf("read header: %w", err)
-	}
-
-	idx := func(name string) int {
-		for i, h := range headers {
-			if h == name {
-				return i
-			}
-		}
-		return -1
-	}
-
-	idxCityID := idx("city_id")
-	idxCityName := idx("city_name")
-	idxLineID := idx("line_id")
-	idxLineName := idx("line_name")
-	idxLineColor := idx("line_hex_color")
-	idxStationID := idx("station_id")
-	idxStationName := idx("station_name")
-	idxLat := idx("lat")
-	idxLng := idx("lng")
-	idxOrder := idx("order")
-
-	for _, v := range []int{idxCityID, idxCityName, idxLineID, idxLineName, idxLineColor, idxStationID, idxStationName, idxLat, idxLng, idxOrder} {
-		if v == -1 {
-			return nil, fmt.Errorf("metro.ru.csv: unexpected header format")
-		}
-	}
-
-	var rows []csvRow
-	for {
-		rec, err := r.Read()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			return nil, fmt.Errorf("read row: %w", err)
-		}
-		if len(rec) <= idxOrder {
-			continue
-		}
-
-		cityNameRaw := strings.Trim(rec[idxCityName], "\"")
-		if cityNameRaw != targetCityName {
-			continue
-		}
-
-		lineNameRaw := strings.Trim(rec[idxLineName], "\"")
-		if mcdRe.MatchString(lineNameRaw) { // пропускаем МЦД
-			continue
-		}
-
-		cityID, _ := strconv.Atoi(rec[idxCityID])
-		lineID, _ := strconv.Atoi(rec[idxLineID])
-		stationIDStr := rec[idxStationID]
-		stationNameRaw := strings.Trim(rec[idxStationName], "\"")
-		lat, _ := strconv.ParseFloat(rec[idxLat], 64)
-		lng, _ := strconv.ParseFloat(rec[idxLng], 64)
-		order, _ := strconv.Atoi(rec[idxOrder])
-		colorHexRaw := rec[idxLineColor]
-
-		if !isFinite(lat) || !isFinite(lng) {
-			continue
-		}
-
-		rows = append(rows, csvRow{
-			CityID:           cityID,
-			CityName:         cityNameRaw,
-			LineID:           lineID,
-			LineName:         lineNameRaw,
-			LineColorHex:     colorHexRaw,
-			StationNumericID: stationIDStr,
-			StationName:      stationNameRaw,
-			Lat:              lat,
-			Lng:              lng,
-			Order:            order,
-		})
-	}
-
-	return rows, nil
-}
-
-type lineAggregate struct {
-	LineID   int
-	LineName string
-	ColorHex string
-	Rows     []csvRow
-}
-
-func groupRowsByLine(rows []csvRow) map[int]*lineAggregate {
-	res := make(map[int]*lineAggregate)
-	for _, r := range rows {
-		agg := res[r.LineID]
-		if agg == nil {
-			agg = &lineAggregate{LineID: r.LineID, LineName: r.LineName, ColorHex: r.LineColorHex}
-			res[r.LineID] = agg
-		}
-		agg.Rows = append(agg.Rows, r)
-	}
-	return res
-}
-
-// rideSeconds — время перегона: из конфига времён, если он есть, иначе старая
-// оценка по расстоянию. Разделение вынесено сюда, чтобы вызывающий код не знал
-// о запасном пути.
-func rideSeconds(times *TravelTimes, lineID int, stationByID map[string]*FullGraphStation, fromID, toID string) int {
-	if times != nil {
-		return times.RideSeconds(fromID, toID)
-	}
-	return estimateTravelSeconds(lineID, stationByID[fromID], stationByID[toID])
-}
-
-// estimateTravelSeconds — запасная оценка времени перегона по географическому
-// расстоянию. Используется только когда конфиг времён не передан: источник
-// правды по времени — travel_times.json, а не координаты.
-func estimateTravelSeconds(lineID int, a, b *FullGraphStation) int {
-	if a == nil || b == nil {
-		return 120
-	}
-	if !isFinite(a.Lat) || !isFinite(a.Lon) || !isFinite(b.Lat) || !isFinite(b.Lon) {
-		return 120
-	}
-	distKm := haversineDistanceKm(a.Lat, a.Lon, b.Lat, b.Lon)
-	if distKm <= 0 {
-		return minTravelSeconds
-	}
-
-	// Базовая модель: константное время на старт/остановку поезда
-	// плюс время хода, зависящее от типа линии.
-	speedKmH := float64(avgTrainSpeedKmH)
-	if _, isRing := ringLineIDs[lineID]; isRing {
-		switch lineID {
-		case 5:
-			// Кольцевая линия обычно идёт чуть быстрее за счёт малого интервала и
-			// относительно ровного профиля движения.
-			speedKmH = 42
-		case 95:
-			// МЦК: пригородное движение с более высокой крейсерской скоростью.
-			speedKmH = 45
-		case 97:
-			// БКЛ: много остановок, оставляем скорость близкой к базовой.
-			speedKmH = 40
-		default:
-			speedKmH = float64(avgTrainSpeedKmH)
-		}
-	} else {
-		// Радиальные линии: считаем чуть медленнее базового значения.
-		speedKmH = 38
-	}
-
-	runSeconds := (distKm / speedKmH) * 3600.0
-	sec := int(math.Round(runSeconds)) + baseRunSeconds
-	if sec < minTravelSeconds {
-		sec = minTravelSeconds
-	}
-	return sec
-}
-
-func haversineDistanceKm(lat1, lon1, lat2, lon2 float64) float64 {
-	const R = 6371.0
-	toRad := func(deg float64) float64 { return deg * math.Pi / 180 }
-	dLat := toRad(lat2 - lat1)
-	dLon := toRad(lon2 - lon1)
-	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
-		math.Cos(toRad(lat1))*math.Cos(toRad(lat2))*math.Sin(dLon/2)*math.Sin(dLon/2)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	return R * c
-}
-
-// transferSecondsForType возвращает эвристическое медианное время пересадки
-// (в секундах) в зависимости от типа соединения из connections.json.
-func transferSecondsForType(connType string) int {
-	switch connType {
-	case "cross_platform":
-		// Пересадка через общую платформу: быстрая.
-		return 90
-	case "interchange":
-		// Обычная пересадка между линиями в одном узле.
-		return 210
-	case "mcc":
-		// Переход метро ↔ МЦК: чуть длиннее обычной пересадки.
-		return 270
-	case "out-of-station":
-		// Уличный переход между станциями/вокзалами.
-		return 420
-	default:
-		return baseTransferSeconds
-	}
-}
-
-// transferKindForType маппит тип соединения из connections.json в нормализованный
-// TransferKind, который используется в TypeScript-части приложения.
-// Возможные значения на стороне TS: "near", "far", "out_of_station", "mcc", "mcd", "ignored".
-func transferKindForType(connType string) string {
-	switch connType {
-	case "cross_platform", "interchange":
-		// Обычные пересадки внутри хаба.
-		return "near"
-	case "mcc":
-		// Переходы метро ↔ МЦК.
-		return "mcc"
-	case "out-of-station":
-		// Уличные/внестанционные переходы.
-		return "out_of_station"
-	default:
-		return ""
-	}
-}
-
-// buildTransferHubs читает connections.json, строит пересадочные хабы и рёбра пересадок.
-func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]string, stationByID map[string]*FullGraphStation, times *TravelTimes) ([]FullGraphTransferHub, []FullGraphEdge) {
-	absConn, err := resolvePath(connPath)
-	if err != nil {
-		return nil, nil
-	}
-
-	data, err := os.ReadFile(absConn)
-	if err != nil {
-		return nil, nil
-	}
-
-	var conns []connectionRecord
-	if err := json.Unmarshal(data, &conns); err != nil {
-		return nil, nil
-	}
-
-	adj := make(map[string]map[string]struct{})
-	edgeKeySet := make(map[string]struct{})
-	var transferEdges []FullGraphEdge
-
-	edgeKey := func(a, b string) string {
-		if a < b {
-			return a + "|" + b
-		}
-		return b + "|" + a
-	}
-
-	addAdj := func(a, b string) {
-		m := adj[a]
-		if m == nil {
-			m = make(map[string]struct{})
-			adj[a] = m
-		}
-		m[b] = struct{}{}
-	}
-
-	for _, c := range conns {
-		if _, ok := allowedConnectionTypes[c.Type]; !ok {
-			continue
-		}
-
-		fromLineKey := normalizeLineKeyFromConnection(c.FromLine)
-		toLineKey := normalizeLineKeyFromConnection(c.ToLine)
-		if fromLineKey == "" || toLineKey == "" {
-			continue
-		}
-
-		fromNameNorm := normalizeStationName(c.FromStation)
-		toNameNorm := normalizeStationName(c.ToStation)
-
-		fromByName := lineKeyToStation[fromLineKey]
-		toByName := lineKeyToStation[toLineKey]
-		if fromByName == nil || toByName == nil {
-			continue
-		}
-
-		fromID := fromByName[fromNameNorm]
-		toID := toByName[toNameNorm]
-		if fromID == "" || toID == "" || fromID == toID {
-			continue
-		}
-
-		// Длинные пересадки out-of-station не должны схлопываться в один хаб.
-		// Для них создаём только рёбра, но не добавляем их в adjacency компонент.
-		isOutOfStation := c.Type == "out-of-station"
-		if !isOutOfStation {
-			addAdj(fromID, toID)
-			addAdj(toID, fromID)
-		}
-
-		k := edgeKey(fromID, toID)
-		if _, exists := edgeKeySet[k]; !exists {
-			edgeKeySet[k] = struct{}{}
-			kind := transferKindForType(c.Type)
-			// Время пересадки — из конфига по ключу пары; тип пересадки
-			// по-прежнему из connections.json.
-			transferSeconds := transferSecondsForType(c.Type)
-			if times != nil {
-				transferSeconds = times.TransferSeconds(fromID, toID, kind)
-			}
-			transferEdges = append(transferEdges, FullGraphEdge{
-				FromStationID:       fromID,
-				ToStationID:         toID,
-				MedianTravelSeconds: transferSeconds,
-				IsTransfer:          true,
-				TransferKind:        kind,
-			})
-		}
-	}
-
-	var hubs []FullGraphTransferHub
-	visited := make(map[string]struct{})
-
-	// Обход компонент — по отсортированным ключам: и номера хабов, и порядок
-	// станций внутри хаба не должны зависеть от случайного обхода map.
-	adjStarts := make([]string, 0, len(adj))
-	for id := range adj {
-		adjStarts = append(adjStarts, id)
-	}
-	sort.Strings(adjStarts)
-
-	for _, start := range adjStarts {
-		if _, ok := visited[start]; ok {
-			continue
-		}
-		queue := []string{start}
-		component := make([]string, 0, 4)
-		visited[start] = struct{}{}
-
-		for len(queue) > 0 {
-			cur := queue[0]
-			queue = queue[1:]
-			component = append(component, cur)
-			nexts := make([]string, 0, len(adj[cur]))
-			for nxt := range adj[cur] {
-				nexts = append(nexts, nxt)
-			}
-			sort.Strings(nexts)
-			for _, nxt := range nexts {
-				if _, ok := visited[nxt]; !ok {
-					visited[nxt] = struct{}{}
-					queue = append(queue, nxt)
-				}
-			}
-		}
-
-		if len(component) >= 2 {
-			id := fmt.Sprintf("hub-%d", len(hubs)+1)
-			hubMin := baseTransferSeconds
-			if times != nil {
-				hubMin = times.HubMinTransferSeconds()
-			}
-			hubs = append(hubs, FullGraphTransferHub{
-				ID:                 id,
-				StationIDs:         append([]string{}, component...),
-				MinTransferSeconds: hubMin,
-				Source:             "manual_override",
-			})
-			for _, sid := range component {
-				if st := stationByID[sid]; st != nil {
-					st.IsTransfer = true
-					st.HubID = id
-				}
-			}
-		}
-	}
-
-	// Дополнительно помечаем как пересадочные все станции, которые участвуют
-	// в любых рёбрах-пересадках (включая out-of-station), даже если они не
-	// входят ни в один компактный хаб. Это нужно, чтобы, например, станция
-	// «Войковская» отображалась как пересадочная при длинных переходах.
-	for _, e := range transferEdges {
-		if st := stationByID[e.FromStationID]; st != nil {
-			st.IsTransfer = true
-		}
-		if st := stationByID[e.ToStationID]; st != nil {
-			st.IsTransfer = true
-		}
-	}
-
-	// Одиночных хабов больше не создаём: хаб из одной станции не даёт пересадки,
-	// но рисуется как пересадочный узел («вырожденный хаб») и ломает исключения
-	// по hubId в метриках. У станции с длинной пересадкой out-of-station просто
-	// нет hubId — сама пересадка живёт в ребре с isTransfer.
-	return hubs, transferEdges
-}
-
-// --- Нормализация имён линий и станций ---
-
-func normalizeStationName(name string) string {
-	s := strings.ToLower(strings.TrimSpace(name))
-	s = strings.ReplaceAll(s, "ё", "е")
-	repl := []string{"«", "»", "\"", "\u201e"}
-	for _, r := range repl {
-		s = strings.ReplaceAll(s, r, " ")
-	}
-	s = strings.ReplaceAll(s, ".", " ")
-	s = strings.ReplaceAll(s, " - ", "-") // collapse spaces around hyphens
-	// убираем "им." / "имени"
-	s = regexp.MustCompile(`\bим\.?\b`).ReplaceAllString(s, " ")
-	s = regexp.MustCompile(`\bимени\b`).ReplaceAllString(s, " ")
-	s = strings.Join(strings.Fields(s), " ")
-	return s
-}
-
-func normalizeLineKeyFromCSV(name string) string {
-	s := strings.TrimSpace(name)
-	s = strings.ReplaceAll(s, "ё", "е")
-	s = regexp.MustCompile(`\s+линия$`).ReplaceAllString(s, "")
-	if i := strings.Index(s, "/"); i >= 0 {
-		s = strings.TrimSpace(s[:i])
-	}
-	return s
-}
-
 // isFinite возвращает true, если число конечно (не NaN и не бесконечность).
 func isFinite(v float64) bool {
 	return !math.IsNaN(v) && !math.IsInf(v, 0)
-}
-
-func normalizeLineKeyFromConnection(name string) string {
-	s := strings.TrimSpace(name)
-	if s == "" {
-		return ""
-	}
-	if mcdRe.MatchString(s) {
-		return "" // МЦД игнорируем
-	}
-	s = strings.ReplaceAll(s, "ё", "е")
-	if i := strings.Index(s, "("); i >= 0 {
-		s = strings.TrimSpace(s[:i])
-	}
-	s = regexp.MustCompile(`\s+линия$`).ReplaceAllString(s, "")
-	if i := strings.Index(s, "/"); i >= 0 {
-		s = strings.TrimSpace(s[:i])
-	}
-	return s
 }

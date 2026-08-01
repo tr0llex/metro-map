@@ -1131,7 +1131,7 @@ export const MetroMap = memo(function MetroMap({
 
   const teatralnayaWorld = useMemo(() => {
     if (positionedStations.length === 0) return null
-    const byId = positionedStations.find((st) => st.id === 'mos-2-2.99')
+    const byId = positionedStations.find((st) => st.id === '2/teatralnaya')
     if (byId) return { x: byId.x, y: byId.y }
     const byTitle = positionedStations.find((st) => st.title === 'Театральная')
     if (byTitle) return { x: byTitle.x, y: byTitle.y }
@@ -1361,63 +1361,6 @@ export const MetroMap = memo(function MetroMap({
       return next
     })
   }, [hubMirrorCommand, positionedStations, editMode])
-
-  // Проекция координат Яндекс-схемы (yandexX/yandexY) в мировые координаты текущей схемы.
-  // Используем аффинное преобразование: центрируем bbox Яндекса и масштабируем его
-  // так, чтобы он помещался внутрь текущих worldBounds с сохранением пропорций.
-  const yandexWorldById = useMemo(() => {
-    const map = new Map<string, { x: number; y: number }>()
-
-    if (!worldBounds) return map
-
-    let minX = Infinity
-    let maxX = -Infinity
-    let minY = Infinity
-    let maxY = -Infinity
-
-    const points: { id: string; x: number; y: number }[] = []
-
-    for (const s of fullGraphStations) {
-      if (s.lineNumericId == null) continue
-      if (!positionedById.has(s.id)) continue
-      if (typeof s.yandexX !== 'number' || typeof s.yandexY !== 'number') continue
-      const x = s.yandexX
-      const y = s.yandexY
-      points.push({ id: s.id, x, y })
-      if (x < minX) minX = x
-      if (x > maxX) maxX = x
-      if (y < minY) minY = y
-      if (y > maxY) maxY = y
-    }
-
-    if (points.length === 0) return map
-    if (!Number.isFinite(minX) || !Number.isFinite(maxX) || !Number.isFinite(minY) || !Number.isFinite(maxY)) {
-      return map
-    }
-
-    const srcWidth = maxX - minX || 1
-    const srcHeight = maxY - minY || 1
-    const srcCenterX = (minX + maxX) / 2
-    const srcCenterY = (minY + maxY) / 2
-
-    const dstWidth = worldBounds.width
-    const dstHeight = worldBounds.height
-    const dstCenterX = worldBounds.centerX
-    const dstCenterY = worldBounds.centerY
-
-    const scale = Math.min(dstWidth / srcWidth, dstHeight / srcHeight)
-    if (!Number.isFinite(scale) || scale <= 0) return map
-
-    for (const p of points) {
-      const dx = (p.x - srcCenterX) * scale
-      const dy = (p.y - srcCenterY) * scale
-      const wx = dstCenterX + dx
-      const wy = dstCenterY + dy
-      map.set(p.id, { x: wx, y: wy })
-    }
-
-    return map
-  }, [positionedById, worldBounds])
 
   const lastLayoutSnapshotRef = useRef<Record<string, { x: number; y: number }>>({})
 
@@ -3244,7 +3187,6 @@ export const MetroMap = memo(function MetroMap({
     hasInitialViewport,
     editMode,
     collisionDebug,
-    yandexWorldById,
     animationTick,
     mapThemeTokens,
     corridorEdgeData,

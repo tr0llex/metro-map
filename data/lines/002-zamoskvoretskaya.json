@@ -1,0 +1,176 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 2,
+  "title": "Замоскворецкая",
+  "color": "#4FB04F",
+  "ring": false,
+  "stations": [
+    {
+      "id": "2/khovrino",
+      "title": "Ховрино",
+      "lat": 55.8777,
+      "lon": 37.4877,
+      "toNextSeconds": 169
+    },
+    {
+      "id": "2/belomorskaya",
+      "title": "Беломорская",
+      "lat": 55.8651,
+      "lon": 37.4764,
+      "toNextSeconds": 135
+    },
+    {
+      "id": "2/rechnoy-vokzal",
+      "title": "Речной вокзал",
+      "lat": 55.854152,
+      "lon": 37.476728,
+      "toNextSeconds": 192
+    },
+    {
+      "id": "2/vodnyy-stadion",
+      "title": "Водный стадион",
+      "lat": 55.838978,
+      "lon": 37.487515,
+      "toNextSeconds": 240
+    },
+    {
+      "id": "2/voykovskaya",
+      "title": "Войковская",
+      "lat": 55.818923,
+      "lon": 37.497791,
+      "toNextSeconds": 195
+    },
+    {
+      "id": "2/sokol",
+      "title": "Сокол",
+      "lat": 55.805564,
+      "lon": 37.515245,
+      "toNextSeconds": 125
+    },
+    {
+      "id": "2/aeroport",
+      "title": "Аэропорт",
+      "lat": 55.800441,
+      "lon": 37.530477,
+      "toNextSeconds": 219
+    },
+    {
+      "id": "2/dinamo",
+      "title": "Динамо",
+      "lat": 55.789704,
+      "lon": 37.558212,
+      "toNextSeconds": 212
+    },
+    {
+      "id": "2/belorusskaya",
+      "title": "Белорусская",
+      "lat": 55.777439,
+      "lon": 37.582107,
+      "toNextSeconds": 136
+    },
+    {
+      "id": "2/mayakovskaya",
+      "title": "Маяковская",
+      "lat": 55.769808,
+      "lon": 37.596192,
+      "toNextSeconds": 86
+    },
+    {
+      "id": "2/tverskaya",
+      "title": "Тверская",
+      "lat": 55.765343,
+      "lon": 37.603918,
+      "toNextSeconds": 127
+    },
+    {
+      "id": "2/teatralnaya",
+      "title": "Театральная",
+      "lat": 55.758808,
+      "lon": 37.61768,
+      "toNextSeconds": 206
+    },
+    {
+      "id": "2/novokuznetskaya",
+      "title": "Новокузнецкая",
+      "lat": 55.742391,
+      "lon": 37.62928,
+      "toNextSeconds": 164
+    },
+    {
+      "id": "2/paveletskaya",
+      "title": "Павелецкая",
+      "lat": 55.729741,
+      "lon": 37.638693,
+      "toNextSeconds": 287
+    },
+    {
+      "id": "2/avtozavodskaya",
+      "title": "Автозаводская",
+      "lat": 55.706634,
+      "lon": 37.657008,
+      "toNextSeconds": 150
+    },
+    {
+      "id": "2/tekhnopark",
+      "title": "Технопарк",
+      "lat": 55.695,
+      "lon": 37.664167,
+      "toNextSeconds": 205
+    },
+    {
+      "id": "2/kolomenskaya",
+      "title": "Коломенская",
+      "lat": 55.677423,
+      "lon": 37.663719,
+      "toNextSeconds": 263
+    },
+    {
+      "id": "2/kashirskaya",
+      "title": "Каширская",
+      "lat": 55.655745,
+      "lon": 37.649683,
+      "toNextSeconds": 230
+    },
+    {
+      "id": "2/kantemirovskaya",
+      "title": "Кантемировская",
+      "lat": 55.636107,
+      "lon": 37.656218,
+      "toNextSeconds": 198
+    },
+    {
+      "id": "2/tsaritsyno",
+      "title": "Царицыно",
+      "lat": 55.620982,
+      "lon": 37.669612,
+      "toNextSeconds": 196
+    },
+    {
+      "id": "2/orekhovo",
+      "title": "Орехово",
+      "lat": 55.61269,
+      "lon": 37.695214,
+      "toNextSeconds": 153
+    },
+    {
+      "id": "2/domodedovskaya",
+      "title": "Домодедовская",
+      "lat": 55.610131,
+      "lon": 37.717111,
+      "toNextSeconds": 178
+    },
+    {
+      "id": "2/krasnogvardeyskaya",
+      "title": "Красногвардейская",
+      "lat": 55.614075,
+      "lon": 37.742697,
+      "toNextSeconds": 266
+    },
+    {
+      "id": "2/alma-atinskaya",
+      "title": "Алма-Атинская",
+      "lat": 55.63349,
+      "lon": 37.765678
+    }
+  ]
+}

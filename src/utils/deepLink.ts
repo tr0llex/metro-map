@@ -1,9 +1,11 @@
 /**
  * Deep links на маршрут: `?from=<stationId>&to=<stationId>`.
  *
- * ID станций выглядят как `mos-1-1.148` и содержат точки и дефисы, поэтому
- * в ссылку они всегда попадают через encodeURIComponent, а читаются через
- * URLSearchParams (он сам декодирует значение).
+ * ID станций выглядят как `1/park-kultury` и содержат косую черту, поэтому
+ * в ссылку они всегда попадают через encodeURIComponent (`1%2Fpark-kultury`),
+ * а читаются через URLSearchParams — он сам декодирует значение. Без
+ * кодирования косая черта в query разбирается как есть, но при склейке ссылок
+ * и в чужих парсерах ведёт себя непредсказуемо.
  */
 
 export function readDeepLinkStationIds(search: string): { fromId: string; toId: string } | null {

@@ -1,0 +1,162 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 3,
+  "title": "Арбатско-Покровская",
+  "color": "#0072BA",
+  "ring": false,
+  "stations": [
+    {
+      "id": "3/shchelkovskaya",
+      "title": "Щелковская",
+      "lat": 55.809962,
+      "lon": 37.798261,
+      "toNextSeconds": 184
+    },
+    {
+      "id": "3/pervomayskaya",
+      "title": "Первомайская",
+      "lat": 55.794376,
+      "lon": 37.799364,
+      "toNextSeconds": 155
+    },
+    {
+      "id": "3/izmaylovskaya",
+      "title": "Измайловская",
+      "lat": 55.787713,
+      "lon": 37.779896,
+      "toNextSeconds": 204
+    },
+    {
+      "id": "3/partizanskaya",
+      "title": "Партизанская",
+      "lat": 55.788401,
+      "lon": 37.74882,
+      "toNextSeconds": 204
+    },
+    {
+      "id": "3/semenovskaya",
+      "title": "Семеновская",
+      "lat": 55.783096,
+      "lon": 37.719289,
+      "toNextSeconds": 104
+    },
+    {
+      "id": "3/elektrozavodskaya",
+      "title": "Электрозаводская",
+      "lat": 55.782057,
+      "lon": 37.7053,
+      "toNextSeconds": 206
+    },
+    {
+      "id": "3/baumanskaya",
+      "title": "Бауманская",
+      "lat": 55.772405,
+      "lon": 37.67904,
+      "toNextSeconds": 208
+    },
+    {
+      "id": "3/kurskaya",
+      "title": "Курская",
+      "lat": 55.758564,
+      "lon": 37.659039,
+      "toNextSeconds": 238
+    },
+    {
+      "id": "3/ploshchad-revolyutsii",
+      "title": "Площадь Революции",
+      "lat": 55.756741,
+      "lon": 37.62236,
+      "toNextSeconds": 141
+    },
+    {
+      "id": "3/arbatskaya",
+      "title": "Арбатская",
+      "lat": 55.752312,
+      "lon": 37.60349,
+      "toNextSeconds": 146
+    },
+    {
+      "id": "3/smolenskaya",
+      "title": "Смоленская",
+      "lat": 55.747713,
+      "lon": 37.583802,
+      "toNextSeconds": 146
+    },
+    {
+      "id": "3/kievskaya",
+      "title": "Киевская",
+      "lat": 55.743117,
+      "lon": 37.564132,
+      "toNextSeconds": 311
+    },
+    {
+      "id": "3/park-pobedy",
+      "title": "Парк Победы",
+      "lat": 55.735679,
+      "lon": 37.516865,
+      "toNextSeconds": 300
+    },
+    {
+      "id": "3/slavyanskiy-bulvar",
+      "title": "Славянский бульвар",
+      "lat": 55.729542,
+      "lon": 37.470973,
+      "toNextSeconds": 166
+    },
+    {
+      "id": "3/kuntsevskaya",
+      "title": "Кунцевская",
+      "lat": 55.730673,
+      "lon": 37.446522,
+      "toNextSeconds": 235
+    },
+    {
+      "id": "3/molodezhnaya",
+      "title": "Молодежная",
+      "lat": 55.741375,
+      "lon": 37.415627,
+      "toNextSeconds": 189
+    },
+    {
+      "id": "3/krylatskoe",
+      "title": "Крылатское",
+      "lat": 55.756842,
+      "lon": 37.408139,
+      "toNextSeconds": 516
+    },
+    {
+      "id": "3/strogino",
+      "title": "Строгино",
+      "lat": 55.803831,
+      "lon": 37.402405,
+      "toNextSeconds": 249
+    },
+    {
+      "id": "3/myakinino",
+      "title": "Мякинино",
+      "lat": 55.823342,
+      "lon": 37.385214,
+      "toNextSeconds": 145
+    },
+    {
+      "id": "3/volokolamskaya",
+      "title": "Волоколамская",
+      "lat": 55.835154,
+      "lon": 37.382453,
+      "toNextSeconds": 190
+    },
+    {
+      "id": "3/mitino",
+      "title": "Митино",
+      "lat": 55.846098,
+      "lon": 37.36122,
+      "toNextSeconds": 113
+    },
+    {
+      "id": "3/pyatnitskoe-shosse",
+      "title": "Пятницкое шоссе",
+      "lat": 55.853634,
+      "lon": 37.353108
+    }
+  ]
+}

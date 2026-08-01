@@ -1,0 +1,57 @@
+{
+  "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
+  "id": 12,
+  "title": "Бутовская",
+  "color": "#BAC8E8",
+  "ring": false,
+  "stations": [
+    {
+      "id": "12/buninskaya-alleya",
+      "title": "Бунинская аллея",
+      "lat": 55.537977,
+      "lon": 37.515899,
+      "toNextSeconds": 126
+    },
+    {
+      "id": "12/ulitsa-gorchakova",
+      "title": "Улица Горчакова",
+      "lat": 55.542281,
+      "lon": 37.532063,
+      "toNextSeconds": 89
+    },
+    {
+      "id": "12/bulvar-admirala-ushakova",
+      "title": "Бульвар Адмирала Ушакова",
+      "lat": 55.545207,
+      "lon": 37.542329,
+      "toNextSeconds": 89
+    },
+    {
+      "id": "12/ulitsa-skobelevskaya",
+      "title": "Улица Скобелевская",
+      "lat": 55.548103,
+      "lon": 37.552721,
+      "toNextSeconds": 282
+    },
+    {
+      "id": "12/ulitsa-starokachalovskaya",
+      "title": "Улица Старокачаловская",
+      "lat": 55.569194,
+      "lon": 37.576074,
+      "toNextSeconds": 152
+    },
+    {
+      "id": "12/lesoparkovaya",
+      "title": "Лесопарковая",
+      "lat": 55.581656,
+      "lon": 37.577816,
+      "toNextSeconds": 253
+    },
+    {
+      "id": "12/bittsevskiy-park",
+      "title": "Битцевский Парк",
+      "lat": 55.600066,
+      "lon": 37.556058
+    }
+  ]
+}
