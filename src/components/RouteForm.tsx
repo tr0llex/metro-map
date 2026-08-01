@@ -12,6 +12,12 @@ export type RouteSuggestionItem = {
    * Арбатская ×2 …), где без него строки списка неразличимы.
    */
   lineTitle?: string
+  /**
+   * Откуда взялась строка: «Рядом», «Недавнее», «Избранное». Заполняется только
+   * у списка для пустого поля — там без пояснения непонятно, почему предложены
+   * именно эти шесть станций из трёхсот.
+   */
+  meta?: string
 }
 
 interface RouteFormProps {
@@ -29,6 +35,15 @@ interface RouteFormProps {
   onToChange: (value: string) => void
   onFromKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
   onToKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
+  /**
+   * Фокус в поле открывает подсказки даже у пустого поля (недавние, рядом,
+   * избранные). Решение о содержимом списка принимает App — здесь только
+   * сообщаем, что поле в фокусе.
+   */
+  onFromFocus: () => void
+  onFromBlur: () => void
+  onToFocus: () => void
+  onToBlur: () => void
   onSelectFromSuggestion: (stationId: string) => void
   onSelectToSuggestion: (stationId: string) => void
   onSwap: () => void
@@ -66,6 +81,10 @@ export function RouteForm({
   onToChange,
   onFromKeyDown,
   onToKeyDown,
+  onFromFocus,
+  onFromBlur,
+  onToFocus,
+  onToBlur,
   onSelectFromSuggestion,
   onSelectToSuggestion,
   onSwap,
@@ -334,6 +353,12 @@ export function RouteForm({
         )}
         {items.map((s, index) => {
           const isActive = index === activeIndex
+          /**
+           * Вторая строка: откуда взялась подсказка («Рядом», «Недавнее») и
+           * название линии у одноимённых станций. Оба уточнения редко нужны
+           * одновременно, поэтому просто склеиваем их точкой.
+           */
+          const sub = [s.meta, s.lineTitle].filter(Boolean).join(' · ')
           return (
             <li
               key={s.id}
@@ -346,7 +371,7 @@ export function RouteForm({
               }}
               role="option"
               aria-selected={isActive}
-              aria-label={s.lineTitle ? `${s.title}, ${s.lineTitle}` : s.title}
+              aria-label={sub ? `${s.title}, ${sub.replace(' · ', ', ')}` : s.title}
               onClick={() => onSelect(s.id)}
             >
               <span
@@ -356,8 +381,10 @@ export function RouteForm({
               <span className="suggestion-item-text">
                 <span className="suggestion-item-label">{s.title}</span>
                 {/* Название линии есть только у одноимённых станций (Киевская ×3
-                    и т.п.) — второй строкой, чтобы не отъедать ширину у названия. */}
-                {s.lineTitle && <span className="suggestion-item-line">{s.lineTitle}</span>}
+                    и т.п.), «Рядом»/«Недавнее» — только у списка для пустого
+                    поля. Обе подписи идут второй строкой, чтобы не отъедать
+                    ширину у названия. */}
+                {sub && <span className="suggestion-item-line">{sub}</span>}
               </span>
             </li>
           )
@@ -374,7 +401,9 @@ export function RouteForm({
           fromAnchorRect,
           fromSuggestionsClosing,
           fromListboxId,
-          'Подсказки для поля Откуда',
+          fromStation.trim()
+            ? 'Подсказки для поля Откуда'
+            : 'Недавние и ближайшие станции для поля Откуда',
           fromSuggestions,
           fromSuggestionsLast,
           fromSuggestionIndex,
@@ -397,6 +426,8 @@ export function RouteForm({
           ref={fromInputRef}
           onChange={(e) => onFromChange(e.target.value)}
           onKeyDown={onFromKeyDown}
+          onFocus={onFromFocus}
+          onBlur={onFromBlur}
           role="combobox"
           aria-label="Станция отправления"
           aria-autocomplete="list"
@@ -432,7 +463,9 @@ export function RouteForm({
           toAnchorRect,
           toSuggestionsClosing,
           toListboxId,
-          'Подсказки для поля Куда',
+          toStation.trim()
+            ? 'Подсказки для поля Куда'
+            : 'Недавние и ближайшие станции для поля Куда',
           toSuggestions,
           toSuggestionsLast,
           toSuggestionIndex,
@@ -455,6 +488,8 @@ export function RouteForm({
           ref={toInputRef}
           onChange={(e) => onToChange(e.target.value)}
           onKeyDown={onToKeyDown}
+          onFocus={onToFocus}
+          onBlur={onToBlur}
           role="combobox"
           aria-label="Станция назначения"
           aria-autocomplete="list"

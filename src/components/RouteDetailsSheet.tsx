@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, Ref } from 'react'
 import type { RouteResult } from '../metro/types'
 import { RouteLinePills } from './RouteLinePills.tsx'
+import { useDragScroll } from '../hooks/useDragScroll.ts'
 import { IconClock, IconShare, IconStar } from './icons.tsx'
 import {
   formatStationsCount,
@@ -72,6 +73,8 @@ export function RouteDetailsSheet({
   shareHint,
 }: RouteDetailsSheetProps) {
   const hasAlternatives = routeAlternatives.length > 1
+  // Ленту вариантов можно тянуть мышью: колесо и тач работали, зажатая мышь — нет.
+  const choicesTrackRef = useDragScroll<HTMLDivElement>()
 
   const [stepsAnimToken, setStepsAnimToken] = useState(0)
   const prevOpenRef = useRef<boolean>(false)
@@ -102,7 +105,7 @@ export function RouteDetailsSheet({
           <div className="route-result">
             {hasAlternatives && isDesktop && (
               <div className="route-choices-desktop">
-                <div className="route-choices-desktop-track">
+                <div className="route-choices-desktop-track" ref={choicesTrackRef}>
                   {routeAlternatives.map((route, index) => {
                     const isActive = index === activeRouteIndex
                     return (
