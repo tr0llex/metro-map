@@ -35,6 +35,20 @@ interface RouteFormProps {
   onClearFrom: () => void
   onClearTo: () => void
   isDesktop: boolean
+  /**
+   * Запрос введён, но не совпал ни с одной станцией. Раньше список в этом случае
+   * просто исчезал, и опечатка была неотличима от «приложение зависло»; чаще
+   * всего причина — латинская раскладка.
+   */
+  fromNoMatches?: boolean
+  toNoMatches?: boolean
+  /**
+   * Подсказка под конкретным полем — сейчас это единственный случай, когда
+   * выбранная станция уже занята соседним полем. Раньше об этом сообщал только
+   * общий блок ошибки под формой: далеко от поля, которое надо исправить.
+   */
+  fromHint?: string | null
+  toHint?: string | null
 }
 
 export function RouteForm({
@@ -58,14 +72,34 @@ export function RouteForm({
   onClearFrom,
   onClearTo,
   isDesktop,
+  fromNoMatches = false,
+  toNoMatches = false,
+  fromHint = null,
+  toHint = null,
 }: RouteFormProps) {
   const uid = useId()
   const fromInputId = `route-from-${uid}`
   const toInputId = `route-to-${uid}`
   const fromListboxId = `route-from-listbox-${uid}`
   const toListboxId = `route-to-listbox-${uid}`
+  const fromHintId = `route-from-hint-${uid}`
+  const toHintId = `route-to-hint-${uid}`
+
+  const renderFieldHint = (id: string, text: string) => (
+    <p id={id} className="bottom-field-hint bottom-field-hint--error" role="status" aria-live="polite">
+      {text}
+    </p>
+  )
 
   const exitMs = 160
+
+  /**
+   * Список открыт и когда совпадений нет: там показывается пустое состояние.
+   * Раньше всё было завязано на `suggestions.length > 0`, поэтому пустое
+   * состояние физически некуда было положить.
+   */
+  const fromListOpen = fromSuggestions.length > 0 || fromNoMatches
+  const toListOpen = toSuggestions.length > 0 || toNoMatches
 
   /**
    * A11Y: пока по списку не ходили стрелками, индекс равен -1, и раньше
@@ -159,7 +193,7 @@ export function RouteForm({
     if (typeof window === 'undefined') return
     if (typeof document === 'undefined') return
 
-    if (fromSuggestions.length === 0) {
+    if (!fromListOpen) {
       if (fromAnchorRect && !fromSuggestionsClosing) {
         setFromSuggestionsClosing(true)
         if (fromCloseTimeoutRef.current != null) {
@@ -194,13 +228,13 @@ export function RouteForm({
       vv?.removeEventListener('resize', onAnyChange)
       vv?.removeEventListener('scroll', onAnyChange)
     }
-  }, [fromSuggestions.length, fromAnchorRect, fromSuggestionsClosing, scheduleMeasureFromAnchor])
+  }, [fromListOpen, fromAnchorRect, fromSuggestionsClosing, scheduleMeasureFromAnchor])
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return
     if (typeof document === 'undefined') return
 
-    if (toSuggestions.length === 0) {
+    if (!toListOpen) {
       if (toAnchorRect && !toSuggestionsClosing) {
         setToSuggestionsClosing(true)
         if (toCloseTimeoutRef.current != null) {
@@ -235,7 +269,7 @@ export function RouteForm({
       vv?.removeEventListener('resize', onAnyChange)
       vv?.removeEventListener('scroll', onAnyChange)
     }
-  }, [toSuggestions.length, toAnchorRect, toSuggestionsClosing, scheduleMeasureToAnchor])
+  }, [toListOpen, toAnchorRect, toSuggestionsClosing, scheduleMeasureToAnchor])
 
   const renderSuggestionsPortal = (
     anchorRect: DOMRect | null,
@@ -246,11 +280,13 @@ export function RouteForm({
     suggestionsLast: RouteSuggestionItem[],
     activeIndex: number,
     onSelect: (stationId: string) => void,
+    showEmpty: boolean,
   ) => {
     if (typeof document === 'undefined') return null
     if (!anchorRect) return null
     const items = suggestions.length > 0 ? suggestions : closing ? suggestionsLast : []
-    if (items.length === 0) return null
+    const renderEmpty = items.length === 0 && showEmpty
+    if (items.length === 0 && !renderEmpty) return null
 
     const vv = typeof window !== 'undefined' ? window.visualViewport : null
     const viewportHeight = vv?.height ?? (typeof window !== 'undefined' ? window.innerHeight : 0)
@@ -258,7 +294,14 @@ export function RouteForm({
     const spaceAbove = Math.max(0, anchorRect.top - gapPx)
     const spaceBelow = Math.max(0, viewportHeight - anchorRect.bottom - gapPx)
     const renderAbove = !isDesktop
-    const maxHeightPx = Math.min(144, Math.max(0, (renderAbove ? spaceAbove : spaceBelow) - gapPx))
+    /**
+     * Потолок был 144px при восьми подсказках по 44px, а `.field-suggestions`
+     * прячет переполнение — пять вариантов из восьми были не просто не видны,
+     * до них нельзя было и доскроллить. Потолок поднят до шести строк, а
+     * вертикальный скролл включён здесь же (в стилях overflow нужен именно
+     * hidden по горизонтали — ради скруглений).
+     */
+    const maxHeightPx = Math.min(288, Math.max(0, (renderAbove ? spaceAbove : spaceBelow) - gapPx))
     const bottom = Math.max(0, viewportHeight - anchorRect.top + gapPx)
     const top = Math.max(0, anchorRect.bottom + gapPx)
 
@@ -276,10 +319,19 @@ export function RouteForm({
           top: renderAbove ? 'auto' : `${top}px`,
           bottom: renderAbove ? `${bottom}px` : 'auto',
           maxHeight: `${maxHeightPx}px`,
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
           zIndex: 10000,
           pointerEvents: 'auto',
         }}
       >
+        {renderEmpty && (
+          <li className="suggestion-empty" role="presentation" aria-live="polite">
+            <span>Ничего не нашлось</span>
+            <span className="suggestion-empty-hint">Проверь раскладку клавиатуры</span>
+          </li>
+        )}
         {items.map((s, index) => {
           const isActive = index === activeIndex
           return (
@@ -301,25 +353,12 @@ export function RouteForm({
                 className="suggestion-line-dot"
                 style={s.color ? { backgroundColor: s.color } : undefined}
               />
-              <span className="suggestion-item-label">{s.title}</span>
-              {s.lineTitle && (
-                /* Инлайн-стили намеренно: файлы CSS правит другой агент,
-                   а без визуального различия одноимённые станции неотличимы. */
-                <span
-                  className="suggestion-item-line"
-                  style={{
-                    flexShrink: 0,
-                    maxWidth: '45%',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    opacity: 0.65,
-                    fontWeight: 400,
-                  }}
-                >
-                  {s.lineTitle}
-                </span>
-              )}
+              <span className="suggestion-item-text">
+                <span className="suggestion-item-label">{s.title}</span>
+                {/* Название линии есть только у одноимённых станций (Киевская ×3
+                    и т.п.) — второй строкой, чтобы не отъедать ширину у названия. */}
+                {s.lineTitle && <span className="suggestion-item-line">{s.lineTitle}</span>}
+              </span>
             </li>
           )
         })}
@@ -340,6 +379,7 @@ export function RouteForm({
           fromSuggestionsLast,
           fromSuggestionIndex,
           onSelectFromSuggestion,
+          fromNoMatches,
         )}
         {fromSelectedColor && (
           <span
@@ -361,8 +401,9 @@ export function RouteForm({
           aria-label="Станция отправления"
           aria-autocomplete="list"
           aria-controls={fromListboxId}
-          aria-expanded={fromSuggestions.length > 0}
+          aria-expanded={fromListOpen}
           aria-activedescendant={fromSuggestions.length > 0 ? fromActiveOptionId : undefined}
+          aria-describedby={fromHint ? fromHintId : undefined}
         />
         {fromStation && (
           <button
@@ -374,6 +415,7 @@ export function RouteForm({
             <IconClose />
           </button>
         )}
+        {fromHint && renderFieldHint(fromHintId, fromHint)}
       </div>
 
       <button
@@ -395,6 +437,7 @@ export function RouteForm({
           toSuggestionsLast,
           toSuggestionIndex,
           onSelectToSuggestion,
+          toNoMatches,
         )}
         {toSelectedColor && (
           <span
@@ -416,8 +459,9 @@ export function RouteForm({
           aria-label="Станция назначения"
           aria-autocomplete="list"
           aria-controls={toListboxId}
-          aria-expanded={toSuggestions.length > 0}
+          aria-expanded={toListOpen}
           aria-activedescendant={toSuggestions.length > 0 ? toActiveOptionId : undefined}
+          aria-describedby={toHint ? toHintId : undefined}
         />
         {toStation && (
           <button
@@ -429,6 +473,7 @@ export function RouteForm({
             <IconClose />
           </button>
         )}
+        {toHint && renderFieldHint(toHintId, toHint)}
       </div>
     </div>
   )

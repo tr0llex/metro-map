@@ -8,9 +8,20 @@
   top: calc(env(safe-area-inset-top, 0px) + 3.2rem);
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 2rem);
+  width: calc(100% - var(--space-7));
   max-width: 480px;
-  z-index: 3;
+  /* Дизайн-8. Слоистость.
+
+     Было z-index: 3. Док — сосед .app-overlay в разметке .app-root, а
+     .app-overlay задаёт собственный контекст наложения (position: relative
+     + z-index: 1). Поэтому модалка установки со своим z-index: 40 сидела
+     ВНУТРИ контекста с весом 1 и проигрывала доку с весом 3: при открытом
+     диалоге тумблер оставался поверх скрима и светился в полную силу.
+
+     Ставим 1 — тумблер по-прежнему выше слоя схемы (.app-map-layer, 0), но
+     при равном весе позже идущий .app-overlay побеждает, и весь модальный
+     слой честно ложится поверх тумблера. */
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   pointer-events: none;
@@ -22,28 +33,55 @@
   }
 }
 
+/* Дизайн-6. На десктопе док повторял мобильную геометрию (по центру, максимум
+   480px) и тумблер оказывался в точке ~(910, 79): не выровнен ни по шапке, ни
+   по кнопкам зума, ни по краю схемы — просто висел в пустоте посередине верха.
+   Прибиваем его к правому вертикальному рельсу, на котором уже стоят кнопки
+   зума схемы (right: 1rem). */
+@media (min-width: 1024px) {
+  .theme-toggle-dock {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+    transform: none;
+    top: var(--space-6);
+    padding-right: var(--space-4);
+  }
+}
+
+/* Дизайн-8. Тумблер был самым громким элементом интерфейса: активный сегмент
+   — залитый акцентом круг с розовым свечением, буквально самый яркий пиксель
+   экрана в тёмной теме. Настройка, к которой обращаются раз за всё время,
+   не должна спорить со схемой и маршрутом. Контейнер отдаём нейтральному
+   стеклу без цветного свечения. */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.1rem;
-  padding: 0.16rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(var(--rgb-border-slate), 0.45);
-  background: linear-gradient(135deg, rgba(var(--rgb-card), 0.94), rgba(var(--rgb-card-tint), 0.94));
-  backdrop-filter: blur(var(--blur-glass-soft, 14px));
-  -webkit-backdrop-filter: blur(var(--blur-glass-soft, 14px));
-  box-shadow: var(--shadow-soft);
+  gap: var(--space-05);
+  padding: var(--space-05);
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(var(--rgb-border-slate), 0.35);
+  background: rgba(var(--rgb-card), 0.9);
+  /* Фолбэк совпадает со значением токена: раньше здесь стояло 14px против
+     18px в --blur-glass-soft, и фолбэк спорил со значением (Дизайн-15). */
+  backdrop-filter: blur(var(--blur-glass-soft, 18px));
+  -webkit-backdrop-filter: blur(var(--blur-glass-soft, 18px));
+  box-shadow: var(--shadow-raised);
   pointer-events: auto;
 }
 
+/* A11Y-5. Было 1.85rem (≈30px) при норме 44: три микроцели вплотную друг к
+   другу в углу, куда большой палец дотягивается хуже всего. Сама иконка
+   осталась прежней, выросла только площадь нажатия. */
 .theme-toggle-option {
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 2.75rem;
+  height: 2.75rem;
   padding: 0;
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -54,8 +92,8 @@
 }
 
 .theme-toggle-option svg {
-  width: 1rem;
-  height: 1rem;
+  width: 1.05rem;
+  height: 1.05rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.4;
@@ -71,18 +109,21 @@
 
 .theme-toggle-option:hover {
   color: var(--color-text-primary);
-  background: rgba(var(--rgb-border-slate), 0.18);
+  background: rgba(var(--rgb-border-slate), 0.16);
 }
 
 .theme-toggle-option:focus-visible {
-  outline: 2px solid var(--color-accent-outline);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 1px;
 }
 
+/* Выбранное состояние: мягкая нейтральная подложка и тёмная иконка вместо
+   заливки акцентом. Отличие от невыбранных держится на весе и подложке,
+   а не на яркости (Дизайн-8). */
 .theme-toggle-option[aria-pressed='true'] {
-  color: var(--color-surface-rose-highlight, #fff);
-  background: var(--color-accent);
-  box-shadow: 0 4px 10px rgba(var(--rgb-glow-berry, 214, 122, 168), 0.4);
+  color: var(--color-text-primary);
+  background: rgba(var(--rgb-border-slate), 0.22);
+  box-shadow: inset 0 0 0 1px rgba(var(--rgb-border-slate), 0.35);
 }
 
 /* Пока идёт заставка, контрол не должен «выпрыгивать» поверх неё. */

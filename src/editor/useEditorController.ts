@@ -7,9 +7,7 @@ import {
 } from '../metro/fullGraph.ts'
 import type {
   EdgeOverride,
-  EditorOverridesGrid,
   EditorOverridesRingShape,
-  EditorOverridesStationLayoutParams,
   FullGraphEdge,
   FullGraphStation,
 } from '../metro/types.ts'
@@ -39,10 +37,7 @@ function areEditorSnapshotsShallowEqual(
     a.manualStations === b.manualStations &&
     a.manualEdges === b.manualEdges &&
     a.hiddenStations === b.hiddenStations &&
-    a.lastLayoutOverrides === b.lastLayoutOverrides &&
-    a.canonicalGrid === b.canonicalGrid &&
-    a.canonicalRingShapes === b.canonicalRingShapes &&
-    a.canonicalStationParams === b.canonicalStationParams
+    a.lastLayoutOverrides === b.lastLayoutOverrides
   )
 }
 
@@ -64,12 +59,8 @@ export function useEditorController(): EditorController {
   const [stationHubOverrides, setStationHubOverrides] = useState<Record<string, string | null>>({})
   const [edgeOverrides, setEdgeOverrides] = useState<Record<string, EdgeOverride>>({})
   const [hubMinOverrides, setHubMinOverrides] = useState<Record<string, number>>({})
-  const [canonicalGrid, setCanonicalGrid] = useState<EditorOverridesGrid>({ stepPx: 8 })
   const [canonicalRingShapes, setCanonicalRingShapes] = useState<
     Record<string, EditorOverridesRingShape>
-  >({})
-  const [canonicalStationParams, setCanonicalStationParams] = useState<
-    Record<string, EditorOverridesStationLayoutParams>
   >({})
   const [manualStations, setManualStations] = useState<Record<string, FullGraphStation>>({})
   const [manualEdges, setManualEdges] = useState<Record<string, FullGraphEdge>>({})
@@ -108,6 +99,17 @@ export function useEditorController(): EditorController {
     }, 2200)
   }, [])
 
+  // Без этого таймер тоста переживал размонтирование хука и дёргал setState
+  // у уже мёртвого компонента.
+  useEffect(() => {
+    return () => {
+      if (editorToastTimeoutRef.current != null) {
+        window.clearTimeout(editorToastTimeoutRef.current)
+        editorToastTimeoutRef.current = null
+      }
+    }
+  }, [])
+
   const handleMirrorHubGeometry = useCallback(
     (hubId: string) => {
       setHubMirrorCommand(() => {
@@ -131,10 +133,6 @@ export function useEditorController(): EditorController {
       manualEdges,
       hiddenStations,
       lastLayoutOverrides,
-
-      canonicalGrid,
-      canonicalRingShapes,
-      canonicalStationParams,
     }
   }, [
     stationOverrides,
@@ -145,32 +143,40 @@ export function useEditorController(): EditorController {
     manualEdges,
     hiddenStations,
     lastLayoutOverrides,
-
-    canonicalGrid,
-    canonicalRingShapes,
-    canonicalStationParams,
   ])
 
+  /**
+   * История читается из рефа, а не из аргумента функции-апдейтера.
+   *
+   * Раньше undo/redo вызывали `applyEditorSnapshot` (десяток `setState`) ПРЯМО
+   * ВНУТРИ апдейтера `setEditorHistory`. React считает апдейтер чистым и в
+   * StrictMode вызывает его дважды — снапшот применялся два раза и дважды
+   * поднимался `editorLayoutApplyToken`. Теперь апдейтеров нет вовсе: реф —
+   * единственный источник правды, `commitEditorHistory` синхронно обновляет
+   * и его, и состояние для рендера.
+   */
+  const editorHistoryRef = useRef<EditorHistoryState>({ items: [], index: -1 })
+
+  const commitEditorHistory = useCallback((next: EditorHistoryState) => {
+    editorHistoryRef.current = next
+    setEditorHistory(next)
+  }, [])
+
   const pushEditorHistory = useCallback(() => {
-    setEditorHistory((prev: EditorHistoryState) => {
-      const snapshot = makeEditorSnapshot()
+    const prev = editorHistoryRef.current
+    const snapshot = makeEditorSnapshot()
 
-      if (prev.index >= 0) {
-        const current = prev.items[prev.index]
-        if (areEditorSnapshotsShallowEqual(current, snapshot)) {
-          return prev
-        }
-      }
+    if (prev.index >= 0 && areEditorSnapshotsShallowEqual(prev.items[prev.index], snapshot)) {
+      return
+    }
 
-      let items = prev.items.slice(0, prev.index + 1)
-      items.push(snapshot)
-      if (items.length > MAX_EDITOR_HISTORY) {
-        items = items.slice(items.length - MAX_EDITOR_HISTORY)
-      }
-      const index = items.length - 1
-      return { items, index }
-    })
-  }, [makeEditorSnapshot])
+    let items = prev.items.slice(0, prev.index + 1)
+    items.push(snapshot)
+    if (items.length > MAX_EDITOR_HISTORY) {
+      items = items.slice(items.length - MAX_EDITOR_HISTORY)
+    }
+    commitEditorHistory({ items, index: items.length - 1 })
+  }, [makeEditorSnapshot, commitEditorHistory])
 
   const applyEditorSnapshot = useCallback((snapshot: EditorSnapshot) => {
     setStationOverrides(snapshot.stationOverrides)
@@ -184,36 +190,30 @@ export function useEditorController(): EditorController {
     setLastLayoutOverrides(snapshot.lastLayoutOverrides)
     setEditorLayoutApplyToken((prev: number) => prev + 1)
 
-    setCanonicalGrid(snapshot.canonicalGrid)
-    setCanonicalRingShapes(snapshot.canonicalRingShapes)
-    setCanonicalStationParams(snapshot.canonicalStationParams)
+    // canonicalGrid/RingShapes/StationParams не восстанавливаются: MetroMap
+    // пересчитает их из применённой раскладки и пришлёт через
+    // onCanonicalLayoutChange (см. комментарий к EditorSnapshot).
   }, [])
 
   const handleCanonicalLayoutChange = useCallback((payload: CanonicalLayoutPayload) => {
-    setCanonicalGrid(payload.grid)
     setCanonicalRingShapes(payload.ringShapes)
-    setCanonicalStationParams(payload.stationParams)
   }, [])
 
   const handleEditorUndo = useCallback(() => {
-    setEditorHistory((prev: EditorHistoryState) => {
-      if (prev.index <= 0) return prev
-      const nextIndex = prev.index - 1
-      const snapshot = prev.items[nextIndex]
-      applyEditorSnapshot(snapshot)
-      return { ...prev, index: nextIndex }
-    })
-  }, [applyEditorSnapshot])
+    const prev = editorHistoryRef.current
+    if (prev.index <= 0) return
+    const nextIndex = prev.index - 1
+    commitEditorHistory({ ...prev, index: nextIndex })
+    applyEditorSnapshot(prev.items[nextIndex])
+  }, [applyEditorSnapshot, commitEditorHistory])
 
   const handleEditorRedo = useCallback(() => {
-    setEditorHistory((prev: EditorHistoryState) => {
-      if (prev.index < 0 || prev.index >= prev.items.length - 1) return prev
-      const nextIndex = prev.index + 1
-      const snapshot = prev.items[nextIndex]
-      applyEditorSnapshot(snapshot)
-      return { ...prev, index: nextIndex }
-    })
-  }, [applyEditorSnapshot])
+    const prev = editorHistoryRef.current
+    if (prev.index < 0 || prev.index >= prev.items.length - 1) return
+    const nextIndex = prev.index + 1
+    commitEditorHistory({ ...prev, index: nextIndex })
+    applyEditorSnapshot(prev.items[nextIndex])
+  }, [applyEditorSnapshot, commitEditorHistory])
 
   const canEditorUndo = editorHistory.index > 0
   const canEditorRedo =
@@ -281,32 +281,18 @@ export function useEditorController(): EditorController {
     }
   }, [editMode])
 
+  // Запись в историю на каждое изменение редактируемого состояния.
+  // `makeEditorSnapshot` меняет ссылку ровно тогда, когда меняется любое из
+  // полей снапшота, поэтому отдельного перечисления состояний не нужно.
   useEffect(() => {
     if (!editMode) return
-
     pushEditorHistory()
   }, [editMode, makeEditorSnapshot, pushEditorHistory])
 
   useEffect(() => {
-    if (!editMode) return
-    pushEditorHistory()
-  }, [
-    editMode,
-    stationOverrides,
-    stationHubOverrides,
-    edgeOverrides,
-    hubMinOverrides,
-    manualStations,
-    manualEdges,
-    hiddenStations,
-    lastLayoutOverrides,
-    pushEditorHistory,
-  ])
-
-  useEffect(() => {
     if (editMode) return
-    setEditorHistory({ items: [], index: -1 })
-  }, [editMode])
+    commitEditorHistory({ items: [], index: -1 })
+  }, [editMode, commitEditorHistory])
 
   useEffect(() => {
     if (!editMode) return
@@ -1428,9 +1414,7 @@ export function useEditorController(): EditorController {
       manualEdges,
       hiddenStations,
       lastLayoutOverrides,
-      canonicalGrid,
       canonicalRingShapes,
-      canonicalStationParams,
 
       availableHubIds,
       stationById,
@@ -1493,9 +1477,7 @@ export function useEditorController(): EditorController {
       manualEdges,
       hiddenStations,
       lastLayoutOverrides,
-      canonicalGrid,
       canonicalRingShapes,
-      canonicalStationParams,
       availableHubIds,
       stationById,
       lineByNumericId,

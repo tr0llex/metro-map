@@ -231,7 +231,17 @@ export function RouteDetailsSheet({
                     <li
                       key={segment.key}
                       className="route-step"
-                      style={{ ['--stagger-index' as never]: index } as CSSProperties}
+                      /* --step-line-color красит точки станций (.step-station-bullet)
+                         в цвет линии: без него весь список промежуточных станций
+                         был серым и не связывался с веткой поездки. */
+                      style={
+                        {
+                          ['--stagger-index' as never]: index,
+                          ...(segment.lineColor
+                            ? { ['--step-line-color' as never]: segment.lineColor }
+                            : null),
+                        } as CSSProperties
+                      }
                     >
                       <div
                         className="line-pill"

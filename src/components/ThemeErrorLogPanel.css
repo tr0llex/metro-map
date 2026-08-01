@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--space-4);
   background: rgba(0, 0, 0, 0.45);
   pointer-events: auto;
 }
@@ -18,9 +18,9 @@
   max-height: min(80vh, 560px);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 1rem;
-  border-radius: var(--radius-lg, 1.25rem);
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg, 1.5rem);
   border: 1px solid rgba(var(--rgb-border-slate), 0.45);
   background: linear-gradient(135deg, rgba(var(--rgb-card), 0.99), rgba(var(--rgb-card-tint), 0.99));
   box-shadow: var(--shadow-strong);
@@ -31,7 +31,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .theme-error-log-title {
@@ -44,7 +44,7 @@
   width: 1.9rem;
   height: 1.9rem;
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgba(var(--rgb-border-slate), 0.2);
   color: var(--color-text-secondary);
   font-size: 1.15rem;
@@ -65,18 +65,18 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .theme-error-log-empty {
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
 .theme-error-log-item {
-  padding: 0.5rem 0.6rem;
-  border-radius: 0.7rem;
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
   border: 1px solid rgba(var(--rgb-border-slate), 0.3);
   background: rgba(var(--rgb-border-slate), 0.1);
 }
@@ -84,7 +84,7 @@
 .theme-error-log-item-head {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  gap: var(--space-2);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted, var(--color-text-secondary));
 }
@@ -100,7 +100,7 @@
 
 .theme-error-log-message,
 .theme-error-log-source {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: var(--font-size-xs);
   line-height: 1.4;
@@ -113,13 +113,13 @@
 
 .theme-error-log-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .theme-error-log-button {
   flex: 1;
-  padding: 0.55rem 0.7rem;
-  border-radius: 0.8rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
   border: 1px solid rgba(var(--rgb-border-slate), 0.45);
   background: transparent;
   color: var(--color-text-primary);
@@ -144,9 +144,9 @@
 .theme-error-log-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 9999px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(var(--rgb-border-slate), 0.45);
   background: transparent;
   color: var(--color-text-secondary);
@@ -156,6 +156,6 @@
 }
 
 .theme-error-log-trigger:focus-visible {
-  outline: 2px solid var(--color-accent-outline);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }

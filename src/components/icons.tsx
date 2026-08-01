@@ -94,6 +94,18 @@ export function IconClock(props: IconProps) {
   )
 }
 
+/** Две круговые стрелки — «обновить приложение». */
+export function IconRefresh(props: IconProps) {
+  return (
+    <svg {...baseProps(props)} fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12a8 8 0 0 1-13.6 5.7" />
+      <path d="M4 12a8 8 0 0 1 13.6-5.7" />
+      <path d="M17.6 2.9v3.4h-3.4" />
+      <path d="M6.4 21.1v-3.4h3.4" />
+    </svg>
+  )
+}
+
 /** Стрелка из коробки — «поделиться». */
 export function IconShare(props: IconProps) {
   return (
