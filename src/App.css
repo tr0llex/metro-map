@@ -37,21 +37,22 @@
    бренда: первое, что видел пользователь, было ровно тем характером, от
    которого уходили, — и вдобавок спорило с новым плоским штриховым знаком.
 
-   Разметку SplashScreen.tsx правит другой агент, поэтому те же элементы
-   .app-splash-heart переопределены здесь: вместо сердца — сходящиеся в узел
-   штрихи из знака, подключённые маской (цвет задаёт тема, а не файл).
-   Половина точек скрыта: шестнадцать объектов на одном экране читались как
-   узор, восемь — как разрежённая сеть.
+   Мотив фона — восемь «узлов» фирменного знака (.app-splash-node--1…8),
+   сходящиеся штрихи подключены маской, поэтому цвет задаёт тема, а не файл.
+   Восемь, а не шестнадцать: шестнадцать объектов на одном экране читались
+   как узор, восемь — как разрежённая сеть.
 
-   Заодно вычищен мёртвый CSS прошлой версии: .app-splash-metro-logo,
-   .app-splash-logos-row, .app-splash-logo, .app-splash-metro-m,
-   .app-splash-badges/.app-splash-badge, .app-splash-hero-text,
-   .app-splash-hint, .app-splash-button, .app-splash-star--3 и анимации
-   app-splash-orbit-spin / -backdrop-intro / -orbit-intro / -card-breathe /
-   -star-twinkle / -sparkle-twinkle — ни один из них не был подключён
-   к разметке. Элементы, которые в разметке остались, но не нужны на экране
-   (.app-splash-orbit, .app-splash-star, .app-splash-sparkles), скрыты одним
-   правилом ниже.
+   Разметка (SplashScreen.tsx) генерирует ровно восемь span из массива, а
+   декоративных обёрток прошлой версии в ней больше нет. Вместе с ними
+   удалены и правила, которые их гасили: .app-splash-orbit / -star /
+   -sparkles и .app-splash-hero-avatar-ring (элементов нет), а также
+   .app-splash-heart--9…--16 (позиций больше восьми не существует).
+   Ранее из файла вычищен мёртвый CSS ещё более старой версии:
+   .app-splash-metro-logo, .app-splash-logos-row, .app-splash-logo,
+   .app-splash-metro-m, .app-splash-badges/.app-splash-badge,
+   .app-splash-hero-text, .app-splash-hint, .app-splash-button,
+   .app-splash-star--3 и анимации app-splash-orbit-spin / -backdrop-intro /
+   -orbit-intro / -card-breathe / -star-twinkle / -sparkle-twinkle.
    ========================================================================== */
 
 .app-splash {
@@ -86,14 +87,6 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-
-/* Элементы прежней версии, оставшиеся в разметке. Гасим их одним правилом,
-   чтобы они не участвовали ни в раскладке, ни в отрисовке. */
-.app-splash-orbit,
-.app-splash-star,
-.app-splash-sparkles {
-  display: none;
 }
 
 .app-splash-card {
@@ -145,10 +138,6 @@
   overflow: hidden;
 }
 
-.app-splash-hero-avatar-ring {
-  display: none;
-}
-
 .app-splash-logo-img {
   width: 4.4rem;
   height: 4.4rem;
@@ -169,7 +158,7 @@
 
 /* Мотив-«узел»: подключён маской, поэтому цвет берётся из темы, а не из файла
    (в тёмной --rgb-accent светлее, и штрихи остаются видимыми). */
-.app-splash-heart {
+.app-splash-node {
   position: absolute;
   width: 2.1rem;
   height: 2.1rem;
@@ -180,73 +169,60 @@
   will-change: transform, opacity;
 }
 
-.app-splash-heart--1 {
+.app-splash-node--1 {
   top: 15%;
   left: 14%;
   animation: app-splash-node-drift 11s ease-in-out infinite alternate;
   animation-delay: 0ms;
 }
 
-.app-splash-heart--2 {
+.app-splash-node--2 {
   top: 70%;
   left: 18%;
   animation: app-splash-node-drift 12s ease-in-out infinite alternate;
   animation-delay: 120ms;
 }
 
-.app-splash-heart--3 {
+.app-splash-node--3 {
   top: 24%;
   right: 12%;
   animation: app-splash-node-drift 13s ease-in-out infinite alternate;
   animation-delay: 240ms;
 }
 
-.app-splash-heart--4 {
+.app-splash-node--4 {
   top: 44%;
   left: 9%;
   animation: app-splash-node-drift 12s ease-in-out infinite alternate;
   animation-delay: 360ms;
 }
 
-.app-splash-heart--5 {
+.app-splash-node--5 {
   top: 58%;
   right: 16%;
   animation: app-splash-node-drift 13s ease-in-out infinite alternate;
   animation-delay: 480ms;
 }
 
-.app-splash-heart--6 {
+.app-splash-node--6 {
   top: 8%;
   left: 46%;
   animation: app-splash-node-drift 14s ease-in-out infinite alternate;
   animation-delay: 600ms;
 }
 
-.app-splash-heart--7 {
+.app-splash-node--7 {
   top: 84%;
   right: 22%;
   animation: app-splash-node-drift 15s ease-in-out infinite alternate;
   animation-delay: 720ms;
 }
 
-.app-splash-heart--8 {
+.app-splash-node--8 {
   top: 88%;
   left: 40%;
   animation: app-splash-node-drift 16s ease-in-out infinite alternate;
   animation-delay: 840ms;
-}
-
-/* Шестнадцать объектов на одном экране складывались в узор, а не в среду.
-   Оставляем восемь — этого хватает, чтобы экран не был статичным. */
-.app-splash-heart--9,
-.app-splash-heart--10,
-.app-splash-heart--11,
-.app-splash-heart--12,
-.app-splash-heart--13,
-.app-splash-heart--14,
-.app-splash-heart--15,
-.app-splash-heart--16 {
-  display: none;
 }
 
 .app-splash-title {
@@ -700,7 +676,12 @@
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(var(--blur-glass-soft));
   -webkit-backdrop-filter: blur(var(--blur-glass-soft));
-  overflow: hidden;
+  /* Список подсказок прокручивается по вертикали. При overflow: hidden и
+     потолке высоты в 288px из восьми подсказок по 44px были достижимы только
+     три — до остальных нельзя было доскроллить, они просто обрезались.
+     По горизонтали прокрутка не нужна: длинные названия режет эллипсис. */
+  overflow-x: hidden;
+  overflow-y: auto;
   transform-origin: 50% 0%;
   will-change: transform, opacity;
   opacity: 0;
@@ -1462,7 +1443,7 @@
   }
 }
 
-/* Дрейф мотива-«узла» на заставке. Пришёл на смену app-splash-heart-float
+/* Дрейф мотива-«узла» на заставке. Пришёл на смену app-splash-node-float
    вместе с самим мотивом (Дизайн-1); прочие анимации прежней заставки
    (orbit-spin, rays-spin, backdrop-intro, orbit-intro, card-breathe,
    star-twinkle, sparkle-twinkle) удалены — ими никто не пользовался. */
@@ -3206,7 +3187,7 @@
 
   /* Без анимации мотив-«узел» остался бы с базовой opacity: 0, то есть
      заставка была бы пустой — задаём видимое состояние явно. */
-  .app-splash-heart {
+  .app-splash-node {
     animation: none !important;
     opacity: 0.85;
   }

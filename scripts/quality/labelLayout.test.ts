@@ -25,8 +25,8 @@
  * Почему vitest, а не отдельная команда в CI: сторож должен срабатывать в том
  * же цикле, в котором живут остальные проверки кода. Отдельную команду надо
  * помнить и отдельно втыкать в CI — а забытый сторож не сторож. Тест же
- * запускается тем же `npx vitest run`, что и все 191 остальных, и падает с
- * конкретным списком расхождений.
+ * запускается тем же `npx vitest run`, что и весь остальной набор, и падает
+ * с конкретным списком расхождений.
  */
 
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
@@ -58,9 +58,11 @@ const SELF = resolve(HERE, 'labelLayout.test.ts')
  * labelPlaceOne → placeOne сторожа не обманет.
  */
 const ALGORITHM_FINGERPRINTS: { name: string; re: RegExp }[] = [
-  { name: 'вес наложения подписей', re: /labelOverlap:\s*60000/i },
-  { name: 'вес отрыва подписи', re: /detachedStep:\s*5000/i },
-  { name: 'вес перечёркивания линией', re: /lineCrossFirst:\s*10000/i },
+  // Отпечатки намеренно не привязаны к ЗНАЧЕНИЯМ весов: подбор весов —
+  // законная работа над раскладкой, а сторож ловит появление второй копии.
+  { name: 'вес наложения подписей', re: /labelOverlap\s*:/i },
+  { name: 'вес отрыва подписи', re: /detachedStep\s*:/i },
+  { name: 'вес перечёркивания линией', re: /lineCrossFirst\s*:/i },
   { name: 'подбор позиции одной подписи', re: /const\s+placeOne\s*=\s*\(\s*index:\s*number/i },
   { name: 'подсчёт перечёркивающих линий', re: /countCrossingLines\s*\(\s*x1:\s*number/i },
   { name: 'сортировка углов-кандидатов', re: /anglesSortedByMisfit\s*\(/i },
