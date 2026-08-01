@@ -5979,525 +5979,525 @@
     {
       "fromStationId": "mos-1-1.54",
       "toStationId": "mos-5-5.55",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.103",
       "toStationId": "mos-5-5.104",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.4",
       "toStationId": "mos-3-3.5",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.4",
       "toStationId": "mos-4-4.6",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.4",
       "toStationId": "mos-9-9.7",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.98",
       "toStationId": "mos-2-2.99",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.98",
       "toStationId": "mos-3-3.100",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.143",
       "toStationId": "mos-6-6.144",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.143",
       "toStationId": "mos-10-10.175",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.71",
       "toStationId": "mos-3-3.70",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.71",
       "toStationId": "mos-10-10.72",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.49",
       "toStationId": "mos-3-3.47",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.49",
       "toStationId": "mos-4-4.48",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.102",
       "toStationId": "mos-2-2.101",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.76",
       "toStationId": "mos-7-7.77",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.76",
       "toStationId": "mos-8-8.78",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.119",
       "toStationId": "mos-6-6.120",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.93",
       "toStationId": "mos-6-6.94",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.82",
       "toStationId": "mos-9-9.83",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-5-5.20",
       "toStationId": "mos-2-2.19",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-7-7.67",
       "toStationId": "mos-1-1.66",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-7-7.51",
       "toStationId": "mos-6-6.50",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-7-7.124",
       "toStationId": "mos-2-2.122",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-7-7.124",
       "toStationId": "mos-9-9.123",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.685",
       "toStationId": "mos-9-9.128",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.821",
       "toStationId": "mos-10-10.185",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.823",
       "toStationId": "mos-1-1.134",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-8-8.1",
       "toStationId": "mos-97-97.826",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.827",
       "toStationId": "mos-98-98.765",
-      "medianTravelSeconds": 90,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.828",
       "toStationId": "mos-7-7.139",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.832",
       "toStationId": "mos-2-2.45",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.814",
       "toStationId": "mos-1-1.118",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-3-3.69",
       "toStationId": "mos-4-4.471",
-      "medianTravelSeconds": 90,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.810",
       "toStationId": "mos-3-3.69",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-133-133.470",
       "toStationId": "mos-3-3.173",
-      "medianTravelSeconds": 90,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-133-133.468",
       "toStationId": "mos-4-4.179",
-      "medianTravelSeconds": 420,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
       "transferKind": "out_of_station"
     },
     {
       "fromStationId": "mos-6-6.90",
       "toStationId": "mos-8-8.91",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-7-7.77",
       "toStationId": "mos-8-8.78",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-8-8.112",
       "toStationId": "mos-10-10.113",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-8-8.158",
       "toStationId": "mos-95-95.524",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-6-6.24",
       "toStationId": "mos-95-95.517",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-10-10.39",
       "toStationId": "mos-95-95.529",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-10-10.109",
       "toStationId": "mos-97-97.829",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-10-10.596",
       "toStationId": "mos-95-95.515",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-10-10.548",
       "toStationId": "mos-9-9.108",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-97-97.822",
       "toStationId": "mos-6-6.126",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-9-9.28",
       "toStationId": "mos-95-95.516",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-3-3.161",
       "toStationId": "mos-97-97.803",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-95-95.525",
       "toStationId": "mos-8-8.158",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-98-98.765",
       "toStationId": "mos-95-95.526",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-2-2.45",
       "toStationId": "mos-97-97.824",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-2-2.2",
       "toStationId": "mos-95-95.530",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-95-95.531",
       "toStationId": "mos-137-137.964",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-95-95.534",
       "toStationId": "mos-6-6.74",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-4-4.73",
       "toStationId": "mos-95-95.536",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-97-97.603",
       "toStationId": "mos-133-133.468",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-137-137.921",
       "toStationId": "mos-97-97.815",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-137-137.930",
       "toStationId": "mos-1-1.681",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-1-1.148",
       "toStationId": "mos-95-95.520",
-      "medianTravelSeconds": 420,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
       "transferKind": "out_of_station"
     },
     {
       "fromStationId": "mos-6-6.3",
       "toStationId": "mos-137-137.962",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-95-95.533",
       "toStationId": "mos-137-137.963",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-97-97.602",
       "toStationId": "mos-95-95.538",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-133-133.607",
       "toStationId": "mos-97-97.813",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-3-3.131",
       "toStationId": "mos-4-4.132",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-95-95.537",
       "toStationId": "mos-97-97.603",
-      "medianTravelSeconds": 420,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
       "transferKind": "out_of_station"
     },
     {
       "fromStationId": "mos-9-9.154",
       "toStationId": "mos-10-10.177",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-7-7.16",
       "toStationId": "mos-5-5.58",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-6-6.23",
       "toStationId": "mos-12-12.467",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-10-10.186",
       "toStationId": "mos-2-2.57",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-9-9.170",
       "toStationId": "mos-12-12.171",
-      "medianTravelSeconds": 210,
+      "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "mos-7-7.95",
       "toStationId": "mos-95-95.541",
-      "medianTravelSeconds": 420,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
       "transferKind": "out_of_station"
     },
     {
       "fromStationId": "mos-2-2.30",
       "toStationId": "mos-95-95.543",
-      "medianTravelSeconds": 420,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
       "transferKind": "out_of_station"
     },
     {
       "fromStationId": "mos-1-1.155",
       "toStationId": "mos-95-95.521",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-4-4.179",
       "toStationId": "mos-95-95.537",
-      "medianTravelSeconds": 270,
+      "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
       "fromStationId": "mos-133-133.468",
       "toStationId": "mos-95-95.537",
-      "medianTravelSeconds": 420,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
       "transferKind": "out_of_station"
     }
@@ -6576,8 +6576,7 @@
         "mos-7-7.67"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 255
+      "source": "manual_override"
     },
     {
       "id": "hub-9",
@@ -6596,8 +6595,7 @@
         "mos-3-3.100"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 90
+      "source": "manual_override"
     },
     {
       "id": "hub-11",
@@ -6642,8 +6640,7 @@
         "mos-2-2.57"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 270
+      "source": "manual_override"
     },
     {
       "id": "hub-16",
@@ -6680,8 +6677,7 @@
         "mos-3-3.70"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 270
+      "source": "manual_override"
     },
     {
       "id": "hub-20",
@@ -6708,8 +6704,7 @@
         "mos-97-97.603"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 105
+      "source": "manual_override"
     },
     {
       "id": "hub-23",
@@ -6754,8 +6749,7 @@
         "mos-95-95.533"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 60
+      "source": "manual_override"
     },
     {
       "id": "hub-28",
@@ -6801,8 +6795,7 @@
         "mos-95-95.530"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 105
+      "source": "manual_override"
     },
     {
       "id": "hub-33",
@@ -6850,8 +6843,7 @@
         "mos-97-97.810"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 165
+      "source": "manual_override"
     },
     {
       "id": "hub-38",
@@ -6887,8 +6879,7 @@
         "mos-7-7.16"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 300
+      "source": "manual_override"
     },
     {
       "id": "hub-42",
@@ -6898,8 +6889,7 @@
         "mos-8-8.78"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 30
+      "source": "manual_override"
     },
     {
       "id": "hub-43",
@@ -6908,8 +6898,7 @@
         "mos-9-9.83"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 90
+      "source": "manual_override"
     },
     {
       "id": "hub-44",
@@ -6945,8 +6934,7 @@
         "mos-7-7.51"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 60
+      "source": "manual_override"
     },
     {
       "id": "hub-48",
@@ -6955,8 +6943,7 @@
         "mos-95-95.534"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 315
+      "source": "manual_override"
     },
     {
       "id": "hub-49",
@@ -7002,8 +6989,7 @@
         "mos-97-97.685"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 345
+      "source": "manual_override"
     },
     {
       "id": "hub-54",
@@ -7022,8 +7008,7 @@
         "mos-97-97.827"
       ],
       "minTransferSeconds": 240,
-      "source": "manual_override",
-      "rotationDeg": 255
+      "source": "manual_override"
     },
     {
       "id": "hub-56",

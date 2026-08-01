@@ -52,9 +52,17 @@ type EdgeOverride struct {
 	Manual              *bool   `json:"manual,omitempty"`
 }
 
+// HubOverride — ручные правки пересадочного узла из редактора.
+//
+// Поле rotationDeg удалено: его не читал никто — ни солвер, ни рантайм, — а
+// привязка оверрайда к хабу шла только по нестабильному id вида "hub-N", без
+// якоря, поэтому проверить актуальность 15 накопившихся записей было нечем.
+//
+// ТРЕБОВАНИЕ К ЭКСПОРТУ РЕДАКТОРА: любой новый оверрайд хаба обязан нести
+// якорь (например, отсортированный список stationIds узла), иначе после
+// следующей дедупликации хабов привязки снова осиротеют молча.
 type HubOverride struct {
-	MinTransferSeconds *int     `json:"minTransferSeconds,omitempty"`
-	RotationDeg        *float64 `json:"rotationDeg,omitempty"`
+	MinTransferSeconds *int `json:"minTransferSeconds,omitempty"`
 }
 
 // RingShapeOverride — ручная форма кольца из редактора.
@@ -330,9 +338,6 @@ func ApplyGraphOverrides(graph *FullGraphExport, ov *GraphOverrides) error {
 			}
 			if hov.MinTransferSeconds != nil && *hov.MinTransferSeconds > 0 {
 				hub.MinTransferSeconds = *hov.MinTransferSeconds
-			}
-			if hov.RotationDeg != nil && isFinite(*hov.RotationDeg) {
-				hub.RotationDeg = *hov.RotationDeg
 			}
 		}
 	}
