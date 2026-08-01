@@ -17,7 +17,12 @@ npm run build:editor   # -> dist-editor/
 
 ## Netlify
 
-Конфигурация в [`netlify.toml`](../netlify.toml): команда `npm run build`, каталог публикации `dist`.
+Запасная площадка; основной способ — свой nginx (ниже).
+
+Конфигурация в [`netlify.toml`](../netlify.toml): команда `npm run build`, каталог публикации `dist`,
+плюс заголовки безопасности и правила кэширования — те же, что в `deploy/nginx/metro.conf`.
+**Политика CSP продублирована в двух местах, правьте оба.**
+
 Отдельных редиректов не заведено — SPA-фоллбэк на Netlify по умолчанию не включён,
 приложение работает от корня `/`, так что этого достаточно.
 
@@ -31,6 +36,11 @@ npm run deploy:config   # только nginx-конфиг
 npm run deploy:app      # только статика
 npm run deploy:dry      # ничего не менять, показать план и диффы
 ```
+
+> **`deploy:dry` — не локальная проверка.** Все четыре команды, включая `--dry-run`,
+> ходят на боевой сервер по SSH: чтобы показать дифф конфига, надо его оттуда прочитать.
+> Без ключа (`METRO_SSH_KEY`, по умолчанию `~/.ssh/oracle-2025-09-21.key`) или без сети
+> команда падает на первой же проверке.
 
 Скрипт — [`scripts/deploy.sh`](../scripts/deploy.sh), конфиг под версионным
 контролем — [`deploy/nginx/metro.conf`](../deploy/nginx/metro.conf).
@@ -47,7 +57,8 @@ npm run deploy:dry      # ничего не менять, показать пл�
   возвращает предыдущий конфиг;
 * статику выкладывает атомарно: распаковывает рядом, потом переставляет каталоги;
   предыдущая версия остаётся в `/var/www/metro.prev` для быстрого отката;
-* после выкладки проверяет главную, service worker, манифест **и что соседний проект жив**.
+* после выкладки проверяет главную, service worker, манифест, **фактические заголовки
+  ответа** (см. ниже) **и что соседний проект жив**.
 
 Быстрый откат статики:
 
@@ -76,75 +87,55 @@ ssh ubuntu@<host> 'sudo rm -rf /var/www/metro && sudo mv /var/www/metro.prev /va
    никогда не кэшировать надолго, иначе пользователи не получат обновление.
 3. **`index.html` и любой HTML** — `no-store`, иначе SPA залипает на старой версии.
 4. **SPA-фоллбэк** — любой неизвестный путь отдаёт `index.html`.
+5. **Заголовки безопасности — в каждом `location`** (см. ловушку ниже).
 
 Имена файлов SW и манифеста заданы в `vite.config.ts`
 (`filename` и `manifestFilename` у `VitePWA`) — если их поменять, поправьте и конфиг сервера.
 
-```nginx
-server {
-    server_name metro.samoy.love;   # + ваш TLS-блок
+Полный рабочий конфиг — [`deploy/nginx/metro.conf`](../deploy/nginx/metro.conf).
+Он намеренно самодостаточен: `scripts/deploy.sh` выкладывает ровно один файл,
+поэтому include-сниппетов в нём нет.
 
-    root /var/www/metro;
-    index index.html;
-    etag on;
+### Ловушка №1: `add_header` не наследуется
 
-    add_header X-Content-Type-Options nosniff;
-    add_header X-Frame-Options DENY;
+**В nginx заголовки родительского уровня отменяются целиком, если на текущем уровне
+объявлен хотя бы один свой `add_header`.**
 
-    # SPA-фоллбэк: всё неизвестное отдаём index.html и не кэшируем
-    location / {
-        try_files $uri /index.html;
-        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
-        add_header Pragma "no-cache" always;
-        add_header Expires "0" always;
-    }
+Именно это здесь и произошло: `X-Content-Type-Options`, `X-Frame-Options`,
+`X-XSS-Protection` стояли один раз на уровне `server`, а каждый `location` объявлял свой
+`Cache-Control` — и заголовки безопасности не доходили ни до `index.html`, ни до service
+worker'а, ни до манифеста. Уцелели они ровно в одном блоке, где своих `add_header` не было.
 
-    location = /index.html {
-        try_files /index.html =404;
-        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
-    }
+Поэтому блок заголовков безопасности **продублирован в каждом `location`**. Выглядит
+избыточно; убрать его из одного блока — значит молча потерять защиту именно там.
 
-    # Ассеты Vite: имена уже содержат хеш
-    location ^~ /assets/ {
-        try_files $uri =404;
-    }
+Заодно добавлен `Content-Security-Policy`. Приложение полностью самодостаточно — в
+прод-бандле нет ни одного внешнего запроса, — поэтому политика жёсткая:
+`default-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, `form-action 'none'`.
+`'unsafe-inline'` оставлен в `script-src` из-за одного инлайн-скрипта в `index.html`
+(ранняя установка темы) и в `style-src` из-за style-атрибутов React. Хеш вместо
+`'unsafe-inline'` не берём осознанно: он протухает молча при правке скрипта, и ломается
+при этом прод, а не сборка.
 
-    # PWA-манифест: короткий кэш с ревалидацией
-    location = /kitty-metro-manifest.webmanifest {
-        try_files /kitty-metro-manifest.webmanifest =404;
-        add_header Cache-Control "public, max-age=600, must-revalidate" always;
-    }
+### Ловушка №2: `^~` отключает regex-локации
 
-    # Service worker: всегда ревалидировать
-    location = /kitty-metro-sw.js {
-        try_files /kitty-metro-sw.js =404;
-        add_header Cache-Control "public, max-age=0, must-revalidate" always;
-    }
+`location ^~ /assets/` перехватывает запрос и **запрещает проверку regex-локаций**.
+Из-за этого правило `immutable` для файлов с хешем в имени до `/assets/` не доходило,
+а своего `Cache-Control` у блока не было — хешированные бандлы ревалидировались
+на каждой навигации. `Cache-Control` для `/assets/` задан прямо в этом блоке.
 
-    # Легаси service worker (см. ниже) — тоже всегда ревалидировать
-    location = /sw.js {
-        try_files /sw.js =404;
-        add_header Cache-Control "public, max-age=0, must-revalidate" always;
-    }
+### Ловушка №3: `.webmanifest` нет в `mime.types`
 
-    # Файлы с хешем в имени — иммутабельно
-    location ~* "^/.+[-.][a-f0-9]{8,}\.(?:css|js|mjs|map|png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf|eot)$" {
-        try_files $uri =404;
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-    }
+nginx отдаёт манифест как `application/octet-stream`. Пока `nosniff` до этого location
+не доходил (ловушка №1), это работало; после починки тип задан явно
+(`types { } default_type application/manifest+json;`).
 
-    # Остальная статика без хеша — ревалидировать
-    location ~* ^/.+\.(?:css|js|mjs|map|png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf|eot)$ {
-        try_files $uri =404;
-        add_header Cache-Control "public, max-age=0, must-revalidate" always;
-    }
+### Проверка фактом
 
-    location ~* ^/.+\.(?:html)$ {
-        try_files $uri =404;
-        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
-    }
-}
-```
+`scripts/deploy.sh` в конце дёргает `curl` по бою и проверяет, что на главной и на SW
+есть `X-Frame-Options` и CSP, а хешированный ассет из `/assets/` отдаётся с `immutable`
+и `nosniff`. Это единственный способ не наступить на ловушку №1 второй раз: по чтению
+конфига она не видна.
 
 ---
 
@@ -154,9 +145,19 @@ server {
 Сейчас SW генерируется `vite-plugin-pwa` и называется `/kitty-metro-sw.js`,
 но у части пользователей в браузере всё ещё зарегистрирован старый `/sw.js`.
 
-`public/sw.js` — это **не рабочий кэширующий SW, а клинер**: он проксирует все запросы в сеть,
-чистит старые кэши и снимает собственную регистрацию. Пока он раздаётся с сервера,
-старые установки постепенно самоочищаются.
+`public/sw.js` — это **не рабочий кэширующий SW, а клинер**: он снимает собственную
+регистрацию. Пока он раздаётся с сервера, старые установки постепенно самоочищаются.
+
+Две вещи в нём сделаны специально и их легко «упростить» обратно:
+
+* **кэши он НЕ удаляет.** Раньше в `activate` он делал `caches.keys()` → `caches.delete()`
+  по всем кэшам origin'а. К этому моменту новый `kitty-metro-sw.js` уже мог уложить
+  precache — и чистка сносила именно его, а Workbox повторно `install` не выполняет.
+  Итог: офлайн молча переставал работать ровно у обновляющихся пользователей.
+  Старые кэши уберёт `cleanupOutdatedCaches` нового воркера;
+* **в `fetch` есть фолбэк на кэш.** Раньше там был голый `event.respondWith(fetch(...))`
+  без `catch`: офлайн любой запрос, включая навигацию, падал сетевой ошибкой, и
+  пользователь старой установки видел не приложение, а страницу ошибки браузера.
 
 **Удалять его нельзя до 2027-02-01** (ориентир — полгода после релиза 1.0.0).
 После этой даты можно удалить `public/sw.js` и `location = /sw.js` из конфига nginx.
