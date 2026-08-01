@@ -93,6 +93,10 @@ const ONBOARDING_HINT_STORAGE_KEY = 'kitty-metro-onboarding-hint-seen'
 // его можно держать выше прежних шести: нужная станция уже наверху списка.
 const SUGGESTIONS_LIMIT = 8
 
+// Сколько раз приложение открывали. Нужен карточке установки: на первом визите
+// она не показывается (см. isInstallGuideEarned).
+const VISIT_COUNT_STORAGE_KEY = 'kitty-metro-visit-count'
+
 // --- Тап по станции ---------------------------------------------------------
 // Первый тап ставит «Откуда», второй — «Куда» (стандарт Яндекс.Метро и Google
 // Maps), а прежний поповер с явным выбором поля остаётся на долгом нажатии.
@@ -185,6 +189,50 @@ function readDeepLinkStationIds(search: string): { fromId: string; toId: string 
   }
 }
 
+/** Есть ли в адресе хоть один параметр маршрута — чтобы отличить обрезанную ссылку от обычного входа. */
+function hasAnyDeepLinkParam(search: string): boolean {
+  try {
+    const params = new URLSearchParams(search)
+    return Boolean(params.get('from')?.trim() || params.get('to')?.trim())
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Убираем мусорные `?from/?to` из адреса: иначе перезагрузка бесконечно
+ * повторяет неудачный сценарий, а ссылка выглядит рабочей.
+ */
+function clearDeepLinkParamsFromUrl(): void {
+  if (typeof window === 'undefined') return
+  if (typeof window.history?.replaceState !== 'function') return
+
+  try {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('from')
+    url.searchParams.delete('to')
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Скрыто визуально, но доступно скринридеру. Инлайн-стилем, а не классом:
+ * файлы CSS в этой задаче правит другой агент.
+ */
+const VISUALLY_HIDDEN_STYLE = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  margin: '-1px',
+  padding: 0,
+  overflow: 'hidden',
+  clipPath: 'inset(50%)',
+  whiteSpace: 'nowrap',
+  border: 0,
+} as const
+
 function buildRouteShareUrl(fromId: string, toId: string): string | null {
   if (typeof window === 'undefined') return null
 
@@ -259,6 +307,9 @@ function App() {
   const [favoriteRoutes, setFavoriteRoutes] = useState<SavedRoute[]>([])
   const [recentRoutes, setRecentRoutes] = useState<SavedRoute[]>([])
   const [isSmartSuggestionsOpen, setIsSmartSuggestionsOpen] = useState(false)
+  // Ссылка-пропуск видна только в фокусе; CSS-псевдоклассы недоступны, поэтому
+  // состояние держим явно.
+  const [isSkipLinkFocused, setIsSkipLinkFocused] = useState(false)
   const [isMapReady, setIsMapReady] = useState(false)
   const [nearbyStations, setNearbyStations] = useState<FullGraphStation[]>([])
   const [nearbyStatus, setNearbyStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -504,6 +555,35 @@ function App() {
   })
   const isInstallGuideOpen = installGuidePlatform !== 'hidden'
   const [isInstallGuideDelayPassed, setIsInstallGuideDelayPassed] = useState(false)
+
+  /**
+   * Право карточки установки на показ. На первом визите его нет: сначала
+   * человек должен увидеть, зачем ему это приложение.
+   */
+  const [isInstallGuideEarned, setIsInstallGuideEarned] = useState(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      const raw = window.localStorage.getItem(VISIT_COUNT_STORAGE_KEY)
+      const parsed = raw ? Number.parseInt(raw, 10) : 0
+      return Number.isFinite(parsed) && parsed >= 1
+    } catch {
+      return false
+    }
+  })
+
+  // Счётчик визитов — отдельно от права показа, чтобы первый визит не засчитал
+  // сам себя.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = window.localStorage.getItem(VISIT_COUNT_STORAGE_KEY)
+      const parsed = raw ? Number.parseInt(raw, 10) : 0
+      const next = (Number.isFinite(parsed) ? parsed : 0) + 1
+      window.localStorage.setItem(VISIT_COUNT_STORAGE_KEY, String(Math.min(next, 99)))
+    } catch {
+      // ignore
+    }
+  }, [])
 
   const handleInitialViewportReady = useCallback(() => {
     setIsMapReady(true)
@@ -1239,8 +1319,22 @@ function App() {
     }
   }, [isSplashDone, isMapReady, isInstallGuideOpen])
 
+  /**
+   * UX-9. Карточка установки выезжала через ~1,8 с после запуска, накрывала
+   * подсказку онбординга, которую человек начал читать полсекунды назад, и
+   * приходила до того, как он вообще понял, что это за приложение.
+   *
+   * Теперь она «зарабатывается»: либо человек уже построил маршрут (увидел
+   * пользу), либо это как минимум второй визит. Плюс она никогда не перебивает
+   * онбординг.
+   */
   const shouldShowInstallGuide =
-    isSplashDone && isMapReady && isInstallGuideOpen && isInstallGuideDelayPassed
+    isSplashDone &&
+    isMapReady &&
+    isInstallGuideOpen &&
+    isInstallGuideDelayPassed &&
+    isInstallGuideEarned &&
+    !isOnboardingHintVisible
   const showUpdateBanner =
     isSplashDone && isMapReady && !shouldShowInstallGuide && needRefresh && !isUpdateDismissed
 
@@ -1412,6 +1506,10 @@ function App() {
         persistRoutesToStorage(RECENTS_STORAGE_KEY, next)
         return next
       })
+
+      // Маршрут построен — теперь предложение установить приложение осмысленно
+      // (UX-9). Даём право на показ, но не сразу: карточка выждет свою паузу.
+      setIsInstallGuideEarned(true)
 
       // A11Y: раньше живая область говорила только «Строим маршрут…», а сам
       // результат не объявлялся вообще — незрячий пользователь после Enter
@@ -1655,12 +1753,32 @@ function App() {
     deepLinkAppliedRef.current = true
 
     const params = readDeepLinkStationIds(window.location.search)
-    if (!params) return
+    if (!params) {
+      // Половинчатая ссылка (`?from=` без `?to=`) молча не делала ничего.
+      // Человек, которому её прислали, не понимал, что она обрезана.
+      if (hasAnyDeepLinkParam(window.location.search)) {
+        setErrorMessage(
+          'Ссылка на маршрут неполная: в ней указана только одна станция. Выбери станции сами.',
+        )
+        clearDeepLinkParamsFromUrl()
+      }
+      return
+    }
 
     const fromStationResolved = stationById.get(params.fromId)
     const toStationResolved = stationById.get(params.toId)
-    if (!fromStationResolved || !toStationResolved) return
-    if (params.fromId === params.toId) return
+
+    if (!fromStationResolved || !toStationResolved) {
+      setErrorMessage('Ссылка на маршрут не сработала: таких станций нет. Выбери станции сами.')
+      clearDeepLinkParamsFromUrl()
+      return
+    }
+
+    if (params.fromId === params.toId) {
+      setErrorMessage('В ссылке начальная и конечная станции совпадают. Выбери другую станцию.')
+      clearDeepLinkParamsFromUrl()
+      return
+    }
 
     const fromTitle = stationTitleById.get(params.fromId) ?? fromStationResolved.title
     const toTitle = stationTitleById.get(params.toId) ?? toStationResolved.title
@@ -2997,6 +3115,46 @@ function App() {
   return (
     <div className={`app-root${isSplashActive ? ' app-root--splash-active' : ''}`}>
       <div className="app-status-bar-fill" aria-hidden="true" />
+
+      {/* Единственный заголовок первого уровня: без него скринридер не давал
+          ни оглавления, ни представления о том, что это за экран. */}
+      <h1 style={VISUALLY_HIDDEN_STYLE}>Метро Москвы: схема и маршруты</h1>
+
+      {/* A11Y-4. До поля «Откуда» приходилось нажимать Tab девять раз: сначала
+          кнопки зума карты, тумблер темы, чип шапки, ручка шторки. Порядок
+          задан раскладкой и слоями, менять его нельзя, поэтому даём штатное
+          решение — ссылку-пропуск первым элементом обхода. */}
+      {!effectiveEditMode && isPrimaryUiReady && (
+        <button
+          type="button"
+          className="app-skip-link"
+          onFocus={() => setIsSkipLinkFocused(true)}
+          onBlur={() => setIsSkipLinkFocused(false)}
+          onClick={() => {
+            setRouteSheetOpenState(true)
+            focusIfNeeded(fromInputRef.current)
+          }}
+          style={
+            isSkipLinkFocused
+              ? {
+                  position: 'fixed',
+                  top: '0.5rem',
+                  left: '0.5rem',
+                  zIndex: 100000,
+                  padding: '0.5rem 0.9rem',
+                  borderRadius: '0.75rem',
+                  border: '1px solid var(--color-border-soft, #ccc)',
+                  background: 'var(--color-surface-glass-strong, #fff)',
+                  color: 'var(--color-text-primary, #111)',
+                  font: 'inherit',
+                  cursor: 'pointer',
+                }
+              : VISUALLY_HIDDEN_STYLE
+          }
+        >
+          Перейти к вводу маршрута
+        </button>
+      )}
       {isSplashMounted && (
         <SplashScreen
           isDone={isSplashDone && isMapReady}
@@ -3148,28 +3306,18 @@ function App() {
               }}
             />
 
-            <main className="app-main">
-              {errorMessage && (
-                <section className="route-placeholder" role="alert">
-                  <p className="error-text">{errorMessage}</p>
-                  {fromStationId && toStationId && (
-                    <button
-                      type="button"
-                      className="route-retry-button"
-                      onClick={handleRetryRoute}
-                      aria-label="Построить маршрут ещё раз"
-                    >
-                      Попробовать ещё раз
-                    </button>
-                  )}
-                </section>
-              )}
-            </main>
+            {/* Пустой <main> остался слоем-распоркой над картой: он держит
+                флекс-раскладку оверлея. Сообщение об ошибке переехало отсюда
+                вниз, к полям ввода (см. блок с role="alert" в шторке): здесь
+                оно рисовалось в 700 px от точки внимания и было перекрыто
+                переключателем темы. */}
+            <main className="app-main" aria-label="Схема метро Москвы" />
           </>
         )}
 
         {!effectiveEditMode && isPrimaryUiReady && (
-          <div
+          <section
+            aria-label="Поиск и детали маршрута"
             ref={bottomSheetRef}
             className={`bottom-sheet${
               routeResult && !errorMessage ? ' bottom-sheet--with-route' : ''
@@ -3183,11 +3331,25 @@ function App() {
               onTouchCancel={handleSheetTouchCancel}
             >
               <div ref={sheetMinVisibleRef} className="bottom-sheet-min">
+                <h2 style={VISUALLY_HIDDEN_STYLE}>
+                  {routeResult ? 'Маршрут' : 'Куда едем'}
+                </h2>
+
+                {/* Ручка шторки была фокусируемой кнопкой, не реагирующей ни на
+                    Enter, ни на Space, ни на click, — то есть ловушкой в обходе
+                    по Tab. Теперь это настоящий переключатель: клавиатурой
+                    детали маршрута раскрываются именно отсюда. */}
                 {routeResult && !errorMessage && !isDesktop && (
                   <button
                     type="button"
                     className="bottom-sheet-handle"
-                    aria-label="Потянуть, чтобы раскрыть или свернуть детали маршрута"
+                    aria-expanded={isRouteSheetOpen}
+                    aria-label={
+                      isRouteSheetOpen
+                        ? 'Свернуть детали маршрута'
+                        : 'Раскрыть детали маршрута'
+                    }
+                    onClick={() => setRouteSheetOpenState(!isRouteSheetOpen)}
                   />
                 )}
 
@@ -3195,7 +3357,9 @@ function App() {
                   <button
                     type="button"
                     className="bottom-sheet-handle"
-                    aria-label="Потянуть, чтобы раскрыть или свернуть шторку"
+                    aria-expanded={isRouteSheetOpen}
+                    aria-label={isRouteSheetOpen ? 'Свернуть шторку' : 'Раскрыть шторку'}
+                    onClick={() => setRouteSheetOpenState(!isRouteSheetOpen)}
                   />
                 )}
 
@@ -3216,11 +3380,12 @@ function App() {
                   </div>
                 )}
 
-                {!isSmartSuggestionsOpen &&
-                  (favoriteRoutes.length > 0 ||
-                    recentRoutes.length > 0 ||
-                    nearbyStatus !== 'error' ||
-                    nearbyStations.length > 0) && (
+                {/* Условие видимости больше НЕ содержит `nearbyStatus !== 'error'`:
+                    при отказе в геолокации вся строка чипов вместе с кнопкой
+                    «Рядом» пропадала с экрана, и заботливо написанный текст
+                    ошибки не показывался никогда — пользователь думал, что
+                    сломал приложение. */}
+                {!isSmartSuggestionsOpen && (
                   <div className="smart-suggestions-inline">
                     {recentRoutes.length > 0 && (
                       <button
@@ -3233,22 +3398,20 @@ function App() {
                         Недавние
                       </button>
                     )}
-                    {(nearbyStatus !== 'error' || nearbyStations.length > 0) && (
-                      <button
-                        type="button"
-                        className="smart-suggestions-inline-chip"
-                        onClick={() => {
-                          setIsSmartSuggestionsOpen(true)
-                          if (nearbyStatus === 'idle' && nearbyStations.length === 0) {
-                            handleRequestNearbyStations()
-                          }
-                        }}
-                        aria-label="Показать станции рядом"
-                      >
-                        <IconPin className="inline-icon" />
-                        Рядом
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="smart-suggestions-inline-chip"
+                      onClick={() => {
+                        setIsSmartSuggestionsOpen(true)
+                        if (nearbyStatus !== 'loading' && nearbyStations.length === 0) {
+                          handleRequestNearbyStations()
+                        }
+                      }}
+                      aria-label="Показать станции рядом"
+                    >
+                      <IconPin className="inline-icon" />
+                      Рядом
+                    </button>
                     {favoriteRoutes.length > 0 && (
                       <button
                         type="button"
@@ -3263,12 +3426,8 @@ function App() {
                   </div>
                 )}
 
-                {isSmartSuggestionsOpen &&
-                  (favoriteRoutes.length > 0 ||
-                    recentRoutes.length > 0 ||
-                    nearbyStatus !== 'error' ||
-                    nearbyStations.length > 0) && (
-                    <section className="smart-suggestions">
+                {isSmartSuggestionsOpen && (
+                    <section className="smart-suggestions" aria-label="Быстрые маршруты">
                       {favoriteRoutes.length === 0 && (
                         <div className="smart-suggestions-header">
                           <button
@@ -3354,9 +3513,18 @@ function App() {
                           </div>
                         )}
                         {nearbyStatus === 'error' && (
-                          <div className="smart-suggestions-error">
-                            {nearbyError || 'Не удалось определить местоположение.'}
-                          </div>
+                          <>
+                            <div className="smart-suggestions-error" role="alert">
+                              {nearbyError || 'Не удалось определить местоположение.'}
+                            </div>
+                            <button
+                              type="button"
+                              className="smart-suggestion-chip smart-suggestion-chip--ghost"
+                              onClick={handleRequestNearbyStations}
+                            >
+                              Попробовать ещё раз
+                            </button>
+                          </>
                         )}
                         {nearbyStatus !== 'loading' && nearbyStations.length > 0 && (
                           <div className="smart-suggestions-row">
@@ -3413,6 +3581,25 @@ function App() {
                   onClearTo={() => handleToChange('')}
                   isDesktop={isDesktop}
                 />
+
+                {/* Ошибка живёт рядом с полями — там, куда человек смотрит,
+                    когда печатает. Наверху экрана её перекрывал переключатель
+                    темы, а при поднятой клавиатуре она вообще уезжала за кадр. */}
+                {errorMessage && (
+                  <div className="route-placeholder" role="alert">
+                    <p className="error-text">{errorMessage}</p>
+                    {fromStationId && toStationId && fromStationId !== toStationId && (
+                      <button
+                        type="button"
+                        className="route-retry-button"
+                        onClick={handleRetryRoute}
+                        aria-label="Построить маршрут ещё раз"
+                      >
+                        Попробовать ещё раз
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Честное состояние загрузки: пока воркер считает, шторка
                     показывает скелетон, а не «ничего не произошло». */}
@@ -3499,7 +3686,7 @@ function App() {
                 shareHint={shareHint}
               />
             </div>
-          </div>
+          </section>
         )}
 
         {EDITOR_ENABLED && EditorOverlayLazy && editor.overlay && (
