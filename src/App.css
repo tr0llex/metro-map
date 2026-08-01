@@ -3265,7 +3265,16 @@
   left: 50%;
   bottom: 1rem;
   transform: translateX(-50%);
-  z-index: 5;
+  /* Выше .bottom-sheet (z-index: 8): баннер стоит у нижней кромки, ровно там же,
+     где шторка, и с меньшим слоем оказывался под ней. */
+  z-index: 12;
+  /* Родительский .app-overlay имеет pointer-events: none, чтобы пропускать
+     жесты на карту, поэтому каждый интерактивный потомок обязан вернуть себе
+     pointer-events. Без этого баннер показывался, но обе кнопки не нажимались,
+     а он — единственный способ применить обновление: при registerType 'prompt'
+     новый service worker ждёт явного подтверждения и иначе не активируется
+     никогда. */
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
