@@ -38,10 +38,24 @@ jobs:
         run: node scripts/check-prod-bundle.mjs
 
   quality:
-    name: Metro map quality check (non-blocking)
+    name: Metro map quality (no drift from baseline)
     runs-on: ubuntu-latest
-    continue-on-error: true
 
+    # Раньше здесь стоял `continue-on-error: true` и `npm run quality:check`.
+    # quality:check возвращает 1 всегда, пока хоть одна метрика в FAIL, а она в
+    # FAIL постоянно и осознанно — то есть job был жёлтым всегда. Сигнал, который
+    # всегда красный, перестаёт быть сигналом: отличить «всё как обычно» от
+    # «я только что сломал раскладку» было невозможно.
+    #
+    # Поэтому проверяем не абсолютные пороги, а ДРЕЙФ относительно закоммиченной
+    # базовой линии normalized/quality_report.json. Анализатор детерминирован
+    # (см. docs/QUALITY.md), поэтому при неизменных данных и коде отчёт совпадает
+    # байт в байт. Job зелёный ровно тогда, когда схема не менялась, и красный
+    # ровно тогда, когда менялась — включая улучшения: новый отчёт надо
+    # закоммитить вместе с правкой.
+    #
+    # Пороги FAIL/WARN при этом остаются как есть и продолжают печататься в
+    # отчёте — они описывают цель, а не текущее состояние.
     steps:
       - uses: actions/checkout@v4
 
@@ -53,6 +67,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Анализатор качества схемы дописывается — job не должен ронять сборку.
-      - name: Check layout quality
-        run: npm run quality:check
+      - name: Recompute layout quality report
+        run: npm run quality
+
+      - name: Report must match committed baseline
+        run: |
+          if ! git diff --exit-code -- normalized/quality_report.json; then
+            echo "::error::normalized/quality_report.json разошёлся с пересчитанным."
+            echo "Если схема менялась осознанно — запустите 'npm run quality' и закоммитьте отчёт."
+            echo "Если нет — это регресс: смотрите дифф выше."
+            exit 1
+          fi
+          echo "Отчёт совпал с базовой линией — дрейфа нет."
