@@ -10,6 +10,13 @@ export type StationPickPopoverProps = {
   position: { left: number; top: number } | null
   popoverRef: RefObject<HTMLDivElement | null>
   lineColor?: string
+  /**
+   * Что сейчас стоит в полях. Нужно, чтобы кнопка честно говорила, какую
+   * станцию заменит выбор: поповер теперь открывается и по обычному тапу при
+   * двух заполненных полях, и «Куда» без пояснения читалось бы как «добавить».
+   */
+  currentFromTitle?: string | null
+  currentToTitle?: string | null
   onPick: (mode: 'from' | 'to') => void
 }
 
@@ -26,8 +33,41 @@ export function StationPickPopover({
   position,
   popoverRef,
   lineColor,
+  currentFromTitle,
+  currentToTitle,
   onPick,
 }: StationPickPopoverProps) {
+  const renderButton = (mode: 'from' | 'to', label: string, currentTitle?: string | null) => {
+    const occupied = Boolean(currentTitle && currentTitle !== data.stationName)
+    return (
+      <button
+        type="button"
+        className="station-pick-popover-button"
+        data-pressed={pressed === mode ? 'true' : undefined}
+        aria-label={
+          occupied
+            ? `Поставить «${data.stationName}» в поле «${label}» вместо «${currentTitle}»`
+            : `Поставить «${data.stationName}» в поле «${label}»`
+        }
+        onClick={(event) => {
+          event.preventDefault()
+          onPick(mode)
+        }}
+      >
+        <span className="station-pick-popover-button-label">{label}</span>
+        {/* Пробел между строками намеренно в разметке: пока `-sub` не получил
+            собственных стилей, подпись читается как «Откуда вместо Крылатское»
+            в одну строку, а не слипается в «Откудавместо». */}
+        {occupied && ' '}
+        {occupied && (
+          <span className="station-pick-popover-button-sub" aria-hidden="true">
+            вместо {currentTitle}
+          </span>
+        )}
+      </button>
+    )
+  }
+
   return (
     <div
       ref={popoverRef}
@@ -50,28 +90,8 @@ export function StationPickPopover({
       </div>
 
       <div className="station-pick-popover-actions">
-        <button
-          type="button"
-          className="station-pick-popover-button"
-          data-pressed={pressed === 'from' ? 'true' : undefined}
-          onClick={(event) => {
-            event.preventDefault()
-            onPick('from')
-          }}
-        >
-          Откуда
-        </button>
-        <button
-          type="button"
-          className="station-pick-popover-button"
-          data-pressed={pressed === 'to' ? 'true' : undefined}
-          onClick={(event) => {
-            event.preventDefault()
-            onPick('to')
-          }}
-        >
-          Куда
-        </button>
+        {renderButton('from', 'Откуда', currentFromTitle)}
+        {renderButton('to', 'Куда', currentToTitle)}
       </div>
     </div>
   )

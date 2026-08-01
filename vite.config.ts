@@ -90,8 +90,8 @@ export default defineConfig(({ mode }) => {
           short_name: 'Метро Москвы',
           description:
             'Офлайн-схема московского метро: маршруты, пересадки и время в пути. Работает без интернета.',
-          theme_color: '#f5f5f7',
-          background_color: '#ffe4f1',
+          theme_color: '#f7f8fa',
+          background_color: '#f7f8fa',
           display: 'standalone',
           orientation: 'portrait-primary',
           lang: 'ru-RU',

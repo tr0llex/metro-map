@@ -60,7 +60,7 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'center',
     padding: '24px',
     background:
-      'linear-gradient(180deg, var(--app-bg-1, #fff5fa) 0%, var(--app-bg-2, #ffe4f1) 100%)',
+      'linear-gradient(180deg, var(--app-bg-1, #f7f8fa) 0%, var(--app-bg-2, #edeff3) 100%)',
     color: 'var(--color-text-secondary, #5a3a4a)',
     fontFamily: 'inherit',
     boxSizing: 'border-box',
@@ -105,7 +105,7 @@ const styles: Record<string, CSSProperties> = {
     // Те же токены основного действия, что и у .primary-button: подпись на
     // кнопке даёт 6:1 в обеих темах (Дизайн-4).
     color: 'var(--color-primary-on, #ffffff)',
-    background: 'var(--color-primary-surface, #be185d)',
+    background: 'var(--color-primary-surface, #28344f)',
     cursor: 'pointer',
   },
   details: {

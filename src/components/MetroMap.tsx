@@ -109,6 +109,48 @@ const INITIAL_PREFERRED_SCALE = 1.1
 const PAN_CLAMP_VIEWPORT_FRACTION = 0.01
 
 /**
+ * Зум колесом (UX-9).
+ *
+ * Модель: событие колеса не меняет масштаб напрямую, а двигает ЦЕЛЬ в
+ * логарифме масштаба; отдельный rAF-цикл ведёт текущий масштаб к цели с
+ * ограничением по скорости. Логарифм — потому что зум мультипликативен: равные
+ * шаги в логарифме воспринимаются как равномерное движение и на 0.2, и на 2.5.
+ *
+ * Всё, что зависит от времени, считается через dt кадра, а не «доля за кадр»:
+ * иначе на 120-герцевом мониторе зум идёт вдвое быстрее, чем на 60-герцевом,
+ * а после пропущенного кадра прилетает двойной шаг — это и ощущается рывками.
+ */
+/** Перевод пикселей прокрутки в логарифм масштаба: щелчок колеса (100px) ≈ 1.13x. */
+const WHEEL_ZOOM_LOG_PER_PX = 0.00125
+/**
+ * Высота «строки» для deltaMode=1 (Firefox шлёт 3 строки на щелчок).
+ * 34px подобраны так, чтобы щелчок в Firefox давал тот же зум, что и в Chrome,
+ * где то же событие приходит как ~100px.
+ */
+const WHEEL_LINE_HEIGHT_PX = 34
+/**
+ * Потолок вклада одного события. Страничный режим (deltaMode=2) и системное
+ * ускорение прокрутки дают дельты в сотни и тысячи пикселей — без потолка
+ * один такой пакет перебрасывал бы схему через весь диапазон зума.
+ */
+const WHEEL_ZOOM_MAX_LOG_PER_EVENT = Math.log(1.35)
+/** Пинч на тачпаде приходит как wheel + ctrlKey и требует большего усиления. */
+const WHEEL_ZOOM_PINCH_GAIN = 2.5
+/** Постоянная времени подхода к цели, мс. */
+const WHEEL_ZOOM_SMOOTH_MS = 70
+/**
+ * Инерция самой скорости зума, мс. Сглаживает разницу между «есть щелчок» и
+ * «пауза между щелчками»: без неё шаг за кадр пульсирует с частотой щелчков.
+ */
+const WHEEL_ZOOM_VELOCITY_TAU_MS = 45
+/** Остаток, который дожимается одним кадром: обрубает бесконечный экспоненциальный хвост. */
+const WHEEL_ZOOM_SNAP_LOG = 0.012
+/** Порог «цель достигнута», лог-единиц (0.1% масштаба). */
+const WHEEL_ZOOM_EPS_LOG = 0.001
+/** Пауза после остановки колеса, после которой возвращается полная отрисовка подписей, мс. */
+const WHEEL_ZOOM_IDLE_MS = 120
+
+/**
  * Запас по краям схемы под подписи станций, в мировых пикселях.
  *
  * bounding box одних только кружков — не вся нарисованная схема: подпись
@@ -484,9 +526,15 @@ export const MetroMap = memo(function MetroMap({
   const isWheelZoomingRef = useRef(false)
   const wheelStopTimeoutRef = useRef<number | null>(null)
   const wheelZoomRafRef = useRef<number | null>(null)
-  const wheelZoomPendingPxRef = useRef(0)
+  /** Цель зума в логарифме масштаба; null — жеста нет. */
+  const wheelZoomTargetLogRef = useRef<number | null>(null)
+  /** Текущая скорость зума, лог-единиц масштаба в миллисекунду. */
+  const wheelZoomVelocityRef = useRef(0)
+  const wheelZoomLastFrameRef = useRef<number | null>(null)
   const wheelZoomLastClientRef = useRef<{ x: number; y: number } | null>(null)
-  const wheelZoomStopRequestedRef = useRef(false)
+  const reducedMotionRef = useRef(false)
+  /** Значения вьюпорта, записанные жестами напрямую в ref (см. синхронизацию ниже). */
+  const viewportSelfWritesRef = useRef<WeakSet<ViewportState>>(new WeakSet())
   const [isPanning, setIsPanning] = useState(false)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   const [hasDragged, setHasDragged] = useState(false)
@@ -798,9 +846,41 @@ export const MetroMap = memo(function MetroMap({
     }
   }, [routeEdgeKeys, routeStationIds, ensureAnimationLoop])
 
+  /**
+   * Синхронизация «состояние React → ref».
+   *
+   * viewportRef — источник правды для жестов (колесо, pan, pinch): они правят
+   * его каждый кадр и только зеркалят значение в состояние, чтобы схема
+   * перерисовалась. Коммит React приходит с задержкой на один шаг, поэтому
+   * безусловное `viewportRef.current = viewport` затирало свежее значение
+   * позапрошлым: следующий кадр считал шаг от устаревшей базы, и масштаб
+   * ходил «вперёд-назад» через кадр — это и был дёрганый зум колесом (UX-9).
+   *
+   * Поэтому свои собственные значения (те, что записал жест) мы узнаём по
+   * ссылке и не принимаем обратно; чужие — от кнопок зума, автоподгонки
+   * маршрута, клавиатуры — принимаем как раньше.
+   */
   useEffect(() => {
+    if (viewportSelfWritesRef.current.has(viewport)) return
     viewportRef.current = viewport
   }, [viewport])
+
+  /**
+   * prefers-reduced-motion учитывается и в JS-анимациях карты: при включённой
+   * настройке зум колесом применяется сразу, без доворота.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const apply = () => {
+      reducedMotionRef.current = mql.matches
+    }
+    apply()
+    mql.addEventListener?.('change', apply)
+    return () => {
+      mql.removeEventListener?.('change', apply)
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -3278,7 +3358,7 @@ export const MetroMap = memo(function MetroMap({
         offsetX: viewportRef.current.offsetX + dx,
         offsetY: viewportRef.current.offsetY + dy,
       })
-      setViewport(viewportRef.current)
+      commitViewportFromRef()
 
       const nextSpeed = Math.hypot(vxNext, vyNext)
       if (nextSpeed < minStopSpeed) {
@@ -3292,12 +3372,52 @@ export const MetroMap = memo(function MetroMap({
     panInertiaRafRef.current = requestAnimationFrame(step)
   }
 
+  /**
+   * Отразить текущий viewportRef в состояние React (перерисовка схемы),
+   * пометив значение как «своё»: обратная синхронизация не должна вернуть его
+   * в ref с опозданием на кадр.
+   */
+  const commitViewportFromRef = useCallback(() => {
+    viewportSelfWritesRef.current.add(viewportRef.current)
+    setViewport(viewportRef.current)
+  }, [])
+
   const scheduleViewportCommit = useCallback(() => {
     if (wheelRafRef.current != null) return
     wheelRafRef.current = requestAnimationFrame(() => {
       wheelRafRef.current = null
-      setViewport(viewportRef.current)
+      commitViewportFromRef()
     })
+  }, [commitViewportFromRef])
+
+  /**
+   * Завершение жеста колеса.
+   *
+   * Подписи станций во время зума не пересчитываются (лёгкий режим), а между
+   * щелчками колеса пауза короткая — поэтому полный кадр возвращаем не сразу,
+   * а после паузы, иначе тяжёлая раскладка подписей будет дёргаться на каждом
+   * щелчке.
+   */
+  const finishWheelZoom = useCallback(() => {
+    if (wheelZoomRafRef.current != null) {
+      cancelAnimationFrame(wheelZoomRafRef.current)
+      wheelZoomRafRef.current = null
+    }
+    wheelZoomTargetLogRef.current = null
+    wheelZoomVelocityRef.current = 0
+    wheelZoomLastFrameRef.current = null
+
+    if (wheelStopTimeoutRef.current != null) {
+      window.clearTimeout(wheelStopTimeoutRef.current)
+      wheelStopTimeoutRef.current = null
+    }
+    wheelStopTimeoutRef.current = window.setTimeout(() => {
+      wheelStopTimeoutRef.current = null
+      isWheelZoomingRef.current = false
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame((ts) => setAnimationTick(ts))
+      }
+    }, WHEEL_ZOOM_IDLE_MS)
   }, [])
 
   const handleWheel = useCallback(
@@ -3311,107 +3431,168 @@ export const MetroMap = memo(function MetroMap({
 
       const rect = canvasRectRef.current ?? canvas.getBoundingClientRect()
       canvasRectRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
-      const LINE_HEIGHT_PX = 16
-      const deltaMode = event.deltaMode
-      const deltaPxRaw =
-        deltaMode === 1
-          ? event.deltaY * LINE_HEIGHT_PX
-          : deltaMode === 2
+
+      // 1. Нормализация ввода. deltaMode различает пиксели / строки / страницы,
+      //    а тачпад и колесо дают дельты, отличающиеся на порядок: без общей
+      //    единицы (пиксели прокрутки → логарифм масштаба) шаг зума «прыгает».
+      const deltaPx =
+        event.deltaMode === 1
+          ? event.deltaY * WHEEL_LINE_HEIGHT_PX
+          : event.deltaMode === 2
             ? event.deltaY * Math.max(1, rect.height)
             : event.deltaY
+      if (!Number.isFinite(deltaPx) || deltaPx === 0) return
 
-      wheelZoomPendingPxRef.current += deltaPxRaw
+      const gain = event.ctrlKey ? WHEEL_ZOOM_PINCH_GAIN : 1
+      const rawLog = -deltaPx * WHEEL_ZOOM_LOG_PER_PX * gain
+      const eventLog = Math.min(
+        WHEEL_ZOOM_MAX_LOG_PER_EVENT,
+        Math.max(-WHEEL_ZOOM_MAX_LOG_PER_EVENT, rawLog),
+      )
+
       wheelZoomLastClientRef.current = { x: event.clientX, y: event.clientY }
 
+      // 2. Гасим конкурирующих писателей вьюпорта: доворот по кнопке/двойному
+      //    клику и инерцию панорамирования. Иначе два цикла одновременно
+      //    правят один и тот же viewport, каждый от своей базы.
+      if (zoomClickAnimRafRef.current != null) {
+        cancelAnimationFrame(zoomClickAnimRafRef.current)
+        zoomClickAnimRafRef.current = null
+      }
+      if (panInertiaRafRef.current != null) {
+        cancelAnimationFrame(panInertiaRafRef.current)
+        panInertiaRafRef.current = null
+      }
+
+      // 3. Двигаем цель. База — уже назначенная цель (если жест идёт), иначе
+      //    текущий масштаб. Цель сразу зажимается в разрешённый диапазон,
+      //    поэтому на упоре не копится «невидимый долг», который потом
+      //    приходится откручивать обратно.
+      const minLog = Math.log(minScaleAllowed)
+      const maxLog = Math.log(MAX_SCALE)
+      const active = wheelZoomRafRef.current != null && wheelZoomTargetLogRef.current != null
+      const baseLog = active
+        ? (wheelZoomTargetLogRef.current as number)
+        : Math.log(viewportRef.current.scale)
+      wheelZoomTargetLogRef.current = Math.min(maxLog, Math.max(minLog, baseLog + eventLog))
+
       isWheelZoomingRef.current = true
-      wheelZoomStopRequestedRef.current = false
       if (wheelStopTimeoutRef.current != null) {
         window.clearTimeout(wheelStopTimeoutRef.current)
         wheelStopTimeoutRef.current = null
       }
-      wheelStopTimeoutRef.current = window.setTimeout(() => {
-        wheelStopTimeoutRef.current = null
-        wheelZoomStopRequestedRef.current = true
-      }, 120)
 
       if (wheelZoomRafRef.current != null) return
 
-      const ZOOM_SENSITIVITY = 0.0022
-      const APPLY_ALPHA = 0.22
-      const MIN_PENDING_PX = 0.25
-      const MAX_STEP_PX = 140
+      wheelZoomLastFrameRef.current = null
+      wheelZoomVelocityRef.current = 0
 
-      const step = () => {
+      const step = (now: number) => {
         wheelZoomRafRef.current = null
 
-        const pending = wheelZoomPendingPxRef.current
-        if (Math.abs(pending) < MIN_PENDING_PX) {
-          wheelZoomPendingPxRef.current = 0
-          if (wheelZoomStopRequestedRef.current) {
-            wheelZoomStopRequestedRef.current = false
-            isWheelZoomingRef.current = false
-            if (typeof window !== 'undefined') {
-              window.requestAnimationFrame((ts) => setAnimationTick(ts))
-            }
-            return
-          }
-
-          wheelZoomRafRef.current = requestAnimationFrame(step)
+        const targetLogRaw = wheelZoomTargetLogRef.current
+        const canvasNow = canvasRef.current
+        const cursor = wheelZoomLastClientRef.current
+        if (targetLogRaw == null || !canvasNow || !cursor) {
+          finishWheelZoom()
           return
         }
 
-        let stepPx = pending * APPLY_ALPHA
-        if (stepPx > MAX_STEP_PX) stepPx = MAX_STEP_PX
-        if (stepPx < -MAX_STEP_PX) stepPx = -MAX_STEP_PX
-        wheelZoomPendingPxRef.current = pending - stepPx
+        const lastFrame = wheelZoomLastFrameRef.current
+        // dt зажат: после сворачивания вкладки или пропуска кадров не должно
+        // прилетать «сразу на полсекунды» зума.
+        const dt = lastFrame == null ? 16 : Math.min(50, Math.max(1, now - lastFrame))
+        wheelZoomLastFrameRef.current = now
 
-        const zoomFactorRaw = Math.exp(-stepPx * ZOOM_SENSITIVITY)
-        const zoomFactor = Math.min(1.18, Math.max(0.85, zoomFactorRaw))
+        const current = viewportRef.current
+        const currentScale = current.scale
+        const targetLog = Math.min(
+          Math.log(MAX_SCALE),
+          Math.max(Math.log(minScaleAllowed), targetLogRaw),
+        )
+        wheelZoomTargetLogRef.current = targetLog
 
-        const canvasNow = canvasRef.current
-        const lastClient = wheelZoomLastClientRef.current
-        if (!canvasNow || !lastClient) {
-          wheelZoomPendingPxRef.current = 0
-          isWheelZoomingRef.current = false
-          if (typeof window !== 'undefined') {
-            window.requestAnimationFrame((ts) => setAnimationTick(ts))
-          }
+        const remaining = targetLog - Math.log(currentScale)
+        if (Math.abs(remaining) < WHEEL_ZOOM_EPS_LOG) {
+          finishWheelZoom()
           return
+        }
+
+        let stepLog: number
+        if (reducedMotionRef.current) {
+          // prefers-reduced-motion: никакого доворота, шаг применяется целиком.
+          stepLog = remaining
+        } else {
+          // Смена направления прокрутки — скорость обнуляем, иначе зум сначала
+          // продолжит ехать «по инерции» в старую сторону.
+          if (remaining * wheelZoomVelocityRef.current < 0) wheelZoomVelocityRef.current = 0
+
+          const desiredVelocity = remaining / WHEEL_ZOOM_SMOOTH_MS
+          const k = 1 - Math.exp(-dt / WHEEL_ZOOM_VELOCITY_TAU_MS)
+          const velocity =
+            wheelZoomVelocityRef.current + (desiredVelocity - wheelZoomVelocityRef.current) * k
+          wheelZoomVelocityRef.current = velocity
+
+          stepLog = velocity * dt
+          // Никогда не проскакиваем цель и не тянем бесконечный хвост.
+          if (
+            Math.abs(remaining) <= WHEEL_ZOOM_SNAP_LOG ||
+            Math.abs(stepLog) > Math.abs(remaining)
+          ) {
+            stepLog = remaining
+          }
         }
 
         const rectNow = canvasRectRef.current ?? canvasNow.getBoundingClientRect()
-        canvasRectRef.current = { left: rectNow.left, top: rectNow.top, width: rectNow.width, height: rectNow.height }
-        const current = viewportRef.current
-        const currentScale = current.scale
-        let nextScale = currentScale * zoomFactor
-        nextScale = Math.min(MAX_SCALE, Math.max(minScaleAllowed, nextScale))
-        if (nextScale !== currentScale) {
-          const centerX = rectNow.width / 2
-          const centerY = rectNow.height / 2
-          const xScreen = lastClient.x - rectNow.left
-          const yScreen = lastClient.y - rectNow.top
+        canvasRectRef.current = {
+          left: rectNow.left,
+          top: rectNow.top,
+          width: rectNow.width,
+          height: rectNow.height,
+        }
 
-          const worldX = (xScreen - (centerX + current.offsetX)) / currentScale
-          const worldY = (yScreen - (centerY + current.offsetY)) / currentScale
+        const nextScale = Math.min(
+          MAX_SCALE,
+          Math.max(minScaleAllowed, currentScale * Math.exp(stepLog)),
+        )
 
-          const nextOffsetX = xScreen - centerX - worldX * nextScale
-          const nextOffsetY = yScreen - centerY - worldY * nextScale
+        // Якорь считается заново от ФАКТИЧЕСКОГО вьюпорта этого кадра, а не от
+        // состояния на момент события: точка под курсором остаётся на месте
+        // даже если между кадрами вьюпорт подвинул clampViewport.
+        const centerX = rectNow.width / 2
+        const centerY = rectNow.height / 2
+        const xScreen = cursor.x - rectNow.left
+        const yScreen = cursor.y - rectNow.top
+        const worldX = (xScreen - (centerX + current.offsetX)) / currentScale
+        const worldY = (yScreen - (centerY + current.offsetY)) / currentScale
 
-          viewportRef.current = clampViewport({
-            scale: nextScale,
-            offsetX: nextOffsetX,
-            offsetY: nextOffsetY,
-          })
-          setViewport(viewportRef.current)
+        viewportRef.current = clampViewport({
+          scale: nextScale,
+          offsetX: xScreen - centerX - worldX * nextScale,
+          offsetY: yScreen - centerY - worldY * nextScale,
+        })
+        commitViewportFromRef()
+
+        // Упёрлись в предел зума — дальше цикл крутить незачем.
+        if (viewportRef.current.scale === currentScale) {
+          finishWheelZoom()
+          return
         }
 
         wheelZoomRafRef.current = requestAnimationFrame(step)
       }
 
       wheelZoomRafRef.current = requestAnimationFrame(step)
-
     },
-    [clampViewport, editMode, interactionsLocked, minScaleAllowed, onMapInteraction]
+    [
+      clampViewport,
+      commitViewportFromRef,
+      editMode,
+      finishWheelZoom,
+      interactionsLocked,
+      minScaleAllowed,
+      onMapInteraction,
+    ]
   )
 
   useEffect(() => {
