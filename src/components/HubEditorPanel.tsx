@@ -35,7 +35,6 @@ export interface HubEditorPanelProps {
   effectiveLineStationIdsById: Map<number, string[]>
   edgeOverrides: Record<string, EdgeOverride>
   hubMinOverrides: Record<string, number>
-  hubRotationOverrides: Record<string, number>
   editorSelectedStationIds: string[]
   hubAddStationInput: string
   newEdgeTarget: string

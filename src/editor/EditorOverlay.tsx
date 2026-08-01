@@ -35,7 +35,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
         manualEdges: editor.manualEdges,
         edgeOverrides: editor.edgeOverrides,
         hubMinOverrides: editor.hubMinOverrides,
-        hubRotationOverrides: editor.hubRotationOverrides,
         effectiveLineStationIdsById: editor.effectiveLineStationIdsById,
         canonicalGrid: editor.canonicalGrid,
         canonicalRingShapes: editor.canonicalRingShapes,
@@ -81,7 +80,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
             effectiveLineStationIdsById={editor.effectiveLineStationIdsById}
             edgeOverrides={editor.edgeOverrides}
             hubMinOverrides={editor.hubMinOverrides}
-            hubRotationOverrides={editor.hubRotationOverrides}
             editorSelectedStationIds={editor.editorSelectedStationIds}
             hubAddStationInput={editor.hubAddStationInput}
             newEdgeTarget={editor.newEdgeTarget}

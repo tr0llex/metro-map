@@ -19,7 +19,6 @@ export type BuildEditorOverridesInput = {
   manualEdges: Record<string, FullGraphEdge>
   edgeOverrides: Record<string, EdgeOverride>
   hubMinOverrides: Record<string, number>
-  hubRotationOverrides: Record<string, number>
   effectiveLineStationIdsById: Map<number, string[]>
   canonicalGrid: EditorOverridesGrid
   canonicalRingShapes: Record<string, EditorOverridesRingShape>
@@ -50,7 +49,6 @@ export function buildEditorOverrides(input: BuildEditorOverridesInput): EditorOv
     manualEdges,
     edgeOverrides,
     hubMinOverrides,
-    hubRotationOverrides,
     effectiveLineStationIdsById,
     canonicalGrid,
     canonicalRingShapes,
@@ -208,21 +206,13 @@ export function buildEditorOverrides(input: BuildEditorOverridesInput): EditorOv
     }
   }
 
-  const hubs: Record<string, { minTransferSeconds?: number; rotationDeg?: number }> = {}
+  const hubs: Record<string, { minTransferSeconds?: number }> = {}
 
   for (const [hubId, seconds] of Object.entries(hubMinOverrides)) {
     if (!Number.isFinite(seconds)) continue
     hubs[hubId] = {
       ...(hubs[hubId] || {}),
       minTransferSeconds: seconds,
-    }
-  }
-
-  for (const [hubId, deg] of Object.entries(hubRotationOverrides)) {
-    if (!Number.isFinite(deg)) continue
-    hubs[hubId] = {
-      ...(hubs[hubId] || {}),
-      rotationDeg: deg,
     }
   }
 
