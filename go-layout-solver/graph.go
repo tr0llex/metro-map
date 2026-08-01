@@ -53,11 +53,26 @@ type FullGraphTransferHub struct {
 	RotationDeg        float64  `json:"rotationDeg,omitempty"`
 }
 
+// FullGraphRingShape — аналитическая форма кольцевой линии.
+// Ровно два варианта Kind: "circle" (Cx, Cy, R) и "ellipse" (Cx, Cy, Rx, Ry).
+// Координаты станций кольцевой линии в этом же файле лежат ровно на этой форме.
+type FullGraphRingShape struct {
+	Kind string   `json:"kind"`
+	Cx   float64  `json:"cx"`
+	Cy   float64  `json:"cy"`
+	R    *float64 `json:"r,omitempty"`
+	Rx   *float64 `json:"rx,omitempty"`
+	Ry   *float64 `json:"ry,omitempty"`
+}
+
 type FullGraphExport struct {
 	Lines        []FullGraphLine        `json:"lines"`
 	Stations     []FullGraphStation     `json:"stations"`
 	Edges        []FullGraphEdge        `json:"edges"`
 	TransferHubs []FullGraphTransferHub `json:"transferHubs"`
+	// RingShapes — карта "id линии (строкой)" -> форма кольца. Поле опциональное:
+	// некольцевых линий в карте нет.
+	RingShapes map[string]FullGraphRingShape `json:"ringShapes,omitempty"`
 }
 
 // yandexCoordsMap хранит координаты со схемы Яндекса по нормализованному имени станции.
@@ -183,7 +198,25 @@ func BuildFullGraph(csvPath, connPath, yandexPath string) (FullGraphExport, erro
 	var lines []FullGraphLine
 	var edges []FullGraphEdge
 
-	for _, agg := range linesMap {
+	// Порядок линий обязан быть детерминированным: он определяет и порядок
+	// станций/рёбер в выгрузке, и порядок отрисовки в рантайме. Кольцевые линии
+	// идут первыми (рисуются под остальными), дальше — по возрастанию ID.
+	lineIDsOrdered := make([]int, 0, len(linesMap))
+	for id := range linesMap {
+		lineIDsOrdered = append(lineIDsOrdered, id)
+	}
+	sort.Slice(lineIDsOrdered, func(i, j int) bool {
+		a, b := lineIDsOrdered[i], lineIDsOrdered[j]
+		_, aRing := ringLineIDs[a]
+		_, bRing := ringLineIDs[b]
+		if aRing != bRing {
+			return aRing
+		}
+		return a < b
+	})
+
+	for _, lineID := range lineIDsOrdered {
+		agg := linesMap[lineID]
 		lineKey := normalizeLineKeyFromCSV(agg.LineName)
 
 		// сортируем станции по order
@@ -280,9 +313,15 @@ func BuildFullGraph(csvPath, connPath, yandexPath string) (FullGraphExport, erro
 	edges = append(edges, transferEdges...)
 
 	// Собираем итоговый граф
+	// Порядок станций в выгрузке тоже детерминирован (map даёт случайный обход).
+	stationIDsOrdered := make([]string, 0, len(stationByID))
+	for id := range stationByID {
+		stationIDsOrdered = append(stationIDsOrdered, id)
+	}
+	sort.Strings(stationIDsOrdered)
 	stations := make([]FullGraphStation, 0, len(stationByID))
-	for _, st := range stationByID {
-		stations = append(stations, *st)
+	for _, id := range stationIDsOrdered {
+		stations = append(stations, *stationByID[id])
 	}
 
 	return FullGraphExport{
@@ -603,7 +642,15 @@ func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]s
 	var hubs []FullGraphTransferHub
 	visited := make(map[string]struct{})
 
-	for start := range adj {
+	// Обход компонент — по отсортированным ключам: и номера хабов, и порядок
+	// станций внутри хаба не должны зависеть от случайного обхода map.
+	adjStarts := make([]string, 0, len(adj))
+	for id := range adj {
+		adjStarts = append(adjStarts, id)
+	}
+	sort.Strings(adjStarts)
+
+	for _, start := range adjStarts {
 		if _, ok := visited[start]; ok {
 			continue
 		}
@@ -615,7 +662,12 @@ func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]s
 			cur := queue[0]
 			queue = queue[1:]
 			component = append(component, cur)
+			nexts := make([]string, 0, len(adj[cur]))
 			for nxt := range adj[cur] {
+				nexts = append(nexts, nxt)
+			}
+			sort.Strings(nexts)
+			for _, nxt := range nexts {
 				if _, ok := visited[nxt]; !ok {
 					visited[nxt] = struct{}{}
 					queue = append(queue, nxt)
@@ -653,23 +705,10 @@ func buildTransferHubs(connPath string, lineKeyToStation map[string]map[string]s
 		}
 	}
 
-	// Для всех оставшихся пересадочных станций без HubID создаём одиночные хабы,
-	// чтобы каждая пересадка имела hubId. Это важно для единообразной обработки
-	// пересадок на уровне layout и UI (группировка подписей, анализ компактности).
-	for _, st := range stationByID {
-		if !st.IsTransfer || st.HubID != "" {
-			continue
-		}
-		id := fmt.Sprintf("hub-%d", len(hubs)+1)
-		hubs = append(hubs, FullGraphTransferHub{
-			ID:                 id,
-			StationIDs:         []string{st.ID},
-			MinTransferSeconds: baseTransferSeconds,
-			Source:             "single_transfer",
-		})
-		st.HubID = id
-	}
-
+	// Одиночных хабов больше не создаём: хаб из одной станции не даёт пересадки,
+	// но рисуется как пересадочный узел («вырожденный хаб») и ломает исключения
+	// по hubId в метриках. У станции с длинной пересадкой out-of-station просто
+	// нет hubId — сама пересадка живёт в ребре с isTransfer.
 	return hubs, transferEdges
 }
 
