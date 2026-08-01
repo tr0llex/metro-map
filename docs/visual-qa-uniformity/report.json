@@ -1,0 +1,87 @@
+{
+  "startedAt": "2026-08-01T18:25:18.476Z",
+  "appDir": "/app/dist",
+  "baseUrl": "http://127.0.0.1:4173/",
+  "route": {
+    "from": "Планерная",
+    "to": "Бунинская аллея"
+  },
+  "shots": [
+    {
+      "profile": "desktop",
+      "name": "01-splash",
+      "file": "desktop-01-splash.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "02-install-guide",
+      "file": "desktop-02-install-guide.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "03-onboarding-hint",
+      "file": "desktop-03-onboarding-hint.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "04-map-full",
+      "file": "desktop-04-map-full.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "05-map-zoom-center",
+      "file": "desktop-05-map-zoom-center.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "06-map-zoom-center-deep",
+      "file": "desktop-06-map-zoom-center-deep.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "07-suggestions",
+      "file": "desktop-07-suggestions.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "08-route-built",
+      "file": "desktop-08-route-built.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "09-route-alternatives",
+      "file": "desktop-09-route-alternatives.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "10-route-details",
+      "file": "desktop-10-route-details.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "11-route-zoom",
+      "file": "desktop-11-route-zoom.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "12-route-details-bottom",
+      "file": "desktop-12-route-details-bottom.png"
+    }
+  ],
+  "console": [],
+  "pageErrors": [],
+  "network": [],
+  "notes": [
+    "desktop: вариантов маршрута — 6",
+    "desktop: шагов маршрута в деталях — 5",
+    {
+      "profile": "desktop",
+      "overflowCheck": {
+        "vw": 1440,
+        "vh": 900,
+        "bad": []
+      }
+    }
+  ],
+  "finishedAt": "2026-08-01T18:25:40.715Z"
+}

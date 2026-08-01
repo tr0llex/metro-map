@@ -18,14 +18,69 @@ import {
   pointSegDistance,
   segmentsIntersect,
 } from '../geom.ts'
+import { resolveZoneCenter } from '../labelGeom.ts'
 import { makeMetric, type MetricResult, type Offender } from '../types.ts'
 
 /** Минимальный зазор между центрами двух кружков станций, чтобы они не слиплись. */
 export const MIN_STATION_GAP = STATION_RADIUS * 2 + STATION_BORDER_WIDTH
 /** Минимальный зазор от центра станции до чужой линии. */
 export const MIN_STATION_LINE_GAP = STATION_RADIUS + LINE_HALF_WIDTH + 1.5
-/** Отклонение от 45° сетки, которое ещё считаем октолинейным. */
+/** Отклонение от 45° сетки, которое ещё считаем октолинейным (справочная величина). */
 export const OCTILINEAR_TOLERANCE_DEG = 5
+
+/**
+ * Во сколько раз соседние перегоны одной линии должны различаться, чтобы место
+ * читалось как сбой ритма, а не как плавное разрежение схемы к окраине.
+ *
+ * Вывод порога. Схема легально становится реже от центра к краю: реальный
+ * межстанционный интервал в Москве растёт примерно вдвое от центра к периферии,
+ * и растёт он постепенно — за 8–10 перегонов вдоль линии. Значит честный градиент
+ * даёт отношение соседних перегонов около 2^(1/9) ≈ 1.1, и в данных так и есть:
+ * медиана 1.29, p75 = 1.58. Отношение 2 градиентом объяснить уже нельзя: станция
+ * стоит не посередине между соседями, а на трети — это локальная аномалия.
+ */
+export const SPACING_JUMP_RATIO = 2
+
+/**
+ * Общие пороги для «долевых» метрик однородности.
+ *
+ * Вывод. Каждый виновник такой метрики — одно «визуально выделяющееся место».
+ * На схеме порядка 200–300 мест-кандидатов и 14 некольцевых линий.
+ *  · 5% ≈ 10–15 мест ≈ примерно одно на линию. Единичный сбой глаз не обобщает:
+ *    он читается как особенность конкретного места (реальная топология города),
+ *    а не как свойство схемы. Это и есть «нет выделяющихся мест».
+ *  · 15% ≈ каждое седьмое место, по 3–4 на линию. При такой плотности рваность
+ *    перестаёт быть исключением и становится самим стилем схемы — требование
+ *    владельца нарушено системно.
+ * Пороги одинаковы для всех метрик однородности намеренно: они считают одну и ту
+ * же сущность — долю мест, выбивающихся из окружения.
+ */
+export const UNIFORMITY_TARGET_SHARE = 5
+export const UNIFORMITY_FAIL_SHARE = 15
+
+/**
+ * Сколько ближайших соседей усредняем, оценивая «шаг схемы» вокруг станции.
+ * Одного ближайшего мало: он меряет случайную пару, а не плотность места. Трое —
+ * минимум, при котором величина описывает окружение (станция + её ближайшая
+ * компания), и при этом не размазывается на полсхемы.
+ */
+export const DENSITY_NEIGHBOURS = 3
+
+/**
+ * Ширина скользящего окна (в станциях) по удалению от центра, по которому
+ * считается «обычный шаг на этом радиусе». 41 из ~300 — около 13% схемы:
+ * достаточно, чтобы медиана была устойчивой, и достаточно узко, чтобы окно
+ * следовало за радиальным градиентом, а не усредняло центр с окраиной.
+ */
+export const DENSITY_RADIUS_WINDOW = 41
+
+/**
+ * Во сколько раз плотность вокруг станции должна отличаться от обычной на этом
+ * же удалении от центра, чтобы место читалось как сгусток или дыра.
+ * Порог тот же, что у ритма, и по той же причине: радиальный градиент плавный,
+ * двукратное отличие от соседей ПО РАДИУСУ градиентом объяснить нельзя.
+ */
+export const DENSITY_JUMP_RATIO = 2
 
 export function geometryMetrics(model: RenderModel): MetricResult[] {
   const out: MetricResult[] = []
@@ -118,48 +173,37 @@ export function geometryMetrics(model: RenderModel): MetricResult[] {
     }),
   )
 
-  // --- 3. Октолинейность ---
+  // --- 3. Октолинейность (СПРАВОЧНО, целью не является) ---
+  // Меряет сходство со стилем Яндекс.Метро, а не однородность схемы. Схема может
+  // быть на 55% октолинейной и выглядеть отлично, если она такая ВЕЗДЕ. Оставлена
+  // как справочная величина, чтобы видеть, куда съезжает стиль, но без вердикта.
   const drawnSegments = model.segments.filter((s) => !RING_LINE_IDS.has(s.lineId))
   let octiOk = 0
-  const octiOffenders: Offender[] = []
   for (const seg of drawnSegments) {
-    const dev = octilinearDeviationDeg(seg)
-    if (dev <= OCTILINEAR_TOLERANCE_DEG) {
-      octiOk += 1
-      continue
-    }
-    const a = model.byId.get(seg.aId)
-    const b = model.byId.get(seg.bId)
-    octiOffenders.push({
-      id: `${seg.aId}|${seg.bId}`,
-      label: `${a?.title ?? seg.aId} → ${b?.title ?? seg.bId}`,
-      value: dev,
-      detail: `отклонение ${dev.toFixed(1)}° от сетки 0/45/90/135°, линия ${model.lineTitleById.get(seg.lineId) ?? seg.lineId}`,
-    })
+    if (octilinearDeviationDeg(seg) <= OCTILINEAR_TOLERANCE_DEG) octiOk += 1
   }
   const octiShare = drawnSegments.length > 0 ? (octiOk / drawnSegments.length) * 100 : 0
   out.push(
     makeMetric({
       id: 'geometry.octilinearity',
       category: 'geometry',
-      name: 'Октолинейность перегонов',
+      name: 'Октолинейность перегонов (справочно)',
       unit: '%',
       value: octiShare,
-      target: 80,
-      fail: 55,
+      target: 0,
+      fail: 0,
       direction: 'higher',
-      description: `Доля некольцевых перегонов, идущих под углом, кратным 45° (±${OCTILINEAR_TOLERANCE_DEG}°). Это главный признак «метро-стиля»: чем ниже, тем сильнее схема похожа на географическую карту, а не на схему.`,
-      offenders: octiOffenders,
+      informational: true,
+      description: `Доля некольцевых перегонов под углом, кратным 45° (±${OCTILINEAR_TOLERANCE_DEG}°). Признак «метро-стиля» в духе Яндекс.Метро. Целью НЕ является: схема должна быть однородной, а не похожей на эталон. Величина справочная — показывает, меняется ли стиль укладки между сборками.`,
+      offenders: [],
     }),
   )
 
   // --- 4. Слишком короткие перегоны ---
   const minSegLen = MIN_STATION_GAP
   const shortSegs: Offender[] = []
-  const lengths: number[] = []
   for (const seg of drawnSegments) {
     const len = Math.hypot(seg.bx - seg.ax, seg.by - seg.ay)
-    lengths.push(len)
     if (len >= minSegLen) continue
     const a = model.byId.get(seg.aId)
     const b = model.byId.get(seg.bId)
@@ -271,25 +315,129 @@ export function geometryMetrics(model: RenderModel): MetricResult[] {
     }),
   )
 
-  // --- 7. Разброс длин перегонов ---
-  const p10 = percentile(lengths, 0.1)
-  const p90 = percentile(lengths, 0.9)
+  // --- 7. Рваный ритм станций (локальная однородность вдоль линии) ---
+  // Глобальный разброс длин (p90/p10) сюда НЕ годится: он штрафует нормальный
+  // радиальный градиент «плотный центр — редкая окраина». Смотрим только на
+  // соседей: станцию видно как «выделяющуюся», когда она прилипла к одному
+  // соседу и оторвана от другого.
+  let rhythmPlaces = 0
+  const rhythmOffenders: Offender[] = []
+  for (const line of model.graph.lines) {
+    if (RING_LINE_IDS.has(line.id)) continue
+    const pts = line.stationIds
+      .map((id) => model.byId.get(id))
+      .filter((s): s is NonNullable<typeof s> => s != null)
+    if (pts.length < 3) continue
+    for (let i = 1; i < pts.length - 1; i += 1) {
+      const prev = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y)
+      const next = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y)
+      const lo = Math.min(prev, next)
+      const hi = Math.max(prev, next)
+      if (lo < 1e-6) continue
+      rhythmPlaces += 1
+      const ratio = hi / lo
+      if (ratio < SPACING_JUMP_RATIO) continue
+      rhythmOffenders.push({
+        id: pts[i].id,
+        label: `${pts[i].title} (${line.title})`,
+        value: ratio,
+        detail: `соседние перегоны ${prev.toFixed(0)}px и ${next.toFixed(0)}px — разница в ${ratio.toFixed(1)} раза`,
+      })
+    }
+  }
+  const rhythmShare = rhythmPlaces > 0 ? (rhythmOffenders.length / rhythmPlaces) * 100 : 0
   out.push(
     makeMetric({
-      id: 'geometry.segmentLengthSpread',
+      id: 'geometry.spacingRhythm',
       category: 'geometry',
-      name: 'Разброс длин перегонов (p90/p10)',
-      unit: 'x',
-      value: p10 > 0 ? p90 / p10 : Infinity,
-      target: 3,
-      fail: 6,
+      name: 'Рваный ритм станций',
+      unit: '%',
+      value: rhythmShare,
+      target: UNIFORMITY_TARGET_SHARE,
+      fail: UNIFORMITY_FAIL_SHARE,
       direction: 'lower',
-      description:
-        'Отношение длинного перегона к короткому. В классической схеме метро перегоны примерно равны; большой разброс = в центре всё слиплось, а на окраинах пустота.',
-      offenders: [
-        { id: 'p10', label: 'короткие перегоны (p10)', value: p10, detail: `${p10.toFixed(1)}px` },
-        { id: 'p90', label: 'длинные перегоны (p90)', value: p90, detail: `${p90.toFixed(1)}px` },
-      ],
+      description: `Доля станций, у которых соседние перегоны своей линии различаются более чем в ${SPACING_JUMP_RATIO} раза. Такая станция прилипает к одному соседу и отрывается от другого — место «выделяется» из ровного ритма линии. Плавное разрежение от центра к окраине сюда не попадает: оно даёт отношение соседних перегонов около 1.1–1.5.`,
+      offenders: rhythmOffenders,
+    }),
+  )
+
+  // --- 8. Сгустки и пустоты (однородность плотности на равном удалении от центра) ---
+  // Ритм ловит неоднородность ВДОЛЬ линии. Здесь — неоднородность ПЛОЩАДИ: место,
+  // где станции набились кучей или, наоборот, зияет дыра, тогда как на том же
+  // расстоянии от центра схема выглядит иначе. Плотный центр и редкая окраина —
+  // норма, поэтому сравниваем каждую станцию не со схемой целиком, а со «своим»
+  // радиусом: ожидаемый шаг берётся скользящей медианой по станциям, стоящим на
+  // близком удалении от центра.
+  const center = resolveZoneCenter(model.ringShapes, stations)
+  // Станции, связанные пересадкой (в одном хабе или ребром-пересадкой), стоят
+  // вплотную по замыслу и вместе читаются как один узел — сгустком они не являются.
+  const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
+  const transferPairs = new Set<string>()
+  for (const e of model.graph.edges) {
+    if (!e.isTransfer) continue
+    transferPairs.add(pairKey(e.fromStationId, e.toStationId))
+  }
+  const localStep = new Map<string, number>()
+  for (const st of stations) {
+    const d: number[] = []
+    for (const other of stations) {
+      if (other.id === st.id) continue
+      if (st.hubId && other.hubId && st.hubId === other.hubId) continue
+      if (transferPairs.has(pairKey(st.id, other.id))) continue
+      d.push(Math.hypot(st.x - other.x, st.y - other.y))
+    }
+    if (d.length < DENSITY_NEIGHBOURS) continue
+    d.sort((a, b) => a - b)
+    let sum = 0
+    for (let i = 0; i < DENSITY_NEIGHBOURS; i += 1) sum += d[i]
+    localStep.set(st.id, sum / DENSITY_NEIGHBOURS)
+  }
+
+  const byRadius = stations
+    .filter((st) => localStep.has(st.id))
+    .map((st) => ({ st, r: Math.hypot(st.x - center.x, st.y - center.y) }))
+    .sort((a, b) => a.r - b.r || a.st.id.localeCompare(b.st.id))
+
+  const densityOffenders: Offender[] = []
+  const half = Math.floor(DENSITY_RADIUS_WINDOW / 2)
+  for (let i = 0; i < byRadius.length; i += 1) {
+    const lo = Math.max(0, Math.min(i - half, byRadius.length - DENSITY_RADIUS_WINDOW))
+    const hi = Math.min(byRadius.length, lo + DENSITY_RADIUS_WINDOW)
+    const win: number[] = []
+    for (let j = lo; j < hi; j += 1) {
+      if (j === i) continue
+      win.push(localStep.get(byRadius[j].st.id)!)
+    }
+    if (win.length < 4) continue
+    const expected = percentile(win, 0.5)
+    if (expected <= 0) continue
+    const step = localStep.get(byRadius[i].st.id)!
+    const ratio = step >= expected ? step / expected : expected / step
+    if (ratio < DENSITY_JUMP_RATIO) continue
+    const st = byRadius[i].st
+    densityOffenders.push({
+      id: st.id,
+      label: `${st.title} (${model.lineTitleById.get(st.lineId) ?? st.lineId})`,
+      value: ratio,
+      detail:
+        `${step > expected ? 'пустота' : 'сгусток'}: вокруг станции шаг ${step.toFixed(0)}px ` +
+        `при обычных ${expected.toFixed(0)}px на том же удалении от центра (${byRadius[i].r.toFixed(0)}px)`,
+    })
+  }
+  const densityShare =
+    byRadius.length > 0 ? (densityOffenders.length / byRadius.length) * 100 : 0
+  out.push(
+    makeMetric({
+      id: 'geometry.densityOutliers',
+      category: 'geometry',
+      name: 'Сгустки и пустоты',
+      unit: '%',
+      value: densityShare,
+      target: UNIFORMITY_TARGET_SHARE,
+      fail: UNIFORMITY_FAIL_SHARE,
+      direction: 'lower',
+      description: `Доля станций, вокруг которых схема более чем в ${DENSITY_JUMP_RATIO} раза плотнее или реже, чем на том же удалении от центра. Такое место видно как чёрное пятно из слипшихся кружков или как дыра в полотне схемы. Радиальный градиент «плотный центр — редкая окраина» из метрики исключён по построению: сравнение идёт внутри своего радиуса.`,
+      offenders: densityOffenders,
     }),
   )
 
