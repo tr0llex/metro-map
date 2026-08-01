@@ -72,10 +72,13 @@ jobs:
 
       - name: Deploy
         env:
-          METRO_SSH_KEY: ~/.ssh/deploy_key
           METRO_SSH_HOST: ${{ vars.METRO_SSH_HOST || 'ubuntu@207.127.93.34' }}
           METRO_DOMAIN: ${{ vars.METRO_DOMAIN || 'metro.samoy.love' }}
         run: |
+          # Путь к ключу задаём здесь, а не в env: тильда в значении env
+          # не раскрывается, и deploy.sh упал бы на проверке `[[ -f "$SSH_KEY" ]]`
+          # с сообщением «нет ключа ~/.ssh/deploy_key».
+          export METRO_SSH_KEY="$HOME/.ssh/deploy_key"
           case "${{ inputs.target }}" in
             app)     bash scripts/deploy.sh --app ;;
             config)  bash scripts/deploy.sh --config ;;
