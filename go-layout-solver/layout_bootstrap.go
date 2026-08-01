@@ -37,6 +37,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 // ApplyLayout заполняет LayoutX/LayoutY для всех станций графа.
@@ -84,11 +85,14 @@ func ApplyLayout(graph *FullGraphExport) error {
 		st.LayoutY = (1 - ny) * baseHeight
 	}
 
-	enforceRing(&graph.Lines, stationMap)
-
 	// 1b. Если есть координаты Яндекса, используем их как основной якорь для layout:
 	// подбираем глобальный scale + сдвиг из системы Яндекса в текущие layout-координаты
 	// и жёстко (alpha=1) переносим станции с Яндекс-координатами в эти позиции.
+	//
+	// enforceRing вызывается РОВНО ОДИН РАЗ на каждой ветке. Раньше он стоял
+	// ещё и здесь, до развилки, и в Яндекс-режиме отрабатывал дважды: сначала
+	// раздувал кольца поверх географической проекции, потом — поверх уже
+	// раздутых координат. Карта получалась 24954×20100 px вместо ~1500×1800.
 	if hasYandex {
 		applyYandexAnchors(stationMap, 1.0)
 		enforceRing(&graph.Lines, stationMap)
@@ -107,6 +111,8 @@ func ApplyLayout(graph *FullGraphExport) error {
 		// 2–5. Геометрические правки (хабы, сглаживание, раздвижение) применяем
 		// только если нет координат Яндекса. В этом режиме layout строится
 		// эвристически поверх географической проекции.
+		enforceRing(&graph.Lines, stationMap)
+
 		// 2. Компактизируем хабы, отдавая приоритет станциям на кольцах
 		snapAllTransferHubs(graph.TransferHubs, stationMap)
 
@@ -279,10 +285,84 @@ func applyYandexAnchors(stationMap map[string]*FullGraphStation, alpha float64) 
 
 // --- Кольца ---
 
+// ringRadiusFraction — доля от габарита схемы (меньшей стороны bbox всех
+// станций), которую занимает радиус кольца.
+//
+// Раньше здесь стояли множители к текущему радиусу (7.0 / 6.0 / 7.5). Множитель
+// не идемпотентен: он зависит от того, сколько раз функцию уже вызвали, и
+// раздувает карту без всякой связи с её реальным размером. Доля от габарита
+// такой связи не теряет — сколько бы раз проход ни отработал, кольцо встаёт на
+// одно и то же место относительно схемы.
+//
+// Значения подобраны по боевой схеме (normalized/fullGraph.json): при габарите
+// 1527×1771 радиусы колец равны 280 / 503 / 554 px, то есть 0.18 / 0.33 / 0.36
+// от меньшей стороны.
+var ringRadiusFraction = map[int]float64{
+	5:  0.18, // Кольцевая
+	95: 0.33, // МЦК
+	97: 0.36, // БКЛ
+}
+
+// mapSpan возвращает меньшую сторону bbox всех станций с конечными
+// координатами. Ноль означает «габарит неизвестен» — тогда нормировать не по
+// чему и радиусы колец остаются такими, какие есть.
+func mapSpan(stationMap map[string]*FullGraphStation) float64 {
+	minX, maxX := math.Inf(1), math.Inf(-1)
+	minY, maxY := math.Inf(1), math.Inf(-1)
+	for _, st := range stationMap {
+		if !isFinite(st.LayoutX) || !isFinite(st.LayoutY) {
+			continue
+		}
+		minX = math.Min(minX, st.LayoutX)
+		maxX = math.Max(maxX, st.LayoutX)
+		minY = math.Min(minY, st.LayoutY)
+		maxY = math.Max(maxY, st.LayoutY)
+	}
+	if !isFinite(minX) || !isFinite(minY) {
+		return 0
+	}
+	span := math.Min(maxX-minX, maxY-minY)
+	if !isFinite(span) || span <= 0 {
+		return 0
+	}
+	return span
+}
+
+// placeOnRing сажает станции кольца на эллипс (rx, ry) вокруг (cx, cy),
+// СОХРАНЯЯ угол каждой станции.
+//
+// Раньше углы назначались по индексу в списке (2πi/n) — кольцо получалось
+// идеально равномерным, но полностью терявшим связь с географией: станция
+// уезжала на произвольную дугу. Хуже того, две кольцевые линии в одном
+// пересадочном узле (Шелепиха на МЦК и БКЛ) расходились по разным углам, и узел
+// разъезжался — 126 px при пороге метрики hubs.notMerged в ~37 px.
+// Собственный угол станции сохраняет и порядок, и узлы.
+func placeOnRing(ids []string, stationMap map[string]*FullGraphStation, cx, cy, rx, ry float64) {
+	for _, sid := range ids {
+		st := stationMap[sid]
+		if st == nil || !isFinite(st.LayoutX) || !isFinite(st.LayoutY) {
+			continue
+		}
+		dx := st.LayoutX - cx
+		dy := st.LayoutY - cy
+		if math.Hypot(dx, dy) < 1e-9 {
+			continue
+		}
+		angle := math.Atan2(dy, dx)
+		st.LayoutX = cx + rx*math.Cos(angle)
+		st.LayoutY = cy + ry*math.Sin(angle)
+	}
+}
+
 func enforceRing(lines *[]FullGraphLine, stationMap map[string]*FullGraphStation) {
 	if lines == nil {
 		return
 	}
+
+	// Габарит считается ОДИН раз, до цикла: иначе каждое обработанное кольцо
+	// сдвигало бы точку отсчёта для следующего, и результат зависел бы от
+	// порядка линий.
+	span := mapSpan(stationMap)
 
 	for _, line := range *lines {
 		if _, isRing := ringLineIDs[line.ID]; !isRing {
@@ -324,16 +404,14 @@ func enforceRing(lines *[]FullGraphLine, stationMap map[string]*FullGraphStation
 			continue
 		}
 
-		// Увеличиваем радиусы колец, чтобы освободить центр
-		radiusScale := 1.0
-		switch line.ID {
-		case 5:
-			radiusScale = 7.0
-		case 95:
-			radiusScale = 6.0
-		case 97:
-			radiusScale = 7.5
+		// Радиус кольца — доля от габарита схемы. Кольца надо развести между
+		// собой, чтобы освободить центр, но привязка к габариту не даёт им
+		// уехать за пределы карты.
+		targetR := baseR
+		if frac, ok := ringRadiusFraction[line.ID]; ok && span > 0 {
+			targetR = span * frac
 		}
+		radiusScale := targetR / baseR
 
 		// Для БКЛ используем эллипс, выровненный по осям X/Y, а не окружность.
 		if line.ID == 97 {
@@ -357,32 +435,14 @@ func enforceRing(lines *[]FullGraphLine, stationMap map[string]*FullGraphStation
 				rx := ratio * s
 				ry := s
 
-				n := len(line.StationIDs)
-				for i, sid := range line.StationIDs {
-					st := stationMap[sid]
-					if st == nil {
-						continue
-					}
-					angle := (2 * math.Pi * float64(i) / float64(n)) - math.Pi/2
-					st.LayoutX = cx + rx*math.Cos(angle)
-					st.LayoutY = cy + ry*math.Sin(angle)
-				}
+				placeOnRing(line.StationIDs, stationMap, cx, cy, rx, ry)
 				continue
 			}
 		}
 
 		// Для остальных колец оставляем окружность.
 		r := baseR * radiusScale
-		n := len(line.StationIDs)
-		for i, sid := range line.StationIDs {
-			st := stationMap[sid]
-			if st == nil {
-				continue
-			}
-			angle := (2 * math.Pi * float64(i) / float64(n)) - math.Pi/2
-			st.LayoutX = cx + r*math.Cos(angle)
-			st.LayoutY = cy + r*math.Sin(angle)
-		}
+		placeOnRing(line.StationIDs, stationMap, cx, cy, r, r)
 	}
 }
 
@@ -914,10 +974,16 @@ func optimizeDistances(stationMap map[string]*FullGraphStation, critical, minDis
 		return
 	}
 
+	// Порядок обхода map в Go случаен от запуска к запуску, а этот проход
+	// порядко-зависим: станции сдвигаются по очереди и каждая следующая видит
+	// уже сдвинутые. Без сортировки два прогона на одних данных дают разные
+	// координаты. Сортировка по ID — единственное, что делает холодный старт
+	// воспроизводимым.
 	ids := make([]string, 0, len(stationMap))
 	for id := range stationMap {
 		ids = append(ids, id)
 	}
+	sort.Strings(ids)
 
 	for iter := 0; iter < iterations; iter++ {
 		moved := 0

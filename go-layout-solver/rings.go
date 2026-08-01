@@ -25,6 +25,11 @@ const (
 	// Максимальный сдвиг кольцевой станции вдоль кольца при разрешении
 	// конфликта хаба (в пикселях длины дуги).
 	ringHubMaxArcShiftPx = 60.0
+	// Разброс, начиная с которого узел считается разъехавшимся. Значение равно
+	// HUB_MERGE_LIMIT из scripts/quality/metrics/hubs.ts — порогу метрики
+	// hubs.notMerged; они обязаны совпадать, иначе солвер будет считать
+	// починенным то, что метрика считает сломанным.
+	ringHubMergeLimitPx = 12.5
 )
 
 type ringShape struct {
@@ -649,18 +654,12 @@ func resolveRingHubs(
 	tracks map[int]*ringTrack,
 	prev map[string]ringPoint,
 ) {
-	type member struct {
-		id    string
-		track *ringTrack
-		idx   int
-	}
-
 	for _, cluster := range clusters {
 		if len(cluster) < 2 {
 			continue
 		}
 
-		ringMembers := make([]member, 0, 2)
+		ringMembers := make([]ringHubMember, 0, 2)
 		followers := make([]string, 0, len(cluster))
 		for _, sid := range cluster {
 			st := stationByID[sid]
@@ -670,7 +669,7 @@ func resolveRingHubs(
 			t := tracks[st.LineNumericID]
 			if t != nil {
 				if idx, ok := t.index[sid]; ok {
-					ringMembers = append(ringMembers, member{id: sid, track: t, idx: idx})
+					ringMembers = append(ringMembers, ringHubMember{id: sid, track: t, idx: idx})
 					continue
 				}
 			}
@@ -683,40 +682,9 @@ func resolveRingHubs(
 		// Конфликт: несколько кольцевых линий в одном хабе — сближаем их
 		// вдоль колец.
 		if len(ringMembers) > 1 {
-			for iter := 0; iter < 40; iter++ {
-				var tx, ty float64
-				for _, m := range ringMembers {
-					x, y := m.track.pos(m.idx)
-					tx += x
-					ty += y
-				}
-				tx /= float64(len(ringMembers))
-				ty /= float64(len(ringMembers))
-
-				movedAny := false
-				for _, m := range ringMembers {
-					lo, hi2 := m.track.bounds(m.idx, ringMinChordPx, ringHubMaxArcShiftPx)
-					best := m.track.theta[m.idx]
-					x, y := m.track.posAt(best)
-					bestD := math.Hypot(x-tx, y-ty)
-					const samples = 64
-					for s := 0; s <= samples; s++ {
-						v := lo + (hi2-lo)*float64(s)/float64(samples)
-						px, py := m.track.posAt(v)
-						d := math.Hypot(px-tx, py-ty)
-						if d < bestD-1e-9 {
-							bestD = d
-							best = v
-						}
-					}
-					if best != m.track.theta[m.idx] {
-						m.track.theta[m.idx] = best
-						movedAny = true
-					}
-				}
-				if !movedAny {
-					break
-				}
+			pullRingHubTogether(ringMembers)
+			if ringHubSpread(ringMembers) > ringHubMergeLimitPx {
+				rotateRingHubMembers(ringMembers)
 			}
 			for _, m := range ringMembers {
 				m.track.writeBack(stationByID)
@@ -749,6 +717,171 @@ func resolveRingHubs(
 			st.LayoutY += dy
 		}
 	}
+}
+
+// ringHubMember — станция пересадочного узла, лежащая на кольце. Двигать её
+// можно только вдоль своего кольца: форма кольца уже опубликована в ringShapes,
+// и уход с неё сразу ломает rings.projectionError* и render.movesStations.
+type ringHubMember struct {
+	id    string
+	track *ringTrack
+	idx   int
+}
+
+// ringHubSpread — разброс узла: наибольшее расстояние от центра масс до
+// станции. Считается ровно так же, как метрика hubs.notMerged
+// (scripts/quality/metrics/hubs.ts), иначе солвер и отчёт мерили бы разное.
+func ringHubSpread(members []ringHubMember) float64 {
+	if len(members) == 0 {
+		return 0
+	}
+	var cx, cy float64
+	for _, m := range members {
+		x, y := m.track.pos(m.idx)
+		cx += x
+		cy += y
+	}
+	cx /= float64(len(members))
+	cy /= float64(len(members))
+	var worst float64
+	for _, m := range members {
+		x, y := m.track.pos(m.idx)
+		if d := math.Hypot(x-cx, y-cy); d > worst {
+			worst = d
+		}
+	}
+	return worst
+}
+
+// pullRingHubTogether — шаг каждой станции узла к текущему центру масс узла,
+// повторённый до остановки. Дёшево и достаточно для случая, когда станции уже
+// стоят рядом и надо лишь довести их друг до друга.
+func pullRingHubTogether(members []ringHubMember) {
+	for iter := 0; iter < 40; iter++ {
+		var tx, ty float64
+		for _, m := range members {
+			x, y := m.track.pos(m.idx)
+			tx += x
+			ty += y
+		}
+		tx /= float64(len(members))
+		ty /= float64(len(members))
+
+		movedAny := false
+		for _, m := range members {
+			lo, hi := m.track.bounds(m.idx, ringMinChordPx, ringHubMaxArcShiftPx)
+			best := m.track.theta[m.idx]
+			x, y := m.track.posAt(best)
+			bestD := math.Hypot(x-tx, y-ty)
+			const samples = 64
+			for s := 0; s <= samples; s++ {
+				v := lo + (hi-lo)*float64(s)/float64(samples)
+				px, py := m.track.posAt(v)
+				d := math.Hypot(px-tx, py-ty)
+				if d < bestD-1e-9 {
+					bestD = d
+					best = v
+				}
+			}
+			if best != m.track.theta[m.idx] {
+				m.track.theta[m.idx] = best
+				movedAny = true
+			}
+		}
+		if !movedAny {
+			return
+		}
+	}
+}
+
+// rotateRingHubMembers — поворот кольцевых станций узла вдоль СВОИХ колец
+// навстречу друг другу для узлов, которые pullRingHubTogether свести не смог.
+//
+// ЗАЧЕМ ОТДЕЛЬНЫЙ ПРОХОД. Шаг к центру масс — жадный спуск, и он застревает в
+// первом же локальном минимуме: как только каждая станция оказалась в
+// ближайшей к центру масс точке своего кольца, движение прекращается. Когда в
+// узле сходятся ДВЕ РАЗНЫЕ окружности (Шелепиха: МЦК и БКЛ), это типичная
+// ситуация — кольца сближаются не там, где сейчас стоят станции, и шаг «на
+// сколько-то ближе к середине» туда не доводит.
+//
+// Здесь вместо шага к центру каждая станция перебирает ВЕСЬ доступный ей
+// интервал угла и садится туда, где разброс узла минимален; перебор
+// повторяется до остановки и запускается из нескольких стартов (низ, середина
+// и верх интервала каждой станции), чтобы результат не зависел от того, где
+// станции стояли до прохода. Принимается только строго лучшая конфигурация —
+// проход не может ухудшить узел.
+//
+// ГРАНИЦЫ. Интервал берётся у ringTrack.bounds: станция не имеет права обогнать
+// соседей по кольцу — иначе линия пойдёт по кольцу зигзагом, — и не подходит к
+// ним ближе ringMinChordPx. Это и есть потолок прохода: если кольца нигде в
+// пределах соседей не сближаются, узел останется разъехавшимся, и лечится это
+// уже не поворотом, а формой колец в enforceRing.
+func rotateRingHubMembers(members []ringHubMember) {
+	start := make([]float64, len(members))
+	for i, m := range members {
+		start[i] = m.track.theta[m.idx]
+	}
+	bestTheta := append([]float64(nil), start...)
+	bestSpread := ringHubSpread(members)
+
+	apply := func(th []float64) {
+		for i, m := range members {
+			m.track.theta[m.idx] = th[i]
+		}
+	}
+
+	// Стартовые точки: 0 — как есть, 1..3 — низ/середина/верх интервала.
+	for seed := 0; seed < 4; seed++ {
+		apply(start)
+		if seed > 0 {
+			for _, m := range members {
+				lo, hi := m.track.bounds(m.idx, ringMinChordPx, ringHubMaxArcShiftPx)
+				switch seed {
+				case 1:
+					m.track.theta[m.idx] = lo
+				case 2:
+					m.track.theta[m.idx] = (lo + hi) / 2
+				case 3:
+					m.track.theta[m.idx] = hi
+				}
+			}
+		}
+
+		for iter := 0; iter < 60; iter++ {
+			improved := false
+			for _, m := range members {
+				lo, hi := m.track.bounds(m.idx, ringMinChordPx, ringHubMaxArcShiftPx)
+				cur := m.track.theta[m.idx]
+				localBest, localSpread := cur, ringHubSpread(members)
+				const samples = 256
+				for s := 0; s <= samples; s++ {
+					v := lo + (hi-lo)*float64(s)/float64(samples)
+					m.track.theta[m.idx] = v
+					if sp := ringHubSpread(members); sp < localSpread-1e-9 {
+						localSpread = sp
+						localBest = v
+					}
+				}
+				m.track.theta[m.idx] = localBest
+				if localBest != cur {
+					improved = true
+				}
+			}
+			if !improved {
+				break
+			}
+		}
+
+		if sp := ringHubSpread(members); sp < bestSpread-1e-9 {
+			bestSpread = sp
+			bestTheta = make([]float64, len(members))
+			for i, m := range members {
+				bestTheta[i] = m.track.theta[m.idx]
+			}
+		}
+	}
+
+	apply(bestTheta)
 }
 
 // separateFromRings расталкивает станции, оказавшиеся ближе minSep друг к другу
