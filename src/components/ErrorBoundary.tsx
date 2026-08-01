@@ -74,10 +74,14 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: 'var(--shadow-soft, 0 12px 32px rgba(214, 122, 168, 0.22))',
     textAlign: 'center',
   },
-  emoji: {
-    fontSize: '40px',
-    lineHeight: 1,
-    marginBottom: '12px',
+  // T-5. Раньше здесь стоял эмодзи-бантик 🎀 — последний след прежнего бренда
+  // и вдобавок глиф, который на каждой платформе рисуется своим шрифтом.
+  // Заменён инлайновым знаком приложения: «М» из сходящихся штрихов.
+  mark: {
+    width: '56px',
+    height: '56px',
+    margin: '0 auto 12px',
+    display: 'block',
   },
   title: {
     margin: '0 0 8px',
@@ -98,8 +102,10 @@ const styles: Record<string, CSSProperties> = {
     padding: '13px 18px',
     fontSize: '15px',
     fontWeight: 600,
-    color: 'var(--color-surface-rose-highlight, #ffffff)',
-    background: 'var(--color-accent, #e87bad)',
+    // Те же токены основного действия, что и у .primary-button: подпись на
+    // кнопке даёт 6:1 в обеих темах (Дизайн-4).
+    color: 'var(--color-primary-on, #ffffff)',
+    background: 'var(--color-primary-surface, #be185d)',
     cursor: 'pointer',
   },
   details: {
@@ -133,9 +139,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return (
       <div style={styles.root} role="alert">
         <div style={styles.card}>
-          <div style={styles.emoji} aria-hidden="true">
-            🎀
-          </div>
+          <svg
+            style={styles.mark}
+            viewBox="0 0 64 64"
+            aria-hidden="true"
+            focusable="false"
+            fill="none"
+            stroke="var(--color-accent, #e87bad)"
+            strokeWidth={6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M16 46V22" />
+            <path d="M16 22 32 38 48 22" />
+            <path d="M48 22v24" />
+          </svg>
           <h1 style={styles.title}>Что-то пошло не так</h1>
           <p style={styles.text}>
             Приложение не смогло отрисовать схему метро. Обычно помогает очистка кэша и

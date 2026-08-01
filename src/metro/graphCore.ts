@@ -76,6 +76,40 @@ export function undirectedEdgeKey(a: string, b: string): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`
 }
 
+/**
+ * Ключи пар станций, между которыми в наборе больше одного ребра.
+ *
+ * ИНВАРИАНТ. Всё построение шага маршрута опирается на то, что пара станций
+ * задаёт ребро однозначно: путь Дейкстры — это список ВЕРШИН, а тип и время
+ * шага восстанавливаются потом через `buildEdgeByKey`. Появись между парой
+ * станций два ребра (перегон и пересадка), поиск пошёл бы по одному, а в шаге
+ * нарисовалось бы другое — с чужим временем и чужим типом.
+ *
+ * На пару станций завязан не только этот индекс: тем же ключом адресуются
+ * оверрайды рёбер — и в редакторе, и на стороне Go (`edgeIndicesByKey`
+ * в graph_overrides.go, где правка применяется СРАЗУ КО ВСЕМ рёбрам пары).
+ * То есть однозначность пары — свойство всего формата, а не одной функции,
+ * и чинить её переходом на список рёбер только здесь бессмысленно.
+ *
+ * Сейчас параллельных рёбер в данных нет; функция существует, чтобы это
+ * проверялось тестом, а не подразумевалось.
+ */
+export function findParallelEdgeKeys(edges: FullGraphEdge[]): string[] {
+  const seen = new Set<string>()
+  const duplicates = new Set<string>()
+  for (const e of edges) {
+    const key = undirectedEdgeKey(e.fromStationId, e.toStationId)
+    if (seen.has(key)) duplicates.add(key)
+    else seen.add(key)
+  }
+  return [...duplicates]
+}
+
+/**
+ * Индекс «пара станций → ребро». Схлопывает пару в ОДНО ребро, при конфликте
+ * оставляя пересадочное. Корректно ровно при инварианте из
+ * `findParallelEdgeKeys`: параллельных рёбер в наборе нет.
+ */
 export function buildEdgeByKey(edges: FullGraphEdge[]): Map<string, FullGraphEdge> {
   const map = new Map<string, FullGraphEdge>()
   for (const e of edges) {
@@ -88,6 +122,11 @@ export function buildEdgeByKey(edges: FullGraphEdge[]): Map<string, FullGraphEdg
   return map
 }
 
+/**
+ * Собирает шаги маршрута по пути-списку ВЕРШИН, доставая ребро каждой пары из
+ * `edgeByKey`. Опирается на инвариант «пара станций → одно ребро»
+ * (см. `findParallelEdgeKeys`), который проверяется тестом на реальных данных.
+ */
 export function buildRouteResultFromPath(
   path: string[],
   edgeByKey: Map<string, FullGraphEdge>,
@@ -136,7 +175,6 @@ export function shortestPathFullGraphWithPenalty(
   transferPenaltyMinutes: number,
   adjacency: Map<string, NeighborEdge[]>,
   edgeByKey: Map<string, FullGraphEdge>,
-  stationIds: string[],
 ): { path: string[]; route: RouteResult } | null {
   if (startId === targetId) {
     const empty: RouteResult = {
@@ -146,8 +184,6 @@ export function shortestPathFullGraphWithPenalty(
     }
     return { path: [startId], route: empty }
   }
-
-  void stationIds
 
   const dist = new Map<string, number>()
   const prev = new Map<string, string>()

@@ -20,7 +20,6 @@ import {
  */
 
 interface PreparedGraph {
-  stationIds: string[];
   edges: FullGraphEdge[];
   adjacency: Map<string, NeighborEdge[]>;
   edgeByKey: Map<string, FullGraphEdge>;
@@ -31,7 +30,6 @@ let prepared: PreparedGraph | null = null;
 /** Задаёт граф и один раз считает производные структуры (смежность, индекс рёбер). */
 export function setRoutingGraph(data: RoutingGraphData): void {
   prepared = {
-    stationIds: data.stationIds,
     edges: data.edges,
     adjacency: buildAdjacencyListFromFullGraph(data.edges),
     edgeByKey: buildEdgeByKey(data.edges),
@@ -54,6 +52,15 @@ function requireGraph(): PreparedGraph {
   return prepared;
 }
 
+/**
+ * Есть ли хоть один оверрайд рёбер. Пустой объект — это «оверрайдов нет»:
+ * прод-заглушка редактора всегда передаёт `{}`.
+ */
+function hasAnyOverride(overrides: Record<string, EdgeOverride> | undefined): boolean {
+  if (!overrides) return false;
+  return Object.keys(overrides).length > 0;
+}
+
 // Поиск маршрута на основе полного графа (fullGraphEdges/fullGraphStations).
 // Базовый вариант: оптимизация по времени с мягким штрафом за пересадку.
 export function findShortestRouteFullGraph(
@@ -71,7 +78,6 @@ export function findShortestRouteFullGraph(
     transferPenaltyMinutes,
     graph.adjacency,
     graph.edgeByKey,
-    graph.stationIds,
   );
   return result ? result.route : null;
 }
@@ -93,7 +99,11 @@ export function findRouteAlternativesFullGraph(
 ): RouteResult[] {
   const graph = requireGraph();
   const maxAlternatives = options?.maxAlternatives ?? 6;
-  const hasOverrides = !!options?.edgeOverrides;
+  // ВАЖНО: проверяется НЕПУСТОТА, а не наличие объекта. Прод всегда присылает
+  // `edgeOverrides = {}` (заглушка редактора), и проверка `!!edgeOverrides`
+  // делала предрасчёт из `setRoutingGraph` мёртвым: смежность и индекс рёбер
+  // пересобирались на каждый запрос маршрута.
+  const hasOverrides = hasAnyOverride(options?.edgeOverrides);
   const extraEdges = options?.extraEdges ?? [];
   const useBaseGraph = !hasOverrides && extraEdges.length === 0;
 
@@ -116,16 +126,31 @@ export function findRouteAlternativesFullGraph(
     const overrides = options?.edgeOverrides;
     const extra = extraEdges;
 
-    // manual/extra edges имеют приоритет над базовыми при одинаковой паре станций
-    const rawEdges: FullGraphEdge[] = [...extra, ...graph.edges];
+    // manual/extra edges имеют приоритет над базовыми при одинаковой паре станций:
+    // базовое ребро с тем же неориентированным ключом отбрасывается.
+    //
+    // Отбрасываются ИМЕННО базовые дубликаты ручных рёбер, а не все дубликаты
+    // подряд: раньше здесь схлопывался весь список, поэтому параллельные рёбра
+    // между одной парой станций (например, перегон и пересадка между теми же
+    // двумя id) выживали в проде и исчезали в редакторе — расчёт маршрута
+    // расходился между режимами. Теперь набор базовых рёбер в обоих путях
+    // одинаков.
+    const extraKeys = new Set<string>();
+    for (const e of extra) {
+      extraKeys.add(undirectedEdgeKey(e.fromStationId, e.toStationId));
+    }
+
+    const rawEdges: FullGraphEdge[] = [
+      ...extra,
+      ...graph.edges.filter(
+        (e) => !extraKeys.has(undirectedEdgeKey(e.fromStationId, e.toStationId)),
+      ),
+    ];
 
     const result: FullGraphEdge[] = [];
-    const seen = new Set<string>();
 
     for (const e of rawEdges) {
       const key = undirectedEdgeKey(e.fromStationId, e.toStationId);
-      if (seen.has(key)) continue;
-      seen.add(key);
 
       const ov = overrides?.[key];
       if (ov?.disabled) {
@@ -146,18 +171,6 @@ export function findRouteAlternativesFullGraph(
     return result;
   })();
 
-  const allStationIds: string[] = (() => {
-    if (useBaseGraph) {
-      return graph.stationIds;
-    }
-    const set = new Set<string>(graph.stationIds);
-    for (const e of appliedEdges) {
-      set.add(e.fromStationId);
-      set.add(e.toStationId);
-    }
-    return Array.from(set);
-  })();
-
   const adjacency = useBaseGraph ? graph.adjacency : buildAdjacencyListFromFullGraph(appliedEdges);
   const edgeByKey = useBaseGraph ? graph.edgeByKey : buildEdgeByKey(appliedEdges);
 
@@ -171,7 +184,6 @@ export function findRouteAlternativesFullGraph(
       penalty,
       adjacency,
       edgeByKey,
-      allStationIds,
     );
     if (!result) continue;
     const key = canonicalPathKey(result.path);
@@ -204,7 +216,6 @@ export function findRouteAlternativesFullGraph(
         baseTransferPenalty,
         penalizedAdjacency,
         edgeByKey,
-        allStationIds,
       );
       if (!altResult || altResult.path.length <= 1) break;
 

@@ -44,6 +44,7 @@ import {
   formatVariantsCount,
   pluralRu,
 } from './utils/plural.ts'
+import { startMinuteTicker } from './utils/minuteTicker.ts'
 import { readErrorLog, subscribeErrorLog } from './utils/errorLog.ts'
 import type { ErrorLogEntry } from './utils/errorLog.ts'
 import { useRegisterSW } from 'virtual:pwa-register/react'
@@ -286,6 +287,12 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fromFixed, setFromFixed] = useState(false)
   const [toFixed, setToFixed] = useState(false)
+  /**
+   * В какое поле попытались положить станцию, уже занятую соседним. Нужен, чтобы
+   * подсказка встала ПОД ЭТИМ полем: общий блок ошибки под формой человек ищет
+   * глазами, а поле, которое надо править, — вот оно.
+   */
+  const [sameStationField, setSameStationField] = useState<'from' | 'to' | null>(null)
   // Всё состояние и вся логика редактора схемы живут в отдельном модуле.
   // В проде здесь работает заглушка, а редакторский код в бандл не попадает.
   const editor = useEditor()
@@ -1856,15 +1863,43 @@ function App() {
     }))
   }, [allStations, stationOverrides, lineByNumericId])
 
+  /**
+   * Список закрывается и после отказа «эта станция уже занята соседним полем»:
+   * иначе он остаётся висеть поверх подсказки под полем, да и повторно
+   * предлагать ровно ту станцию, которую только что отклонили, — издёвка.
+   * Достаточно любого ввода (он сбрасывает sameStationField), чтобы список
+   * вернулся.
+   */
   const fromSuggestions = useMemo<RouteSuggestionItem[]>(() => {
-    if (fromFixed) return []
+    if (fromFixed || sameStationField === 'from') return []
     return rankStationCandidates(stationSearchCandidates, fromStation, SUGGESTIONS_LIMIT)
-  }, [fromStation, fromFixed, stationSearchCandidates])
+  }, [fromStation, fromFixed, sameStationField, stationSearchCandidates])
 
   const toSuggestions = useMemo<RouteSuggestionItem[]>(() => {
-    if (toFixed) return []
+    if (toFixed || sameStationField === 'to') return []
     return rankStationCandidates(stationSearchCandidates, toStation, SUGGESTIONS_LIMIT)
-  }, [toStation, toFixed, stationSearchCandidates])
+  }, [toStation, toFixed, sameStationField, stationSearchCandidates])
+
+  /**
+   * «Ввели что-то, но не нашли ничего». Именно этот случай — а не пустое поле,
+   * не уже выбранная станция и не отказ по совпадению (там своя подсказка под
+   * полем) — показывает пустое состояние подсказок.
+   */
+  const fromNoMatches =
+    !fromFixed &&
+    sameStationField !== 'from' &&
+    fromStation.trim().length > 0 &&
+    fromSuggestions.length === 0
+  const toNoMatches =
+    !toFixed &&
+    sameStationField !== 'to' &&
+    toStation.trim().length > 0 &&
+    toSuggestions.length === 0
+
+  const fromFieldHint =
+    sameStationField === 'from' ? 'Эта станция уже выбрана в поле «Куда»' : null
+  const toFieldHint =
+    sameStationField === 'to' ? 'Эта станция уже выбрана в поле «Откуда»' : null
 
   const routeResult = routeAlternatives[activeRouteIndex] ?? null
 
@@ -1874,24 +1909,10 @@ function App() {
   const [arrivalClockTick, setArrivalClockTick] = useState(0)
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
     if (!routeResult) return
-
-    let timeoutId: number | undefined
-
-    const scheduleNext = () => {
-      const msToNextMinute = 60_000 - (Date.now() % 60_000)
-      timeoutId = window.setTimeout(() => {
-        setArrivalClockTick((v) => v + 1)
-        scheduleNext()
-      }, msToNextMinute + 50)
-    }
-
-    scheduleNext()
-
-    return () => {
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
-    }
+    return startMinuteTicker(() => {
+      setArrivalClockTick((v) => v + 1)
+    })
   }, [routeResult])
 
   const routeArrivalTimeLabel = useMemo(() => {
@@ -2325,6 +2346,7 @@ function App() {
     setFromStation(value)
     setFromStationId(null)
     setFromFixed(false)
+    setSameStationField(null)
     clearRoutes()
     setErrorMessage(null)
     setRouteSheetOpenState(false)
@@ -2336,6 +2358,7 @@ function App() {
     setToStation(value)
     setToStationId(null)
     setToFixed(false)
+    setSameStationField(null)
     clearRoutes()
     setErrorMessage(null)
     setRouteSheetOpenState(false)
@@ -2352,6 +2375,7 @@ function App() {
       // менялось, сообщения не было — пользователь упирался в тупик без causa.
       const name = stationTitleById.get(stationId) ?? station.title
       setErrorMessage(`«${name}» уже выбрана как станция назначения. Выбери другую.`)
+      setSameStationField('from')
       setFromSuggestionIndex(-1)
       return
     }
@@ -2363,6 +2387,7 @@ function App() {
     setFromStationId(stationId)
     setFromSuggestionIndex(-1)
     setErrorMessage(null)
+    setSameStationField(null)
 
     if (!isDesktop && !toStationId) {
       focusIfNeeded(toInputRef.current)
@@ -2595,6 +2620,7 @@ function App() {
       // единого сообщения, хотя нужный текст в приложении уже есть.
       const name = stationTitleById.get(stationId) ?? station.title
       setErrorMessage(`«${name}» уже выбрана как станция отправления. Выбери другую.`)
+      setSameStationField('to')
       setToSuggestionIndex(-1)
       return
     }
@@ -2606,6 +2632,7 @@ function App() {
     setToStationId(stationId)
     setToSuggestionIndex(-1)
     setErrorMessage(null)
+    setSameStationField(null)
 
     if (fromId) {
       buildRouteByIds(fromId, stationId)
@@ -2765,6 +2792,7 @@ function App() {
     setToFixed(toIsValid)
 
     setErrorMessage(null)
+    setSameStationField(null)
 
     if (fromIsValid && toIsValid) {
       if (nextFromId === nextToId) {
@@ -2829,10 +2857,12 @@ function App() {
     if (nextToId) {
       if (nextFromId === nextToId) {
         setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
+        setSameStationField('from')
         clearRoutes()
         setRouteSheetOpenState(false)
         return
       }
+      setSameStationField(null)
       buildRouteByIds(nextFromId, nextToId)
       return
     }
@@ -2891,10 +2921,12 @@ function App() {
     if (nextFromId) {
       if (nextFromId === nextToId) {
         setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
+        setSameStationField('to')
         clearRoutes()
         setRouteSheetOpenState(false)
         return
       }
+      setSameStationField(null)
       buildRouteByIds(nextFromId, nextToId)
       return
     }
@@ -3579,6 +3611,10 @@ function App() {
                   onClearFrom={() => handleFromChange('')}
                   onClearTo={() => handleToChange('')}
                   isDesktop={isDesktop}
+                  fromNoMatches={fromNoMatches}
+                  toNoMatches={toNoMatches}
+                  fromHint={fromFieldHint}
+                  toHint={toFieldHint}
                 />
 
                 {/* Ошибка живёт рядом с полями — там, куда человек смотрит,

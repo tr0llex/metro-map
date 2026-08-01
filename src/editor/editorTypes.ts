@@ -1,6 +1,5 @@
 import type {
   EdgeOverride,
-  EditorOverridesGrid,
   EditorOverridesRingShape,
   EditorOverridesStationLayoutParams,
   FullGraphEdge,
@@ -21,7 +20,18 @@ export type StationOverride = {
   lon?: number
 }
 
-/** Полный слепок редактируемого состояния — единица истории undo/redo. */
+/**
+ * Слепок РЕДАКТИРУЕМОГО состояния — единица истории undo/redo.
+ *
+ * Сюда намеренно НЕ входят `canonicalGrid` / `canonicalRingShapes` /
+ * `canonicalStationParams`: это производные данные, которые MetroMap
+ * пересчитывает из раскладки и присылает обратно через `onCanonicalLayoutChange`.
+ * Пока они лежали в снапшоте, применение снапшота при undo порождало новые
+ * объекты → менялся `makeEditorSnapshot` → перезапускался эффект записи
+ * истории → `pushEditorHistory` обрезал ветку redo, и redo пропадал после
+ * каждого undo. Раскладка (`lastLayoutOverrides`) в истории есть, а канонические
+ * параметры однозначно из неё выводятся, так что ничего не теряется.
+ */
 export type EditorSnapshot = {
   stationOverrides: Record<string, StationOverride>
   stationHubOverrides: Record<string, string | null>
@@ -31,10 +41,6 @@ export type EditorSnapshot = {
   manualEdges: Record<string, FullGraphEdge>
   hiddenStations: Record<string, true>
   lastLayoutOverrides: Record<string, { x: number; y: number }>
-
-  canonicalGrid: EditorOverridesGrid
-  canonicalRingShapes: Record<string, EditorOverridesRingShape>
-  canonicalStationParams: Record<string, EditorOverridesStationLayoutParams>
 }
 
 export type EditorHistoryState = {
@@ -97,9 +103,12 @@ export interface EditorOverlayApi {
   manualEdges: Record<string, FullGraphEdge>
   hiddenStations: Record<string, true>
   lastLayoutOverrides: Record<string, { x: number; y: number }>
-  canonicalGrid: EditorOverridesGrid
+  /**
+   * Формы колец, посчитанные картой. `grid` и `stationParams` из
+   * `CanonicalLayoutPayload` сюда не попадают: солвер их не читает
+   * (см. комментарий к `buildEditorOverrides`), поэтому редактор их не хранит.
+   */
   canonicalRingShapes: Record<string, EditorOverridesRingShape>
-  canonicalStationParams: Record<string, EditorOverridesStationLayoutParams>
 
   availableHubIds: string[]
   stationById: Map<string, FullGraphStation>

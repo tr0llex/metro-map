@@ -26,6 +26,19 @@ type EditorOverlayProps = {
 export function EditorOverlay({ editor, active }: EditorOverlayProps) {
   const handleCopyOverrides = async () => {
     try {
+      // Формы колец фиксируются ТОЛЬКО по явному согласию: сейчас солвер
+      // подбирает их по станциям, и молчаливое добавление `ringShapes` в файл
+      // переключило бы геометрию колец на ручную без единого следа в выводе.
+      const hasRingShapes = Object.keys(editor.canonicalRingShapes).length > 0
+      const includeRingShapes =
+        hasRingShapes &&
+        window.confirm(
+          'Зафиксировать формы кольцевых линий (ringShapes) в оверрайдах?\n\n' +
+            'Сейчас солвер подбирает форму каждого кольца по станциям. Если зафиксировать, ' +
+            'форма перестанет подстраиваться под правки раскладки.\n\n' +
+            'ОК — записать формы, Отмена — оставить автоподгонку (обычный вариант).',
+        )
+
       const editorOverrides = buildEditorOverrides({
         layout: editor.lastLayoutOverrides,
         stationOverrides: editor.stationOverrides,
@@ -36,16 +49,19 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
         edgeOverrides: editor.edgeOverrides,
         hubMinOverrides: editor.hubMinOverrides,
         effectiveLineStationIdsById: editor.effectiveLineStationIdsById,
-        canonicalGrid: editor.canonicalGrid,
         canonicalRingShapes: editor.canonicalRingShapes,
-        canonicalStationParams: editor.canonicalStationParams,
+        includeRingShapes,
         edgeKey: editor.edgeKey,
       })
 
       const json = JSON.stringify(editorOverrides, null, 2)
       const ok = json ? await copyTextToClipboard(json) : false
       if (ok) {
-        editor.showToast('editor_overrides.json скопирован')
+        editor.showToast(
+          includeRingShapes
+            ? 'editor_overrides.json скопирован (с формами колец)'
+            : 'editor_overrides.json скопирован',
+        )
       } else {
         editor.showToast('Не удалось скопировать editor_overrides.json')
       }
@@ -79,7 +95,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
             lineByNumericId={editor.lineByNumericId}
             effectiveLineStationIdsById={editor.effectiveLineStationIdsById}
             edgeOverrides={editor.edgeOverrides}
-            hubMinOverrides={editor.hubMinOverrides}
             editorSelectedStationIds={editor.editorSelectedStationIds}
             hubAddStationInput={editor.hubAddStationInput}
             newEdgeTarget={editor.newEdgeTarget}

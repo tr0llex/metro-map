@@ -14,21 +14,16 @@
     <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#16101c" media="(prefers-color-scheme: dark)" />
     <title>Метро Москвы</title>
-    <script>
-      /* Тема применяется ДО первого кадра, иначе принудительно тёмная тема даёт
-         вспышку светлой на старте. Логика продублирована в src/utils/theme.ts —
-         правьте оба места вместе (ключ и допустимые значения). */
-      (function () {
-        try {
-          var v = localStorage.getItem('kitty-metro-theme')
-          if (v === 'dark' || v === 'light') {
-            document.documentElement.setAttribute('data-theme', v)
-          }
-        } catch (e) {
-          /* приватный режим — остаётся системная тема */
-        }
-      })()
-    </script>
+    <!--
+      Тема применяется ДО первого кадра (иначе принудительно тёмная даёт вспышку
+      светлой), включая meta[name="theme-color"] — иначе вспыхивает системная
+      строка. Скрипт вынесен из инлайна в public/theme-init.js: обычный (не
+      module, не defer) внешний скрипт так же блокирует отрисовку, но при этом
+      снимает необходимость в 'unsafe-inline' в script-src боевого CSP.
+      В сборке файл копируется в корень dist как есть, без хеша в имени.
+      Логика продублирована в src/utils/theme.ts — правьте оба места вместе.
+    -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

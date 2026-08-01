@@ -50,7 +50,7 @@ body {
   background: var(--color-surface-glass-strong);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-soft);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(var(--blur-glass-soft));
   -webkit-backdrop-filter: blur(var(--blur-glass-soft));
 }
@@ -81,7 +81,93 @@ body {
   background: var(--color-surface-glass-strong);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-soft);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-raised);
+}
+
+/* ==========================================================================
+   A11Y-6. Единый индикатор фокуса.
+
+   Раньше кнопки зума схемы получали браузерный outline: auto 1px (то есть
+   собственного стиля не было вовсе), а остальные — розовый #ff8ac4 с
+   контрастом ~2.1:1 при норме 3:1. Теперь одно правило на всё приложение:
+   плотное кольцо --color-focus-ring: 7.5:1 на белой карточке в светлой теме
+   и 9.6:1 на тёмной поверхности в тёмной.
+   ========================================================================== */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Утилита «видно только скринридеру».
+
+   Заголовки h1/h2 прятались объектом стилей из JS (VISUALLY_HIDDEN_STYLE в
+   App.tsx). Инлайн-стиль нельзя переопределить темой, он не участвует в
+   каскаде и дублируется в каждой точке применения. Класс — штатное место
+   для такой утилиты.
+
+   clip-path: inset(50%) вместо устаревшего clip: rect(...): элемент остаётся
+   в потоке доступности, но не занимает места и не создаёт горизонтальной
+   прокрутки.
+   ========================================================================== */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   A11Y-4. Ссылка-пропуск: первый элемент обхода по Tab.
+
+   Раньше её видимость держал React-стейт (isSkipLinkFocused + onFocus/onBlur)
+   и два набора инлайн-стилей. Состояние фокуса — работа CSS, а не стора:
+   :focus-visible показывает ссылку только при клавиатурном обходе и не
+   ловит клик мышью. Правило ниже полностью заменяет и стейт, и оба инлайна.
+
+   Скрытое состояние повторяет .visually-hidden — сославшись на неё, класс
+   стал бы зависеть от порядка в разметке, поэтому свойства продублированы.
+   ========================================================================== */
+.app-skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.app-skip-link:focus-visible {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 100000;
+  /* Тач-цель: ссылка появляется по Tab, но нажать её могут и пальцем. */
+  min-width: 44px;
+  min-height: 44px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  overflow: visible;
+  clip-path: none;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-solid);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-overlay);
+  cursor: pointer;
 }
 
 /* Карточка установки — модальное окно, а не «стекло»: сквозь неё не должны
@@ -109,9 +195,17 @@ body {
 .summary-transfers,
 .step-meta,
 .install-guide-subtitle,
-.install-guide-note,
-.bottom-route-chip-sub {
+.install-guide-note {
   color: var(--color-text-muted);
+}
+
+/* Подпись чипа маршрута («2 пересадки») — уровнем выше остальных приглушённых.
+   На белом --color-text-muted даёт 4.83:1, но чип лежит на розоватой подложке
+   шторки, и замер в светлой теме показывал 4.12:1 при норме 4.5:1 — это
+   единственное место, где muted не дотягивал. --color-text-secondary даёт
+   там же 7.4:1. В тёмной теме оба варианта проходили с запасом. */
+.bottom-route-chip-sub {
+  color: var(--color-text-secondary);
 }
 
 .error-text {
@@ -129,7 +223,7 @@ body {
   background: var(--color-surface-glass-strong);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border-soft);
-  box-shadow: 0 16px 40px rgba(var(--rgb-shadow-ink), 0.35);
+  box-shadow: var(--shadow-raised);
   color: var(--color-text-primary);
 }
 
@@ -141,16 +235,21 @@ body {
   background: linear-gradient(135deg, var(--color-surface-glass-strong), var(--color-accent-subtle));
 }
 
+/* Основное действие: плотная заливка вместо розово-оранжевого градиента.
+   Градиент accent → warning читался случайно и давал 3.23:1 на подписи
+   (Дизайн-4, Дизайн-14). Теперь один цвет и белая подпись — 6.0:1. */
 .primary-button,
 .update-banner-button {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-warning));
-  color: var(--color-surface-rose-highlight);
+  background: var(--color-primary-surface);
+  color: var(--color-primary-on);
   border-color: transparent;
+  box-shadow: var(--shadow-raised);
 }
 
 .primary-button:hover,
 .update-banner-button:hover {
-  filter: brightness(1.03);
+  background: var(--color-primary-surface-hover);
+  filter: none;
 }
 
 /* Нижняя шторка маршрутов */
@@ -192,11 +291,11 @@ body {
 
 /* Мелкие штрихи */
 .route-steps {
-  gap: 0.65rem;
+  gap: var(--space-2);
 }
 
 .step-station-list {
-  gap: 0.22rem;
+  gap: var(--space-05);
 }
 
 .route-result,
