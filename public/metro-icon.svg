@@ -1,27 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Метро Москвы">
+  <!--
+    Знак: буква «М» из сходящихся штрихов — линии метро, сходящиеся в
+    пересадочный узел.
+
+    Фон намеренно насыщенный. Первая версия была светло-розовой, и белый штрих
+    давал на ней контраст 1.28–1.85 : 1 при минимуме 3 : 1 для графики — знак
+    физически не читался. На этом градиенте белое даёт 4.6–5.7 : 1.
+
+    Мелких деталей нет сознательно: иконка живёт в 16–48 px, там выживают только
+    крупный силуэт и один акцент.
+  -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffd9ec"/>
-      <stop offset="0.55" stop-color="#f9a8d4"/>
-      <stop offset="1" stop-color="#c4b5fd"/>
+      <stop offset="0" stop-color="#db2777"/>
+      <stop offset="1" stop-color="#7c3aed"/>
     </linearGradient>
   </defs>
 
   <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
 
-  <!-- Знак: буква М, собранная как сходящиеся линии метро.
-       Три штриха + узел в вершине — метафора пересадочного узла. -->
-  <g fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M150 344 V190"/>
-    <path d="M150 190 L256 288 L362 190"/>
-    <path d="M362 190 V344"/>
+  <g fill="none" stroke="#ffffff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M148 350 V186"/>
+    <path d="M148 186 L256 292 L364 186"/>
+    <path d="M364 186 V350"/>
   </g>
 
-  <!-- Пересадочный узел в вершине «М» -->
-  <circle cx="256" cy="288" r="27" fill="#ffffff"/>
-  <circle cx="256" cy="288" r="12" fill="#ec4899"/>
-
-  <!-- Конечные станции -->
-  <circle cx="150" cy="344" r="16" fill="#ffffff"/>
-  <circle cx="362" cy="344" r="16" fill="#ffffff"/>
+  <!-- Пересадочный узел: радиус заведомо больше половины штриха, иначе тонет в нём -->
+  <circle cx="256" cy="292" r="34" fill="#ffffff"/>
+  <circle cx="256" cy="292" r="15" fill="#db2777"/>
 </svg>
