@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-editor
 dev-dist
 dist-ssr
 *.local
@@ -23,3 +24,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Go build artifacts
+go-layout-solver/*.exe
+go-layout-solver/metro_layout_solver
+
+# Локальные настройки запуска Claude Code
+.claude/
