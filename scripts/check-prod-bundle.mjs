@@ -26,7 +26,7 @@ const FORBIDDEN = [
   'Все изменения сброшены',
   'Настройки хаба сброшены',
   'Сбросить все изменения редактора',
-  'hubRotationOverrides',
+  'hubMinOverrides',
   'canonicalRingShapes',
   'nominatim',
 ]

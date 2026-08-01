@@ -24,7 +24,6 @@ import type {
   StationOverride,
 } from './editorTypes.ts'
 
-const HUB_ROTATE_STEP_DEG = 15
 const MAX_EDITOR_HISTORY = 100
 
 function areEditorSnapshotsShallowEqual(
@@ -41,7 +40,6 @@ function areEditorSnapshotsShallowEqual(
     a.manualEdges === b.manualEdges &&
     a.hiddenStations === b.hiddenStations &&
     a.lastLayoutOverrides === b.lastLayoutOverrides &&
-    a.hubRotationOverrides === b.hubRotationOverrides &&
     a.canonicalGrid === b.canonicalGrid &&
     a.canonicalRingShapes === b.canonicalRingShapes &&
     a.canonicalStationParams === b.canonicalStationParams
@@ -66,7 +64,6 @@ export function useEditorController(): EditorController {
   const [stationHubOverrides, setStationHubOverrides] = useState<Record<string, string | null>>({})
   const [edgeOverrides, setEdgeOverrides] = useState<Record<string, EdgeOverride>>({})
   const [hubMinOverrides, setHubMinOverrides] = useState<Record<string, number>>({})
-  const [hubRotationOverrides, setHubRotationOverrides] = useState<Record<string, number>>({})
   const [canonicalGrid, setCanonicalGrid] = useState<EditorOverridesGrid>({ stepPx: 8 })
   const [canonicalRingShapes, setCanonicalRingShapes] = useState<
     Record<string, EditorOverridesRingShape>
@@ -134,7 +131,6 @@ export function useEditorController(): EditorController {
       manualEdges,
       hiddenStations,
       lastLayoutOverrides,
-      hubRotationOverrides,
 
       canonicalGrid,
       canonicalRingShapes,
@@ -149,7 +145,6 @@ export function useEditorController(): EditorController {
     manualEdges,
     hiddenStations,
     lastLayoutOverrides,
-    hubRotationOverrides,
 
     canonicalGrid,
     canonicalRingShapes,
@@ -188,7 +183,6 @@ export function useEditorController(): EditorController {
     pendingLayoutOverridesRef.current = null
     setLastLayoutOverrides(snapshot.lastLayoutOverrides)
     setEditorLayoutApplyToken((prev: number) => prev + 1)
-    setHubRotationOverrides(snapshot.hubRotationOverrides)
 
     setCanonicalGrid(snapshot.canonicalGrid)
     setCanonicalRingShapes(snapshot.canonicalRingShapes)
@@ -306,7 +300,6 @@ export function useEditorController(): EditorController {
     manualEdges,
     hiddenStations,
     lastLayoutOverrides,
-    hubRotationOverrides,
     pushEditorHistory,
   ])
 
@@ -1252,21 +1245,6 @@ export function useEditorController(): EditorController {
       hubRotateTokenRef.current += 1
       return { hubId, direction, token: hubRotateTokenRef.current }
     })
-    setHubRotationOverrides((prev) => {
-      const prevDeg = prev[hubId] ?? 0
-      const delta = direction === 'cw' ? HUB_ROTATE_STEP_DEG : -HUB_ROTATE_STEP_DEG
-      let nextDeg = prevDeg + delta
-      if (!Number.isFinite(nextDeg)) nextDeg = 0
-      nextDeg = ((nextDeg % 360) + 360) % 360
-      if (nextDeg === 0) {
-        if (!(hubId in prev)) return prev
-        const cloned = { ...prev }
-        delete cloned[hubId]
-        return cloned
-      }
-      if (prevDeg === nextDeg) return prev
-      return { ...prev, [hubId]: nextDeg }
-    })
   }, [])
 
   const handleResetStationEdits = useCallback(
@@ -1343,13 +1321,6 @@ export function useEditorController(): EditorController {
         return next
       })
 
-      setHubRotationOverrides((prev) => {
-        if (!(hubId in prev)) return prev
-        const next = { ...prev }
-        delete next[hubId]
-        return next
-      })
-
       if (hubStationIds.length > 0) {
         pendingLayoutOverridesRef.current = null
         setLastLayoutOverrides((prev: Record<string, { x: number; y: number }>) => {
@@ -1388,7 +1359,6 @@ export function useEditorController(): EditorController {
     setStationHubOverrides({})
     setEdgeOverrides({})
     setHubMinOverrides({})
-    setHubRotationOverrides({})
     setManualStations({})
     setManualEdges({})
     setHiddenStations({})
@@ -1454,7 +1424,6 @@ export function useEditorController(): EditorController {
       stationHubOverrides,
       edgeOverrides,
       hubMinOverrides,
-      hubRotationOverrides,
       manualStations,
       manualEdges,
       hiddenStations,
@@ -1520,7 +1489,6 @@ export function useEditorController(): EditorController {
       stationHubOverrides,
       edgeOverrides,
       hubMinOverrides,
-      hubRotationOverrides,
       manualStations,
       manualEdges,
       hiddenStations,
