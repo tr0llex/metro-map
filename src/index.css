@@ -134,10 +134,38 @@
   --color-accent-soft-pink-2: #ffc0e5;
   --color-accent-bubblegum: #ff9ecb;
   --color-accent-berry: #db2777;
+  /* Шкала отступов. До её появления в файле было 30+ уникальных значений
+     padding и 18 gap; всё, что раньше писалось числом, теперь ссылается сюда.
+     ВАЖНО: любой var(--space-N) без объявления делает ВСЁ правило невалидным,
+     и padding схлопывается в ноль — сборка и линтер такого не ловят. */
+  --space-05: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  --radius-xs: 0.5rem;
   --radius-lg: 1.5rem;
   --radius-md: 1rem;
   --radius-sm: 0.75rem;
   --radius-pill: 999px;
+
+  /* Три уровня глубины вместо россыпи произвольных теней. */
+  --shadow-raised: 0 2px 8px rgba(15, 23, 42, 0.12);
+  --shadow-overlay: 0 12px 32px rgba(15, 23, 42, 0.18);
+  --shadow-modal: 0 30px 80px rgba(15, 23, 42, 0.4);
+
+  /* Основное действие: плотная заливка вместо градиента — на градиенте
+     контраст текста падал до 3.23:1. */
+  --color-primary-surface: #be185d;
+  --color-primary-surface-hover: #9d174d;
+  --color-primary-on: #ffffff;
+
+  --color-focus-ring: #a3155a;
   /* Мягкая, менее размытая тень для интерфейсных элементов */
   --shadow-soft: 0 6px 18px rgba(15, 23, 42, 0.18);
   --shadow-strong: 0 30px 80px rgba(15, 23, 42, 0.45);
@@ -345,6 +373,13 @@ optgroup {
     /* Тени */
     --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.55);
     --shadow-strong: 0 30px 80px rgba(0, 0, 0, 0.75);
+    --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.5);
+    --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.62);
+    --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.75);
+    --color-primary-surface: #f472b6;
+    --color-primary-surface-hover: #f9a8d4;
+    --color-primary-on: #3d0c26;
+    --color-focus-ring: #ffb3dc;
   }
 }
 
@@ -483,6 +518,13 @@ optgroup {
   /* Тени */
   --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.55);
   --shadow-strong: 0 30px 80px rgba(0, 0, 0, 0.75);
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.62);
+  --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.75);
+  --color-primary-surface: #f472b6;
+  --color-primary-surface-hover: #f9a8d4;
+  --color-primary-on: #3d0c26;
+  --color-focus-ring: #ffb3dc;
 }
 
 :root[data-theme='light'] {
