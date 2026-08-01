@@ -26,6 +26,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # CSS-переменные не проверяет ничто из стандартных гейтов: tsc не смотрит
+      # в CSS, ESLint его не разбирает, Vite не валидирует custom properties.
+      # Один var(--foo) без объявления обнуляет ВСЁ правило.
+      - name: Check CSS custom properties
+        run: npm run check:css
+
       - name: Test
         run: npx vitest run
 
