@@ -102,6 +102,28 @@ type SavedRoute = {
   lastUsedAt: number
 }
 
+/**
+ * Проверка одной записи из localStorage.
+ *
+ * Проверять только `Array.isArray` недостаточно: одна битая запись внутри
+ * массива (например `[null]`) роняла приложение при КАЖДОМ построении маршрута,
+ * а экран ошибки localStorage сознательно не чистит — получался вечный цикл
+ * падений, из которого нельзя выйти изнутри приложения. Поэтому валидируем
+ * каждый элемент и молча выбрасываем мусор.
+ */
+function isSavedRoute(value: unknown): value is SavedRoute {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  return (
+    typeof v.fromStationId === 'string' &&
+    typeof v.toStationId === 'string' &&
+    typeof v.fromTitle === 'string' &&
+    typeof v.toTitle === 'string' &&
+    typeof v.lastUsedAt === 'number' &&
+    Number.isFinite(v.lastUsedAt)
+  )
+}
+
 const FAVORITES_STORAGE_KEY = 'kitty-metro-favorites-v1'
 const RECENTS_STORAGE_KEY = 'kitty-metro-recents-v1'
 
@@ -480,9 +502,9 @@ function App() {
     try {
       const rawFavorites = window.localStorage.getItem(FAVORITES_STORAGE_KEY)
       if (rawFavorites) {
-        const parsed = JSON.parse(rawFavorites) as SavedRoute[]
+        const parsed = JSON.parse(rawFavorites) as unknown
         if (Array.isArray(parsed)) {
-          setFavoriteRoutes(parsed)
+          setFavoriteRoutes(parsed.filter(isSavedRoute))
         }
       }
     } catch {
@@ -492,12 +514,13 @@ function App() {
     try {
       const rawRecents = window.localStorage.getItem(RECENTS_STORAGE_KEY)
       if (rawRecents) {
-        const parsed = JSON.parse(rawRecents) as SavedRoute[]
-        if (Array.isArray(parsed)) {
+        const parsedRaw = JSON.parse(rawRecents) as unknown
+        const parsed = Array.isArray(parsedRaw) ? parsedRaw.filter(isSavedRoute) : null
+        if (parsed) {
           const limited = parsed.slice(0, 5)
           setRecentRoutes(limited)
 
-          if (limited.length !== parsed.length) {
+          if (limited.length !== (parsedRaw as unknown[]).length) {
             try {
               window.localStorage.setItem(RECENTS_STORAGE_KEY, JSON.stringify(limited))
             } catch {
