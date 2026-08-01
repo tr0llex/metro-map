@@ -14,6 +14,14 @@ dev-dist
 dist-ssr
 *.local
 
+# Артефакт MSYS-бага с путями Docker: `-v /c/repo/dist:/app/dist` в Git Bash
+# превращалось в `C:/repo/dist;C:/app/dist`, и docker создавал пустой каталог
+# `dist;C`. Баг обойдён в tools/visual-qa/run.sh, но страховка дешевле разбора.
+dist;C*
+
+# Скриншоты визуальной приёмки: рабочий прогон, а не документ (tools/visual-qa)
+.visual-qa/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

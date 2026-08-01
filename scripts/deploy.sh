@@ -169,6 +169,40 @@ if [[ $DRY_RUN -eq 0 ]]; then
   mf="$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/kitty-metro-manifest.webmanifest")"
   [[ "$mf" == "200" ]] && ok "манифест: 200" || warn "манифест отдал $mf"
 
+  # Заголовки. Ловушка наследования add_header в nginx (любой add_header во
+  # вложенном location отменяет ВСЕ заголовки родителя) уже один раз молча
+  # оставила главную страницу и service worker без защиты от кликджекинга.
+  # Проверяем фактом, а не чтением конфига.
+  say "Заголовки ответа"
+  hdr() { curl -sSI "$1" | tr -d '\r'; }
+
+  check_header() { # url, имя заголовка, подстрока значения
+    local got
+    got="$(hdr "$1" | grep -i "^$2:" || true)"
+    if [[ -z "$got" ]]; then
+      warn "$1 — нет заголовка $2"
+    elif [[ "$got" != *"$3"* ]]; then
+      warn "$1 — $2: ожидалось «$3», получено «${got#*: }»"
+    else
+      ok "$1 — $2 на месте"
+    fi
+  }
+
+  check_header "https://$DOMAIN/" "X-Frame-Options" "DENY"
+  check_header "https://$DOMAIN/" "Content-Security-Policy" "default-src 'self'"
+  check_header "https://$DOMAIN/kitty-metro-sw.js" "X-Frame-Options" "DENY"
+  check_header "https://$DOMAIN/kitty-metro-sw.js" "Cache-Control" "max-age=0"
+
+  # Хешированный ассет обязан кэшироваться иммутабельно: раньше location ^~ /assets/
+  # перехватывал запрос и не отдавал Cache-Control вообще.
+  asset="$(curl -s "https://$DOMAIN/" | grep -o '/assets/[^"]*\.js' | head -1 || true)"
+  if [[ -n "$asset" ]]; then
+    check_header "https://$DOMAIN$asset" "Cache-Control" "immutable"
+    check_header "https://$DOMAIN$asset" "X-Content-Type-Options" "nosniff"
+  else
+    warn "не удалось найти ссылку на /assets/*.js в index.html"
+  fi
+
   # Соседний проект обязан продолжать работать.
   nb="$(curl -s -o /dev/null -w '%{http_code}' "https://launcher.samoy.love/" || echo 000)"
   if [[ "$nb" == "200" || "$nb" == "301" || "$nb" == "302" ]]; then
