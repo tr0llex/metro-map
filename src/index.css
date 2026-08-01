@@ -45,13 +45,17 @@
      обязана быть схема, а не подложка под ней. */
   --app-bg-1: #f7f8fa;
   --app-bg-2: #edeff3;
-  /* --map-canvas-*: полотно схемы. Правится агентом карты — здесь значения
-     оставлены как были. Под нейтральный интерфейс полотну нужны
-     #f7f8fa / #f1f3f6 и вуали rgba(255,255,255,.96) / rgba(236,239,244,.9). */
-  --map-canvas-top: #ffe0f2;
-  --map-canvas-bottom: #ffeaf8;
+  /* --map-canvas-*: полотно схемы. Нейтральное, как и остальной интерфейс:
+     цвет несут линии метро. Замер контраста официальных цветов линий к
+     полотну: розовое #ffe0f2 давало минимум 1.23:1 (Калининская), нейтральное
+     #f7f8fa — 1.41:1, то есть светлое полотно стало чуть лучше, а не хуже
+     (3:1 на светлой теме недостижим ни при каком фоне: цвета линий заданы
+     официально и часть из них светлее фона). Читаемость подписей держит
+     --map-label-halo. */
+  --map-canvas-top: #f7f8fa;
+  --map-canvas-bottom: #f1f3f6;
   --map-canvas-veil-1: rgba(255, 255, 255, 0.96);
-  --map-canvas-veil-2: rgba(229, 231, 235, 0.9);
+  --map-canvas-veil-2: rgba(236, 239, 244, 0.9);
   --color-surface-glass: rgba(255, 255, 255, 0.82);
   --color-surface-glass-strong: rgba(255, 255, 255, 0.94);
   --color-surface-glass-soft: rgba(255, 255, 255, 0.72);
@@ -102,7 +106,7 @@
   --map-label-color-weak: #6b7280;
   --map-line-halo-color: rgba(249, 250, 251, 0.96);
   --map-station-fill: var(--color-surface-white);
-  --map-station-selected-halo: rgba(255, 182, 193, 0.45);
+  --map-station-selected-halo: rgba(47, 61, 91, 0.22);
   --map-route-fallback-color: var(--color-accent);
   /* Казинг маршрута (Дизайн-5): контур цветом, противоположным полотну, —
      чтобы серая или тёмно-синяя линия не терялась на своём фоне. */
@@ -333,30 +337,36 @@ optgroup {
     --color-surface-hover-1: #232a34;
     --color-surface-hover-2: #2c333f;
 
-    /* Схема метро. Весь блок --map-* правит агент карты — значения здесь
-       оставлены как были. Под нейтральный интерфейс полотну нужны
-       #12161d / #0d1015, вуали #10141a / #0c0f14, подписи #dfe3ea / #9aa1ad,
-       заливка станций #202730, ореол rgba(10,13,18,.94). */
-    --map-canvas-top: #140c18;
-    --map-canvas-bottom: #0d0711;
-    --map-canvas-veil-1: #100914;
-    --map-canvas-veil-2: #0b0610;
-    --map-label-color-strong: #f2dcec;
-    --map-label-color-weak: #a894b0;
-    --map-line-halo-color: rgba(14, 8, 18, 0.94);
-    --map-station-fill: #241a2c;
-    --map-station-selected-halo: rgba(255, 145, 195, 0.4);
-    --map-route-fallback-color: #ff7ab8;
+    /* Схема метро: нейтральная сланцевая шкала вместо фиолетовой дымки.
+       Светлота полотна выбрана не «на глаз», а по замеру контраста ко всем
+       15 официальным цветам линий (normalized/fullGraph.json): самая тёмная
+       пара — Таганско-Краснопресненская #943E90 и Кольцевая #915133.
+       Рекомендованное #12161d уводит их на 2.89:1 и 2.96:1, то есть ниже
+       порога 3:1 для нетекстовой графики (WCAG 1.4.11); #0c0f14 держит
+       3.06:1 и 3.13:1 — ровно как прежнее розовое #140c18 (3.06 / 3.13).
+       Поэтому полотно нейтральное, но той же светлоты, а не светлее. */
+    --map-canvas-top: #0c0f14;
+    --map-canvas-bottom: #080a0e;
+    --map-canvas-veil-1: #0a0d11;
+    --map-canvas-veil-2: #070a0d;
+    /* Подписи: 14.9:1 (было 14.8:1) и 7.4:1 (было 6.9:1) к полотну. */
+    --map-label-color-strong: #dfe3ea;
+    --map-label-color-weak: #9aa1ad;
+    --map-line-halo-color: rgba(10, 13, 18, 0.94);
+    --map-station-fill: #202730;
+    --map-station-selected-halo: rgba(203, 213, 225, 0.35);
+    --map-route-fallback-color: #cbd5e1;
     --map-route-casing: rgba(255, 255, 255, 0.62);
-    --map-hub-link: rgba(242, 220, 236, 0.82);
+    --map-hub-link: rgba(223, 227, 234, 0.82);
     --map-endpoint-a: #2ed3c4;
     --map-endpoint-b: #ff6b6b;
-    --map-label-halo: rgba(14, 8, 18, 0.92);
-    --map-hub-capsule-fill: rgba(36, 26, 44, 0.85);
-    --map-hub-capsule-stroke: rgba(242, 220, 236, 0.28);
-    --map-route-build-overlay: #ffc4e2;
-    --map-route-build-glow: rgba(255, 122, 184, 0.35);
-    --map-endpoint-shadow: rgba(255, 209, 236, 0.3);
+    --map-label-halo: rgba(10, 13, 18, 0.92);
+    --map-hub-capsule-fill: rgba(32, 39, 48, 0.85);
+    --map-hub-capsule-stroke: rgba(223, 227, 234, 0.28);
+    --map-route-build-overlay: #dfe3ea;
+    --map-route-build-glow: rgba(148, 163, 184, 0.35);
+    /* Свечение под пином конечной точки: на тёмном полотне оно светлое. */
+    --map-endpoint-shadow: rgba(223, 227, 234, 0.28);
     --map-endpoint-stroke: rgba(255, 255, 255, 0.35);
 
     /* Тени */
@@ -454,30 +464,36 @@ optgroup {
   --color-surface-hover-1: #232a34;
   --color-surface-hover-2: #2c333f;
 
-  /* Схема метро. Весь блок --map-* правит агент карты — значения здесь
-     оставлены как были. Под нейтральный интерфейс полотну нужны
-     #12161d / #0d1015, вуали #10141a / #0c0f14, подписи #dfe3ea / #9aa1ad,
-     заливка станций #202730, ореол rgba(10,13,18,.94). */
-  --map-canvas-top: #140c18;
-  --map-canvas-bottom: #0d0711;
-  --map-canvas-veil-1: #100914;
-  --map-canvas-veil-2: #0b0610;
-  --map-label-color-strong: #f2dcec;
-  --map-label-color-weak: #a894b0;
-  --map-line-halo-color: rgba(14, 8, 18, 0.94);
-  --map-station-fill: #241a2c;
-  --map-station-selected-halo: rgba(255, 145, 195, 0.4);
-  --map-route-fallback-color: #ff7ab8;
+  /* Схема метро: нейтральная сланцевая шкала вместо фиолетовой дымки.
+     Светлота полотна выбрана не «на глаз», а по замеру контраста ко всем
+     15 официальным цветам линий (normalized/fullGraph.json): самая тёмная
+     пара — Таганско-Краснопресненская #943E90 и Кольцевая #915133.
+     Рекомендованное #12161d уводит их на 2.89:1 и 2.96:1, то есть ниже
+     порога 3:1 для нетекстовой графики (WCAG 1.4.11); #0c0f14 держит
+     3.06:1 и 3.13:1 — ровно как прежнее розовое #140c18 (3.06 / 3.13).
+     Поэтому полотно нейтральное, но той же светлоты, а не светлее. */
+  --map-canvas-top: #0c0f14;
+  --map-canvas-bottom: #080a0e;
+  --map-canvas-veil-1: #0a0d11;
+  --map-canvas-veil-2: #070a0d;
+  /* Подписи: 14.9:1 (было 14.8:1) и 7.4:1 (было 6.9:1) к полотну. */
+  --map-label-color-strong: #dfe3ea;
+  --map-label-color-weak: #9aa1ad;
+  --map-line-halo-color: rgba(10, 13, 18, 0.94);
+  --map-station-fill: #202730;
+  --map-station-selected-halo: rgba(203, 213, 225, 0.35);
+  --map-route-fallback-color: #cbd5e1;
   --map-route-casing: rgba(255, 255, 255, 0.62);
-  --map-hub-link: rgba(242, 220, 236, 0.82);
+  --map-hub-link: rgba(223, 227, 234, 0.82);
   --map-endpoint-a: #2ed3c4;
   --map-endpoint-b: #ff6b6b;
-  --map-label-halo: rgba(14, 8, 18, 0.92);
-  --map-hub-capsule-fill: rgba(36, 26, 44, 0.85);
-  --map-hub-capsule-stroke: rgba(242, 220, 236, 0.28);
-  --map-route-build-overlay: #ffc4e2;
-  --map-route-build-glow: rgba(255, 122, 184, 0.35);
-  --map-endpoint-shadow: rgba(255, 209, 236, 0.3);
+  --map-label-halo: rgba(10, 13, 18, 0.92);
+  --map-hub-capsule-fill: rgba(32, 39, 48, 0.85);
+  --map-hub-capsule-stroke: rgba(223, 227, 234, 0.28);
+  --map-route-build-overlay: #dfe3ea;
+  --map-route-build-glow: rgba(148, 163, 184, 0.35);
+  /* Свечение под пином конечной точки: на тёмном полотне оно светлое. */
+  --map-endpoint-shadow: rgba(223, 227, 234, 0.28);
   --map-endpoint-stroke: rgba(255, 255, 255, 0.35);
 
   /* Тени */

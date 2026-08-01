@@ -493,12 +493,12 @@ export const MetroMap = memo(function MetroMap({
       weakLabelColor: LABEL_TEXT_COLOR,
       lineHaloColor: 'rgba(249, 250, 251, 0.96)',
       stationFillColor: STATION_FILL_COLOR,
-      routeFallbackColor: '#ec4899',
+      routeFallbackColor: '#2f3d5b',
       routeCasingColor: 'rgba(17, 24, 39, 0.55)',
       hubLinkColor: 'rgba(100, 116, 139, 0.55)',
       endpointColorA: '#22c1b4',
       endpointColorB: '#ef4444',
-      stationSelectedHalo: 'rgba(255, 182, 193, 0.45)',
+      stationSelectedHalo: 'rgba(47, 61, 91, 0.22)',
       labelHaloColor: 'rgba(255, 255, 255, 0.92)',
       hubCapsuleFillColor: 'rgba(255, 255, 255, 0.82)',
       hubCapsuleStrokeColor: 'rgba(100, 116, 139, 0.45)',
@@ -628,7 +628,7 @@ export const MetroMap = memo(function MetroMap({
         weakLabelColor: readToken(rootStyle, '--map-label-color-weak', LABEL_TEXT_COLOR),
         lineHaloColor: readToken(rootStyle, '--map-line-halo-color', 'rgba(249, 250, 251, 0.96)'),
         stationFillColor: readToken(rootStyle, '--map-station-fill', STATION_FILL_COLOR),
-        routeFallbackColor: readToken(rootStyle, '--map-route-fallback-color', '#ec4899'),
+        routeFallbackColor: readToken(rootStyle, '--map-route-fallback-color', '#2f3d5b'),
         routeCasingColor: readToken(
           rootStyle, '--map-route-casing', 'rgba(17, 24, 39, 0.55)',
         ),
@@ -638,7 +638,7 @@ export const MetroMap = memo(function MetroMap({
         endpointColorA: readToken(rootStyle, '--map-endpoint-a', '#22c1b4'),
         endpointColorB: readToken(rootStyle, '--map-endpoint-b', '#ef4444'),
         stationSelectedHalo: readToken(
-          rootStyle, '--map-station-selected-halo', 'rgba(255, 182, 193, 0.45)',
+          rootStyle, '--map-station-selected-halo', 'rgba(47, 61, 91, 0.22)',
         ),
         labelHaloColor: readToken(
           rootStyle, '--map-label-halo', 'rgba(255, 255, 255, 0.92)',
@@ -2451,7 +2451,10 @@ export const MetroMap = memo(function MetroMap({
           ctx.shadowColor = 'transparent'
           ctx.shadowBlur = 0
         } else {
-          ctx.shadowColor = 'rgba(236, 72, 153, 0.45)'
+          // Свечение под маршрутом: нейтральное сланцевое, а не брендовое
+          // розовое. Цвет маршрута несут сами линии, свечение лишь отделяет
+          // их от полотна.
+          ctx.shadowColor = 'rgba(100, 116, 139, 0.45)'
           ctx.shadowBlur = 8 + routeShadowExtra
         }
 
@@ -2606,7 +2609,10 @@ export const MetroMap = memo(function MetroMap({
         ctx.save()
         ctx.setLineDash([6, 5])
         ctx.lineWidth = ROUTE_LINE_WIDTH * 0.7
-        ctx.strokeStyle = 'rgba(236, 72, 153, 0.98)'
+        // Тот же цвет, что у обычных far-переходов (--map-hub-link), но во всю
+        // силу и более плотным пунктиром — так «своя» пересадка выделяется, не
+        // вводя в схему отдельный брендовый цвет.
+        ctx.strokeStyle = hubLinkColor
         ctx.globalAlpha = 1
 
         const edgeKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
@@ -2827,13 +2833,17 @@ export const MetroMap = memo(function MetroMap({
       ctx.restore()
     }
 
-    // Дальние пересадки (far transfers) — розовый пунктир между станциями.
+    // Дальние пересадки (far transfers) — пунктир между станциями.
+    // Цвет берём от перемычки узла (--map-hub-link), а не бывший брендовый
+    // розовый: он был единственным местом схемы с розовым и вдобавок не
+    // менялся между темами.
     // Используем transferKind, чтобы не рисовать служебные/внутрихабовые рёбра.
     if (shouldDrawFarTransfers) {
       ctx.save()
       ctx.setLineDash([4, 8])
       ctx.lineWidth = 0.9
-      ctx.strokeStyle = 'rgba(236, 72, 153, 0.4)'
+      ctx.globalAlpha = 0.45
+      ctx.strokeStyle = hubLinkColor
       for (const seg of farTransferSegments) {
         ctx.beginPath()
         ctx.moveTo(seg.ax, seg.ay)
