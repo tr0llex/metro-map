@@ -6,7 +6,10 @@ export interface NeighborEdge {
   isTransfer?: boolean
 }
 
-export const TRANSFER_PENALTY_MINUTES = 0
+// Базовый штраф за пересадку в минутах: среднее время перехода между линиями.
+// Ненулевое значение обязательно — иначе набор штрафов в findRouteAlternativesFullGraph
+// вырождается в [0, 0, 0] и все прогоны Дейкстры дают один и тот же путь.
+export const TRANSFER_PENALTY_MINUTES = 2
 
 type HeapItem = {
   id: string
@@ -113,10 +116,11 @@ export function buildRouteResultFromPath(
     })
   }
 
-  const rawTotalMinutes = steps.reduce((sum, s) => {
-    const transferPenalty = s.isTransfer ? TRANSFER_PENALTY_MINUTES : 0
-    return sum + s.travelMinutes + transferPenalty
-  }, 0)
+  // TRANSFER_PENALTY_MINUTES — это стоимость пересадки ТОЛЬКО для поиска
+  // (чтобы Дейкстра предпочитала маршруты с меньшим числом пересадок).
+  // В отображаемое время его не добавляем: реальное время перехода уже заложено
+  // в medianTravelSeconds пересадочного ребра, иначе оно считалось бы дважды.
+  const rawTotalMinutes = steps.reduce((sum, s) => sum + s.travelMinutes, 0)
   const totalMinutes = Math.ceil(rawTotalMinutes)
 
   return {

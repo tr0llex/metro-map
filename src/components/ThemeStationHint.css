@@ -1,0 +1,85 @@
+/* Подсказка «станция назначена в поле». Собственный файл стилей — см. ThemeToggle.css. */
+
+.theme-station-hint-dock {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 5.9rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 480px;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+@media (min-width: 430px) {
+  .theme-station-hint-dock {
+    top: calc(env(safe-area-inset-top, 0px) + 6.6rem);
+  }
+}
+
+.theme-station-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(var(--rgb-border-slate), 0.45);
+  background: linear-gradient(135deg, rgba(var(--rgb-card), 0.96), rgba(var(--rgb-card-tint), 0.96));
+  backdrop-filter: blur(var(--blur-glass-soft, 14px));
+  -webkit-backdrop-filter: blur(var(--blur-glass-soft, 14px));
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  animation: theme-station-hint-in 220ms var(--ease-out-soft, ease-out) both;
+}
+
+.theme-station-hint[data-kind='info'] {
+  padding-left: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.theme-station-hint-badge {
+  flex: 0 0 auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-surface-rose-highlight, #fff);
+  background: var(--map-endpoint-a, var(--color-accent));
+}
+
+.theme-station-hint[data-kind='to'] .theme-station-hint-badge {
+  background: var(--map-endpoint-b, var(--color-accent-hot-pink, var(--color-accent)));
+}
+
+.theme-station-hint-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes theme-station-hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-station-hint {
+    animation: none;
+  }
+}

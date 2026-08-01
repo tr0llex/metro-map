@@ -88,7 +88,11 @@ export function SplashScreen({ isDone, onDone, onHidden }: SplashScreenProps) {
         <p className="app-splash-subtitle">
           <span className="app-splash-hello">Hello Kitty</span>
         </p>
-        <p className="app-splash-credits">by alex@samoy.love</p>
+        {/* VQA-12: раньше здесь публиковался личный e-mail автора
+            («by alex@samoy.love»). Перед публичным релизом заменено на
+            нейтральную подпись — вернуть прежний вариант можно правкой
+            одной этой строки. */}
+        <p className="app-splash-credits">сделано с любовью</p>
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import type { RouteResult, FullGraphEdge, EdgeOverride } from './types';
-import { fullGraphEdges, fullGraphStations } from './fullGraph';
+import type { RoutingGraphData } from './routingGraphPayload';
+import type { NeighborEdge } from './graphCore';
 import {
   TRANSFER_PENALTY_MINUTES,
   buildAdjacencyListFromFullGraph,
@@ -10,10 +11,48 @@ import {
   undirectedEdgeKey,
 } from './graphCore';
 
-const fullGraphStationIds = fullGraphStations.map((s) => s.id);
+/**
+ * Модуль намеренно НЕ импортирует `./fullGraph`: он исполняется в веб-воркере,
+ * который Vite собирает отдельным бандлом, и статический импорт данных приводил
+ * к тому, что весь граф (~123 КБ) попадал в сборку второй раз. Данные подаются
+ * снаружи через `setRoutingGraph()` — воркер делает это, загрузив компактный
+ * ассет, тесты — напрямую из `fullGraph.ts`.
+ */
 
-const fullGraphAdjacency = buildAdjacencyListFromFullGraph(fullGraphEdges);
-const fullGraphEdgeByKey = buildEdgeByKey(fullGraphEdges);
+interface PreparedGraph {
+  stationIds: string[];
+  edges: FullGraphEdge[];
+  adjacency: Map<string, NeighborEdge[]>;
+  edgeByKey: Map<string, FullGraphEdge>;
+}
+
+let prepared: PreparedGraph | null = null;
+
+/** Задаёт граф и один раз считает производные структуры (смежность, индекс рёбер). */
+export function setRoutingGraph(data: RoutingGraphData): void {
+  prepared = {
+    stationIds: data.stationIds,
+    edges: data.edges,
+    adjacency: buildAdjacencyListFromFullGraph(data.edges),
+    edgeByKey: buildEdgeByKey(data.edges),
+  };
+}
+
+export function isRoutingGraphReady(): boolean {
+  return prepared !== null;
+}
+
+/** Сбрасывает граф. Нужен тестам, чтобы проверить поведение до инициализации. */
+export function resetRoutingGraph(): void {
+  prepared = null;
+}
+
+function requireGraph(): PreparedGraph {
+  if (!prepared) {
+    throw new Error('Граф маршрутизации не инициализирован: вызовите setRoutingGraph()');
+  }
+  return prepared;
+}
 
 // Поиск маршрута на основе полного графа (fullGraphEdges/fullGraphStations).
 // Базовый вариант: оптимизация по времени с мягким штрафом за пересадку.
@@ -24,16 +63,15 @@ export function findShortestRouteFullGraph(
     transferPenaltyMinutes?: number;
   },
 ): RouteResult | null {
-  const adjacency = fullGraphAdjacency;
-  const edgeByKey = fullGraphEdgeByKey;
+  const graph = requireGraph();
   const transferPenaltyMinutes = options?.transferPenaltyMinutes ?? TRANSFER_PENALTY_MINUTES;
   const result = shortestPathFullGraphWithPenalty(
     startId,
     targetId,
     transferPenaltyMinutes,
-    adjacency,
-    edgeByKey,
-    fullGraphStationIds,
+    graph.adjacency,
+    graph.edgeByKey,
+    graph.stationIds,
   );
   return result ? result.route : null;
 }
@@ -53,6 +91,7 @@ export function findRouteAlternativesFullGraph(
     heavyTransferPenaltyMinutes?: number;
   },
 ): RouteResult[] {
+  const graph = requireGraph();
   const maxAlternatives = options?.maxAlternatives ?? 6;
   const hasOverrides = !!options?.edgeOverrides;
   const extraEdges = options?.extraEdges ?? [];
@@ -71,14 +110,14 @@ export function findRouteAlternativesFullGraph(
 
   const appliedEdges: FullGraphEdge[] = (() => {
     if (useBaseGraph) {
-      return fullGraphEdges;
+      return graph.edges;
     }
 
     const overrides = options?.edgeOverrides;
     const extra = extraEdges;
 
     // manual/extra edges имеют приоритет над базовыми при одинаковой паре станций
-    const rawEdges: FullGraphEdge[] = [...extra, ...fullGraphEdges];
+    const rawEdges: FullGraphEdge[] = [...extra, ...graph.edges];
 
     const result: FullGraphEdge[] = [];
     const seen = new Set<string>();
@@ -109,9 +148,9 @@ export function findRouteAlternativesFullGraph(
 
   const allStationIds: string[] = (() => {
     if (useBaseGraph) {
-      return fullGraphStationIds;
+      return graph.stationIds;
     }
-    const set = new Set<string>(fullGraphStationIds);
+    const set = new Set<string>(graph.stationIds);
     for (const e of appliedEdges) {
       set.add(e.fromStationId);
       set.add(e.toStationId);
@@ -119,8 +158,8 @@ export function findRouteAlternativesFullGraph(
     return Array.from(set);
   })();
 
-  const adjacency = useBaseGraph ? fullGraphAdjacency : buildAdjacencyListFromFullGraph(appliedEdges);
-  const edgeByKey = useBaseGraph ? fullGraphEdgeByKey : buildEdgeByKey(appliedEdges);
+  const adjacency = useBaseGraph ? graph.adjacency : buildAdjacencyListFromFullGraph(appliedEdges);
+  const edgeByKey = useBaseGraph ? graph.edgeByKey : buildEdgeByKey(appliedEdges);
 
   const candidates: { path: string[]; route: RouteResult }[] = [];
   const seenPathKeys = new Set<string>();
@@ -146,26 +185,35 @@ export function findRouteAlternativesFullGraph(
   }
 
   if (candidates.length < maxAlternatives) {
-    const baseEntries = [...candidates];
     const penaltyFactor = 3;
-    for (const entry of baseEntries) {
-      if (candidates.length >= maxAlternatives) break;
-      if (entry.path.length <= 1) continue;
 
-      const modifiedAdjacency = cloneAdjacencyWithPathPenalty(adjacency, entry.path, penaltyFactor);
+    // Штрафы накапливаем: каждый следующий прогон обходит рёбра ВСЕХ уже найденных
+    // маршрутов, иначе поиск просто возвращает один из имеющихся кандидатов.
+    let penalizedAdjacency = adjacency;
+    for (const entry of candidates) {
+      if (entry.path.length <= 1) continue;
+      penalizedAdjacency = cloneAdjacencyWithPathPenalty(penalizedAdjacency, entry.path, penaltyFactor);
+    }
+
+    let guard = 0;
+    while (candidates.length < maxAlternatives && guard < maxAlternatives * 2) {
+      guard += 1;
       const altResult = shortestPathFullGraphWithPenalty(
         startId,
         targetId,
         baseTransferPenalty,
-        modifiedAdjacency,
+        penalizedAdjacency,
         edgeByKey,
         allStationIds,
       );
-      if (!altResult) continue;
+      if (!altResult || altResult.path.length <= 1) break;
+
       const altKey = canonicalPathKey(altResult.path);
-      if (seenPathKeys.has(altKey)) continue;
-      seenPathKeys.add(altKey);
-      candidates.push(altResult);
+      if (!seenPathKeys.has(altKey)) {
+        seenPathKeys.add(altKey);
+        candidates.push(altResult);
+      }
+      penalizedAdjacency = cloneAdjacencyWithPathPenalty(penalizedAdjacency, altResult.path, penaltyFactor);
     }
   }
 
@@ -193,8 +241,12 @@ export function findRouteAlternativesFullGraph(
   const output: RouteResult[] = [];
   const usedKeys = new Set<string>();
 
+  // Лимит проверяется ВНУТРИ pushUnique, а не только в цикле по others:
+  // иначе при maxAlternatives = 1 в выдачу попадали оба приоритетных маршрута
+  // (самый быстрый и с минимумом пересадок), когда это разные пути.
   const pushUnique = (entry: { path: string[]; route: RouteResult } | null) => {
     if (!entry) return;
+    if (output.length >= maxAlternatives) return;
     const key = canonicalPathKey(entry.path);
     if (usedKeys.has(key)) return;
     usedKeys.add(key);
@@ -210,8 +262,8 @@ export function findRouteAlternativesFullGraph(
     .sort((a, b) => a.route.totalMinutes - b.route.totalMinutes);
 
   for (const c of others) {
-    pushUnique(c);
     if (output.length >= maxAlternatives) break;
+    pushUnique(c);
   }
 
   return output;
