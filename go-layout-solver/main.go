@@ -16,6 +16,7 @@ func main() {
 	yandexPath := flag.String("yandex", "", "optional path to yandex_coords.json from Yandex Metro SVG")
 	editorOverridesPath := flag.String("editor_overrides", "", "optional path to editor_overrides.json with all manual overrides from editor")
 	travelTimesPath := flag.String("travel_times", "new_map_source/travel_times.json", "path to travel_times.json with ride/transfer times; empty or missing file falls back to distance-based estimate")
+	strictOverrides := flag.Bool("strict_overrides", false, "fail the build on unknown top-level keys in editor_overrides.json instead of reporting them to stderr")
 
 	flag.Parse()
 
@@ -45,7 +46,7 @@ func main() {
 
 	var editorOv *GraphOverrides
 	if *editorOverridesPath != "" {
-		ov, err := readGraphOverrides(*editorOverridesPath)
+		ov, err := readGraphOverrides(*editorOverridesPath, *strictOverrides)
 		if err != nil {
 			log.Fatalf("read editor overrides: %v", err)
 		}

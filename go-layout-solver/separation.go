@@ -99,6 +99,24 @@ const (
 
 	sepIterations = 900
 	sepDamping    = 0.35
+	// Итерация, в которой ни одна станция не сдвинулась дальше sepMoveEpsilon,
+	// считается «пустой». sepStillIterations пустых подряд — признак того, что
+	// релаксация сошлась и оставшиеся итерации ничего не изменят.
+	//
+	// Порог на четыре порядка меньше видимого глазу и метрикой сдвига, поэтому
+	// ранний выход не может изменить результат: боевая сборка остаётся
+	// побайтово прежней.
+	//
+	// ЗАМЕР на текущих данных: сдвиг падает экспоненциально до ~450-й итерации,
+	// а дальше упирается в полку 5e-4…1.2e-3 px — это не остаточная сходимость,
+	// а автоколебание на дискретности кольца (sepRingSamples). То есть на боевой
+	// схеме выход не срабатывает ни разу, и все 900 итераций честно
+	// откручиваются. Основное ускорение прохода дали не итерации, а точный отсев
+	// в горячих циклах (см. polyGrid и отсев по габаритам перегона): 15.2 с → 3.6 с.
+	// Порог поднимать нельзя: на полке 5e-4 выход обрубил бы ~450 итераций и
+	// сдвинул результат боевой сборки.
+	sepMoveEpsilon     = 1e-4
+	sepStillIterations = 5
 )
 
 type sepNode struct {
@@ -211,8 +229,23 @@ type sepSegment struct {
 //	         целое: если одну её станцию толкает одна линия, а другую — другая,
 //	         средняя сила гасится в ноль, и узел навсегда залипает на чужой
 //	         линии (так вело себя ядро Третьяковской в углу Замоскворецкой).
+
+// Выключатель фазы для быстрых итераций: SEP_SKIP=1 полностью пропускает
+// разведение (0.2 с вместо 3.6 с на полной сборке). Схема при этом заведомо
+// хуже — вернутся geometry.stationOnForeignLine и geometry.stationsTooClose, —
+// поэтому проход говорит вслух, что его выключили: молча отдавать другой
+// результат нельзя. В боевой сборке переменная не ставится.
+func skipSeparation() bool {
+	v := os.Getenv("SEP_SKIP")
+	return v != "" && v != "0"
+}
+
 func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 	if graph == nil {
+		return
+	}
+	if skipSeparation() {
+		fmt.Println("separation: ФАЗА ВЫКЛЮЧЕНА через SEP_SKIP — геометрия не разведена, метрики качества будут хуже")
 		return
 	}
 
@@ -325,6 +358,7 @@ func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 	type ringPoly struct {
 		lineID int
 		pts    []ringPoint
+		grid   *polyGrid
 	}
 	ringPolys := make([]ringPoly, 0, len(tracks))
 	ringIDs := make([]int, 0, len(tracks))
@@ -554,6 +588,15 @@ func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 
 	wantLine := sepMinLineGap + sepMargin
 	wantStation := sepMinStationGap + sepMargin
+
+	// Форма кольца за время прохода не меняется (ApplyRingProjection уже
+	// отработал, релаксация двигает станции ВДОЛЬ кольца), поэтому индекс по
+	// её полилинии строится один раз. Без него каждая станция на каждой
+	// итерации перебирала все 360 сэмплов каждого кольца — 330 тыс. проверок
+	// за итерацию, и это была самая дорогая строчка прохода.
+	for i := range ringPolys {
+		ringPolys[i].grid = buildPolyGrid(ringPolys[i].pts, wantLine)
+	}
 	hardLine := sepMinLineGap + sepHardMargin
 	barrierLine := sepMinLineGap + sepBarrierMargin
 
@@ -587,7 +630,7 @@ func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 			if n.lineID == rp.lineID {
 				continue
 			}
-			d, px, py := nearestOnPolyline(n.st.LayoutX, n.st.LayoutY, rp.pts, wantLine)
+			d, px, py := nearestOnPolyline(n.st.LayoutX, n.st.LayoutY, rp.pts, rp.grid, wantLine)
 			if d < wantLine {
 				fn(rp.lineID, d, px, py)
 			}
@@ -598,12 +641,19 @@ func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 	stationPenalty := func(n *sepNode) float64 {
 		var p float64
 		distToRings(n, func(_ int, d, _, _ float64) { p += linePenalty(d) })
+		x, y := n.st.LayoutX, n.st.LayoutY
 		for si := range segments {
 			seg := &segments[si]
+			// Тот же точный отсев по габаритам перегона, что и в relax:
+			// вне прямоугольника, расширенного на wantLine, штраф заведомо нулевой.
+			if x < math.Min(seg.ax, seg.bx)-wantLine || x > math.Max(seg.ax, seg.bx)+wantLine ||
+				y < math.Min(seg.ay, seg.by)-wantLine || y > math.Max(seg.ay, seg.by)+wantLine {
+				continue
+			}
 			if excluded(n, seg) {
 				continue
 			}
-			d, _, _ := pointSegNearest(n.st.LayoutX, n.st.LayoutY, seg.ax, seg.ay, seg.bx, seg.by)
+			d, _, _ := pointSegNearest(x, y, seg.ax, seg.ay, seg.bx, seg.by)
 			if d < wantLine {
 				p += linePenalty(d)
 			}
@@ -612,8 +662,25 @@ func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 	}
 
 	// --- фаза 1: релаксация ---
+	//
+	// Ранний выход по стабилизации. Условие `worst < 0.01` не срабатывает
+	// никогда: часть ограничений (зазор out-of-station, компактность узла)
+	// в равновесии остаётся слегка нарушенной, «сила» не гаснет, и цикл честно
+	// откручивал все 900 итераций — 93% времени сборки уходило сюда.
+	//
+	// Настоящий признак сходимости — не сила, а движение: если за итерацию ни
+	// одна станция не сдвинулась заметно, все следующие итерации повторят то же
+	// самое. Порог намеренно строгий (sepMoveEpsilon), а срабатывание требует
+	// нескольких подряд итераций покоя: одиночная итерация может замереть
+	// случайно, на развороте колебания.
+	prevX := make([]float64, len(nodes))
+	prevY := make([]float64, len(nodes))
 	relax := func(iterations int) {
+		still := 0
 		for iter := 0; iter < iterations; iter++ {
+			for i, n := range nodes {
+				prevX[i], prevY[i] = n.st.LayoutX, n.st.LayoutY
+			}
 			rebuildSegments()
 			for _, n := range nodes {
 				n.fx, n.fy = 0, 0
@@ -634,13 +701,26 @@ func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 			}
 
 			// (1б) станция на чужой линии — обычные перегоны
+			//
+			// Отсев по габаритному прямоугольнику перегона, расширенному на
+			// wantLine. Он точен: если расстояние до отрезка меньше wantLine,
+			// точка обязана лежать внутри такого прямоугольника — то есть
+			// отбрасываются ровно те пары, которые всё равно дали бы `continue`
+			// ниже. Результат байт-в-байт тот же, но 306 станций × 368 перегонов
+			// перестают гонять через pointSegNearest на каждой из сотен итераций.
 			for si := range segments {
 				seg := &segments[si]
+				loX, hiX := math.Min(seg.ax, seg.bx)-wantLine, math.Max(seg.ax, seg.bx)+wantLine
+				loY, hiY := math.Min(seg.ay, seg.by)-wantLine, math.Max(seg.ay, seg.by)+wantLine
 				for _, n := range nodes {
+					x, y := n.st.LayoutX, n.st.LayoutY
+					if x < loX || x > hiX || y < loY || y > hiY {
+						continue
+					}
 					if excluded(n, seg) {
 						continue
 					}
-					d, px, py := pointSegNearest(n.st.LayoutX, n.st.LayoutY, seg.ax, seg.ay, seg.bx, seg.by)
+					d, px, py := pointSegNearest(x, y, seg.ax, seg.ay, seg.bx, seg.by)
 					if d >= wantLine {
 						continue
 					}
@@ -808,6 +888,24 @@ func ApplySeparation(graph *FullGraphExport, tracks map[int]*ringTrack) {
 
 			if worst < 0.01 {
 				break
+			}
+
+			maxMove := 0.0
+			for i, n := range nodes {
+				if d := math.Hypot(n.st.LayoutX-prevX[i], n.st.LayoutY-prevY[i]); d > maxMove {
+					maxMove = d
+				}
+			}
+			if maxMove < sepMoveEpsilon {
+				still++
+				if still >= sepStillIterations {
+					if os.Getenv("SEP_DEBUG") != "" {
+						fmt.Printf("SEP relax сошлась на итерации %d из %d (maxMove=%.2e)\n", iter+1, iterations, maxMove)
+					}
+					break
+				}
+			} else {
+				still = 0
 			}
 		}
 		rebuildSegments()
@@ -1382,22 +1480,101 @@ func pointSegNearest(px, py, ax, ay, bx, by float64) (float64, float64, float64)
 	return math.Hypot(px-cx, py-cy), cx, cy
 }
 
-// nearestOnPolyline — ближайшая точка ломаной; выходит раньше, если уже нашли
-// точку ближе limit, но продолжает искать минимум среди близких.
-func nearestOnPolyline(px, py float64, pts []ringPoint, limit float64) (float64, float64, float64) {
+// polyGrid — равномерная сетка над отрезками полилинии: по ячейке сразу видно,
+// какие отрезки могут оказаться ближе limit к точке внутри неё.
+//
+// Индекс строится один раз на неподвижную полилинию (форму кольца) и заменяет
+// полный перебор её сэмплов. Он ТОЧЕН: отрезок кладётся во все ячейки своего
+// габаритного прямоугольника, расширенного на limit, поэтому в списке ячейки
+// заведомо есть все отрезки, проходящие проверку по bbox. Лишние кандидаты
+// результат не портят — у них расстояние заведомо больше limit, а вызывающий
+// код смотрит только на d < limit.
+type polyGrid struct {
+	cell       float64
+	minX, minY float64
+	nx, ny     int
+	cells      [][]int32
+}
+
+// polyGridCell — сторона ячейки. Заметно больше типичного limit (~15 px), чтобы
+// один отрезок не размазывался по десяткам ячеек, и заметно меньше кольца.
+const polyGridCell = 48.0
+
+func buildPolyGrid(pts []ringPoint, limit float64) *polyGrid {
+	if len(pts) < 2 {
+		return nil
+	}
+	minX, minY := math.Inf(1), math.Inf(1)
+	maxX, maxY := math.Inf(-1), math.Inf(-1)
+	for _, p := range pts {
+		minX, maxX = math.Min(minX, p.x), math.Max(maxX, p.x)
+		minY, maxY = math.Min(minY, p.y), math.Max(maxY, p.y)
+	}
+	if !isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY) {
+		return nil
+	}
+	g := &polyGrid{cell: polyGridCell, minX: minX - limit, minY: minY - limit}
+	g.nx = int((maxX+limit-g.minX)/g.cell) + 1
+	g.ny = int((maxY+limit-g.minY)/g.cell) + 1
+	if g.nx <= 0 || g.ny <= 0 {
+		return nil
+	}
+	g.cells = make([][]int32, g.nx*g.ny)
+
+	for i := 0; i+1 < len(pts); i++ {
+		a, b := pts[i], pts[i+1]
+		x0 := int((math.Min(a.x, b.x) - limit - g.minX) / g.cell)
+		x1 := int((math.Max(a.x, b.x) + limit - g.minX) / g.cell)
+		y0 := int((math.Min(a.y, b.y) - limit - g.minY) / g.cell)
+		y1 := int((math.Max(a.y, b.y) + limit - g.minY) / g.cell)
+		x0, y0 = max(x0, 0), max(y0, 0)
+		x1, y1 = min(x1, g.nx-1), min(y1, g.ny-1)
+		for gy := y0; gy <= y1; gy++ {
+			for gx := x0; gx <= x1; gx++ {
+				idx := gy*g.nx + gx
+				g.cells[idx] = append(g.cells[idx], int32(i))
+			}
+		}
+	}
+	return g
+}
+
+// at возвращает список отрезков-кандидатов для точки; nil — точка вне сетки,
+// то есть кандидатов нет вовсе.
+func (g *polyGrid) at(px, py float64) []int32 {
+	gx := int((px - g.minX) / g.cell)
+	gy := int((py - g.minY) / g.cell)
+	if gx < 0 || gy < 0 || gx >= g.nx || gy >= g.ny {
+		return nil
+	}
+	return g.cells[gy*g.nx+gx]
+}
+
+// nearestOnPolyline ищет ближайшую точку полилинии. grid может быть nil —
+// тогда перебираются все отрезки.
+func nearestOnPolyline(px, py float64, pts []ringPoint, grid *polyGrid, limit float64) (float64, float64, float64) {
 	best := math.Inf(1)
 	var bx, by float64
-	for i := 0; i+1 < len(pts); i++ {
+	check := func(i int) {
 		a, b := pts[i], pts[i+1]
 		// Грубый отсев по bbox отрезка.
 		if px < math.Min(a.x, b.x)-limit || px > math.Max(a.x, b.x)+limit ||
 			py < math.Min(a.y, b.y)-limit || py > math.Max(a.y, b.y)+limit {
-			continue
+			return
 		}
 		d, cx, cy := pointSegNearest(px, py, a.x, a.y, b.x, b.y)
 		if d < best {
 			best, bx, by = d, cx, cy
 		}
+	}
+	if grid != nil {
+		for _, i := range grid.at(px, py) {
+			check(int(i))
+		}
+		return best, bx, by
+	}
+	for i := 0; i+1 < len(pts); i++ {
+		check(i)
 	}
 	return best, bx, by
 }
