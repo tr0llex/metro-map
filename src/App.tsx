@@ -222,18 +222,6 @@ function clearDeepLinkParamsFromUrl(): void {
  * Скрыто визуально, но доступно скринридеру. Инлайн-стилем, а не классом:
  * файлы CSS в этой задаче правит другой агент.
  */
-const VISUALLY_HIDDEN_STYLE = {
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  margin: '-1px',
-  padding: 0,
-  overflow: 'hidden',
-  clipPath: 'inset(50%)',
-  whiteSpace: 'nowrap',
-  border: 0,
-} as const
-
 function buildRouteShareUrl(fromId: string, toId: string): string | null {
   if (typeof window === 'undefined') return null
 
@@ -316,7 +304,6 @@ function App() {
   const [isSmartSuggestionsOpen, setIsSmartSuggestionsOpen] = useState(false)
   // Ссылка-пропуск видна только в фокусе; CSS-псевдоклассы недоступны, поэтому
   // состояние держим явно.
-  const [isSkipLinkFocused, setIsSkipLinkFocused] = useState(false)
   const [isMapReady, setIsMapReady] = useState(false)
   const [nearbyStations, setNearbyStations] = useState<FullGraphStation[]>([])
   const [nearbyStatus, setNearbyStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -3143,7 +3130,7 @@ function App() {
 
       {/* Единственный заголовок первого уровня: без него скринридер не давал
           ни оглавления, ни представления о том, что это за экран. */}
-      <h1 style={VISUALLY_HIDDEN_STYLE}>Метро Москвы: схема и маршруты</h1>
+      <h1 className="visually-hidden">Метро Москвы: схема и маршруты</h1>
 
       {/* A11Y-4. До поля «Откуда» приходилось нажимать Tab девять раз: сначала
           кнопки зума карты, тумблер темы, чип шапки, ручка шторки. Порядок
@@ -3153,29 +3140,10 @@ function App() {
         <button
           type="button"
           className="app-skip-link"
-          onFocus={() => setIsSkipLinkFocused(true)}
-          onBlur={() => setIsSkipLinkFocused(false)}
           onClick={() => {
             setRouteSheetOpenState(true)
             focusIfNeeded(fromInputRef.current)
           }}
-          style={
-            isSkipLinkFocused
-              ? {
-                  position: 'fixed',
-                  top: '0.5rem',
-                  left: '0.5rem',
-                  zIndex: 100000,
-                  padding: '0.5rem 0.9rem',
-                  borderRadius: '0.75rem',
-                  border: '1px solid var(--color-border-soft, #ccc)',
-                  background: 'var(--color-surface-glass-strong, #fff)',
-                  color: 'var(--color-text-primary, #111)',
-                  font: 'inherit',
-                  cursor: 'pointer',
-                }
-              : VISUALLY_HIDDEN_STYLE
-          }
         >
           Перейти к вводу маршрута
         </button>
@@ -3362,7 +3330,7 @@ function App() {
               onTouchCancel={handleSheetTouchCancel}
             >
               <div ref={sheetMinVisibleRef} className="bottom-sheet-min">
-                <h2 style={VISUALLY_HIDDEN_STYLE}>
+                <h2 className="visually-hidden">
                   {routeResult ? 'Маршрут' : 'Куда едем'}
                 </h2>
 
