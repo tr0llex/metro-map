@@ -15,12 +15,32 @@ func main() {
 	outPath := flag.String("out", "normalized/fullGraph.json", "path to output fullGraph.json")
 	yandexPath := flag.String("yandex", "", "optional path to yandex_coords.json from Yandex Metro SVG")
 	editorOverridesPath := flag.String("editor_overrides", "", "optional path to editor_overrides.json with all manual overrides from editor")
+	travelTimesPath := flag.String("travel_times", "new_map_source/travel_times.json", "path to travel_times.json with ride/transfer times; empty or missing file falls back to distance-based estimate")
 
 	flag.Parse()
 
-	graph, err := BuildFullGraph(*csvPath, *connPath, *yandexPath)
+	// Времена перегонов и пересадок задаются конфигом, а не геометрией.
+	// Отсутствие файла — не ошибка: солвер тогда работает как раньше, но об
+	// этом надо сказать вслух, иначе подмена модели времени пройдёт незаметно.
+	var times *TravelTimes
+	if *travelTimesPath != "" {
+		t, err := loadTravelTimes(*travelTimesPath)
+		switch {
+		case err == nil:
+			times = t
+		case os.IsNotExist(err):
+			fmt.Printf("travel times: файл %s не найден — время считается по расстоянию (запасной путь)\n", *travelTimesPath)
+		default:
+			log.Fatalf("read travel times: %v", err)
+		}
+	}
+
+	graph, err := BuildFullGraph(*csvPath, *connPath, *yandexPath, times)
 	if err != nil {
 		log.Fatalf("build full graph: %v", err)
+	}
+	if times != nil {
+		times.Report(os.Stdout)
 	}
 
 	var editorOv *GraphOverrides
@@ -35,12 +55,17 @@ func main() {
 		}
 	}
 
-	if err := ApplyLayout(&graph); err != nil {
-		log.Fatalf("apply layout: %v", err)
-	}
-
+	// Ручная раскладка из редактора и автоматическая — взаимоисключающие пути,
+	// а не два прохода подряд. Оверрайды задают координаты всем станциям сразу
+	// и перезаписывают результат солвера целиком, поэтому запускать солвер под
+	// ними бессмысленно: он гарантированно затирается (см. layout_bootstrap.go).
 	if editorOv != nil && len(editorOv.Layout) > 0 {
 		ApplyLayoutOverrides(&graph, editorOv.Layout)
+	} else {
+		// Холодный старт: ручной раскладки нет — раскладываем схему алгоритмом.
+		if err := ApplyLayout(&graph); err != nil {
+			log.Fatalf("apply layout: %v", err)
+		}
 	}
 
 	// Финальный проход: подгонка формы колец, проекция станций на форму и
