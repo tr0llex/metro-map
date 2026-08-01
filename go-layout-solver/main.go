@@ -39,14 +39,22 @@ func main() {
 		log.Fatalf("apply layout: %v", err)
 	}
 
-	// Канонические оверрайды (октосетка, формы колец/эллипса, theta для кольцевых станций)
-	// должны попадать в итоговый fullGraph.json, поэтому применяем их после layout.
-	if editorOv != nil {
-		ApplyCanonicalLayoutOverrides(&graph, editorOv)
-	}
-
 	if editorOv != nil && len(editorOv.Layout) > 0 {
 		ApplyLayoutOverrides(&graph, editorOv.Layout)
+	}
+
+	// Финальный проход: подгонка формы колец, проекция станций на форму и
+	// публикация форм в ringShapes. Обязан идти ПОСЛЕ ApplyLayoutOverrides —
+	// ручные оверрайды из редактора полностью перезаписывают layoutX/layoutY.
+	//
+	// Ручные формы колец подключаются здесь же, а не отдельным проходом до
+	// ApplyLayoutOverrides: любой проход, который расставляет координаты раньше
+	// него, гарантированно затирается — в editor_overrides.json координаты есть
+	// у всех станций схемы.
+	ringStats := ApplyRingProjection(&graph, ringShapeOverrides(editorOv))
+	for _, s := range ringStats {
+		fmt.Printf("ring line %d: %s over %d stations, rms=%.2f mean=%.2f max=%.2f\n",
+			s.LineID, s.Kind, s.Stations, s.RMS, s.MeanDev, s.MaxDev)
 	}
 
 	if err := writeGraphJSON(graph, *outPath); err != nil {
