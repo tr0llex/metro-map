@@ -1,4 +1,4 @@
-import helloKittyIcon from '../assets/kitty-metro-logo.svg'
+import appLogo from '../assets/metro-logo.svg'
 
 export type InstallGuidePlatform = 'ios' | 'android' | 'desktop' | 'unknown'
 
@@ -60,7 +60,7 @@ export function InstallGuideCard({ platform, onClose }: InstallGuideCardProps) {
       <div className="install-guide-header">
         <div className="install-guide-logo">
           <img
-            src={helloKittyIcon}
+            src={appLogo}
             alt="Иконка схемы метро"
             className="install-guide-logo-img"
           />

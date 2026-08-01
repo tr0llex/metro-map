@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "preview:editor": "vite preview --outDir dist-editor --port 4174",
     "test": "vitest",
-    "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/kitty-metro-icon-maskable.svg",
+    "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/metro-icon-maskable.svg",
     "build:data": "cd go-layout-solver && go run . -csv ../new_map_source/metro.ru.csv -connections ../new_map_source/connections.json -yandex ../normalized/yandex_coords.json -editor_overrides ../normalized/editor_overrides.json -out ../normalized/fullGraph.json",
     "extract:yandex": "tsx scripts/extract_yandex_coords.ts",
     "quality": "tsx scripts/quality/analyze.ts",

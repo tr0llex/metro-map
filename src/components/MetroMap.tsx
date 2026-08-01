@@ -127,7 +127,7 @@ const fitScaleFor = (
   return Math.min(width / w, height / h)
 }
 
-// Визуальные константы схемы под светлый стеклянный/Hello Kitty UI
+// Визуальные константы схемы под светлый стеклянный UI
 const BASE_LINE_WIDTH = 6.4
 const BASE_RING_LINE_WIDTH = 6.4
 const BASE_LINE_ALPHA_NO_ROUTE = 1

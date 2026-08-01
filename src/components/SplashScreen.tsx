@@ -1,5 +1,5 @@
 import type { KeyboardEvent, TransitionEvent } from 'react'
-import helloKittyIcon from '../assets/kitty-metro-logo.svg'
+import appLogo from '../assets/metro-logo.svg'
 
 interface SplashScreenProps {
   isDone: boolean
@@ -81,18 +81,14 @@ export function SplashScreen({ isDone, onDone, onHidden }: SplashScreenProps) {
         <div className="app-splash-hero">
           <div className="app-splash-hero-avatar" aria-hidden="true">
             <div className="app-splash-hero-avatar-ring" />
-            <img src={helloKittyIcon} alt="Hello Kitty" className="app-splash-logo-img" />
+            <img src={appLogo} alt="Метро Москвы" className="app-splash-logo-img" />
           </div>
         </div>
         <h1 className="app-splash-title">Метро Москвы</h1>
         <p className="app-splash-subtitle">
-          <span className="app-splash-hello">Hello Kitty</span>
+          <span className="app-splash-hello">схема и маршруты</span>
         </p>
-        {/* VQA-12: раньше здесь публиковался личный e-mail автора
-            («by alex@samoy.love»). Перед публичным релизом заменено на
-            нейтральную подпись — вернуть прежний вариант можно правкой
-            одной этой строки. */}
-        <p className="app-splash-credits">сделано с любовью</p>
+        <p className="app-splash-credits">by alex@samoy.love</p>
       </div>
     </div>
   )
