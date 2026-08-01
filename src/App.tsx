@@ -53,6 +53,9 @@ const useEditor = EDITOR_ENABLED ? useEditorController : useNoopEditorController
 // Максимальное время ожидания готовности карты, после которого UI показывается принудительно.
 const MAP_READY_FALLBACK_MS = 3500
 
+/** Признак того, что ожидающее обновление уже применялось в этой вкладке — защита от петли перезагрузок. */
+const SW_COLD_START_APPLIED_KEY = 'kitty-metro-sw-cold-start-applied'
+
 // Минимальная длительность заставки. Держим её короткой: заставка — это «привет»,
 // а не загрузочный экран, реальную готовность карты сторожит MAP_READY_FALLBACK_MS.
 const SPLASH_MIN_DURATION_MS = 1200
@@ -579,6 +582,32 @@ function App() {
       swRegistrationRef.current = swRegistration
       console.log('SW registered', swRegistration)
       checkForSwUpdate()
+
+      // Самолечение на холодном старте.
+      //
+      // registerType: 'prompt' означает, что новая версия ждёт явного согласия
+      // пользователя. Это правильно ПОСРЕДИ сессии: смена версии на лету может
+      // дать 404 на уже загруженных lazy-чанках. Но если по какой-то причине
+      // подтвердить обновление не удаётся (баннер перекрыт, не нажимается,
+      // пользователь его закрыл), приложение застревает на старой версии
+      // навсегда — обычная перезагрузка идёт через service worker и снова
+      // отдаёт закэшированное.
+      //
+      // Поэтому: если обновление УЖЕ ждало на момент регистрации, значит это
+      // свежая загрузка страницы, ломать нечего — применяем молча. Спрашиваем
+      // только про обновления, найденные во время работы.
+      //
+      // sessionStorage-флаг защищает от петли перезагрузок, если активация
+      // почему-то не доводится до конца.
+      if (!swRegistration?.waiting) return
+      try {
+        if (window.sessionStorage.getItem(SW_COLD_START_APPLIED_KEY) === '1') return
+        window.sessionStorage.setItem(SW_COLD_START_APPLIED_KEY, '1')
+      } catch {
+        return
+      }
+      console.log('SW: применяю ожидающее обновление на холодном старте')
+      void updateServiceWorker(true)
     },
     onRegisterError(error: unknown) {
       console.log('SW registration error', error)
