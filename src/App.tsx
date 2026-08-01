@@ -93,9 +93,9 @@ const ONBOARDING_HINT_STORAGE_KEY = 'kitty-metro-onboarding-hint-seen'
 // его можно держать выше прежних шести: нужная станция уже наверху списка.
 const SUGGESTIONS_LIMIT = 8
 
-// Сколько раз приложение открывали. Нужен карточке установки: на первом визите
-// она не показывается (см. isInstallGuideEarned).
-const VISIT_COUNT_STORAGE_KEY = 'kitty-metro-visit-count'
+// Человек уже строил маршрут хотя бы раз. Карточка установки читает этот флаг
+// на старте: до первого маршрута предлагать установку нечего (см. UX-9).
+const INSTALL_GUIDE_EARNED_KEY = 'kitty-metro-install-guide-earned'
 
 // --- Тап по станции ---------------------------------------------------------
 // Первый тап ставит «Откуда», второй — «Куда» (стандарт Яндекс.Метро и Google
@@ -557,33 +557,22 @@ function App() {
   const [isInstallGuideDelayPassed, setIsInstallGuideDelayPassed] = useState(false)
 
   /**
-   * Право карточки установки на показ. На первом визите его нет: сначала
-   * человек должен увидеть, зачем ему это приложение.
+   * Право карточки установки на показ.
+   *
+   * Считается ОДИН РАЗ на старте и в этой сессии больше не меняется. Условие:
+   * человек уже строил маршрут раньше, то есть застал пользу приложения, и
+   * пришёл снова. Флаг ставится по факту построенного маршрута, но карточка
+   * появится только на следующем запуске — иначе она накрывает свежий
+   * результат ровно в тот момент, ради которого человек всё и делал.
    */
-  const [isInstallGuideEarned, setIsInstallGuideEarned] = useState(() => {
+  const [isInstallGuideEarned] = useState(() => {
     if (typeof window === 'undefined') return false
     try {
-      const raw = window.localStorage.getItem(VISIT_COUNT_STORAGE_KEY)
-      const parsed = raw ? Number.parseInt(raw, 10) : 0
-      return Number.isFinite(parsed) && parsed >= 1
+      return window.localStorage.getItem(INSTALL_GUIDE_EARNED_KEY) === '1'
     } catch {
       return false
     }
   })
-
-  // Счётчик визитов — отдельно от права показа, чтобы первый визит не засчитал
-  // сам себя.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      const raw = window.localStorage.getItem(VISIT_COUNT_STORAGE_KEY)
-      const parsed = raw ? Number.parseInt(raw, 10) : 0
-      const next = (Number.isFinite(parsed) ? parsed : 0) + 1
-      window.localStorage.setItem(VISIT_COUNT_STORAGE_KEY, String(Math.min(next, 99)))
-    } catch {
-      // ignore
-    }
-  }, [])
 
   const handleInitialViewportReady = useCallback(() => {
     setIsMapReady(true)
@@ -1507,9 +1496,13 @@ function App() {
         return next
       })
 
-      // Маршрут построен — теперь предложение установить приложение осмысленно
-      // (UX-9). Даём право на показ, но не сразу: карточка выждет свою паузу.
-      setIsInstallGuideEarned(true)
+      // Маршрут построен — предложение установить приложение стало осмысленным.
+      // Флаг сработает на СЛЕДУЮЩЕМ запуске, чтобы не накрыть свежий результат.
+      try {
+        window.localStorage.setItem(INSTALL_GUIDE_EARNED_KEY, '1')
+      } catch {
+        // ignore
+      }
 
       // A11Y: раньше живая область говорила только «Строим маршрут…», а сам
       // результат не объявлялся вообще — незрячий пользователь после Enter
@@ -3229,15 +3222,19 @@ function App() {
                 }
                 // Подсказку показываем ПОСЛЕ проверки результата: раньше она
                 // всплывала безусловно и врала при конфликте станций.
-                const result = applyStationToField(
-                  'from',
-                  stationPickPopover.stationId,
-                  stationPickPopover.stationName,
-                )
+                // Сам вызов остаётся внутри startTransition — его отложенность
+                // тут сделана ради отзывчивости поповера на слабых телефонах.
+                const isSameStation =
+                  toStationId != null && stationPickPopover.stationId === toStationId
                 startTransition(() => {
                   setStationPickPopoverPressed('from')
+                  applyStationToField(
+                    'from',
+                    stationPickPopover.stationId,
+                    stationPickPopover.stationName,
+                  )
                 })
-                if (result === 'applied') {
+                if (!isSameStation) {
                   showStationHint('from', `Откуда: ${stationPickPopover.stationName}`)
                 } else {
                   showStationHint(
@@ -3259,15 +3256,17 @@ function App() {
                 if (import.meta.env.DEV) {
                   console.log(`[perf][popover] button=to station=${stationPickPopover.stationId}`)
                 }
-                const result = applyStationToField(
-                  'to',
-                  stationPickPopover.stationId,
-                  stationPickPopover.stationName,
-                )
+                const isSameStation =
+                  fromStationId != null && stationPickPopover.stationId === fromStationId
                 startTransition(() => {
                   setStationPickPopoverPressed('to')
+                  applyStationToField(
+                    'to',
+                    stationPickPopover.stationId,
+                    stationPickPopover.stationName,
+                  )
                 })
-                if (result === 'applied') {
+                if (!isSameStation) {
                   showStationHint('to', `Куда: ${stationPickPopover.stationName}`)
                 } else {
                   showStationHint(
