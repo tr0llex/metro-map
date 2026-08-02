@@ -21,7 +21,7 @@
   },
   "bugs": "https://github.com/tr0llex/metro-map/issues",
   "author": "Alexey Samoylov <alex@samoy.love>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
