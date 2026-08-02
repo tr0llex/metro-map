@@ -26,26 +26,18 @@ const EMPTY_STATION_TITLE_BY_ID: Map<string, string> = (() => {
 })()
 
 const EMPTY_RECORD = {} as Record<string, never>
-const EMPTY_SET: Set<string> = new Set()
-const EMPTY_ARRAY: never[] = []
 const noop = () => {}
 
 const MAP_PROPS: EditorMapProps = {
   editMode: false,
   collisionDebug: false,
   onLayoutChange: noop,
-  onCanonicalLayoutChange: noop,
   editorLayoutOverrides: EMPTY_RECORD,
   editorLayoutApplyToken: 0,
   onEditStationInspect: noop,
   stationHubOverrides: EMPTY_RECORD,
-  hiddenStationIds: EMPTY_SET,
   stationTitleOverrides: EMPTY_RECORD,
-  extraStations: EMPTY_ARRAY,
-  hubRotateCommand: null,
-  hubMirrorCommand: null,
   editorFocusCommand: null,
-  onEditSelectionChange: noop,
 }
 
 const CONTROLLER: EditorController = {

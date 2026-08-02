@@ -30,7 +30,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
             fullGraphLines={fullGraphLines}
             fullGraphEdges={fullGraphEdges}
             stationOverrides={editor.stationOverrides}
-            manualStations={editor.manualStations}
             manualEdges={editor.manualEdges}
             stationById={editor.stationById}
             lineByNumericId={editor.lineByNumericId}
@@ -45,7 +44,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
             canRedo={editor.canRedo}
             onChangeStationTitle={editor.changeStationTitle}
             onChangeStationLine={editor.changeStationLine}
-            onDeleteManualStation={editor.deleteManualStation}
             onToggleEdgeTransfer={editor.toggleEdgeTransfer}
             onChangeEdgeMinutes={editor.changeEdgeMinutes}
             onToggleEdgeDisabled={editor.toggleEdgeDisabled}
