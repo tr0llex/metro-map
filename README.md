@@ -138,7 +138,7 @@ No licence is granted for reuse. The code is public to be read.
 
 ## Part of samoy.love
 
-`samoylove` reads as the owner's surname, Samoylov. Neighbouring sites on the same host:
+`samoy.love` reads as the owner's surname, Samoylov. Neighbouring sites on the same host:
 [samoy.love](https://samoy.love) · [snakes.samoy.love](https://snakes.samoy.love) ·
 [launcher.samoy.love](https://launcher.samoy.love) · [status.samoy.love](https://status.samoy.love)
 
