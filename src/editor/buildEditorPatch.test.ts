@@ -370,6 +370,26 @@ describe('связь, созданная в редакторе', () => {
     ])
   })
 
+  /**
+   * СТОРОЖ БАГА. «Удалить» на только что заведённой связи ставило ей
+   * `disabled`, а пересадка всё равно уезжала в transfers.json: ручные связи
+   * разбираются до edgeOverrides и на отметку не смотрели. Снаружи это
+   * выглядело как пересадка, появившаяся сама по себе.
+   */
+  it('удалённая до сохранения в файл не уезжает', () => {
+    const { a, b } = crossLine()
+    const result = build({
+      manualEdges: manualEdge(a.id, b.id, 180),
+      edgeOverrides: { [edgeKey(a.id, b.id)]: { disabled: true } },
+    })
+
+    expect(result.patch.transfers).toBeUndefined()
+    expect(result.counts.transfers).toBe(0)
+    expect(hasSavableChanges(result)).toBe(false)
+    // Жаловаться не на что: связи ещё нет в файлах, терять нечего.
+    expect(result.unsupported).toEqual([])
+  })
+
   /** Иначе одна и та же пересадка уехала бы в файл дважды. */
   it('уже существующая связь не дублируется', () => {
     const existing = fullGraphEdges.find((e) => e.isTransfer)!

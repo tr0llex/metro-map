@@ -164,6 +164,14 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
       continue
     }
 
+    if (edgeOverrides[key]?.disabled) {
+      // «Удалить» на только что заведённой связи. Для связи из графа это
+      // проверка маршрута, которую сохранить нельзя, — а эту сохранять просто
+      // нечего: её ещё нет в файлах. Раньше она уезжала в transfers.json
+      // вопреки нажатой кнопке, и пересадка появлялась «сама».
+      continue
+    }
+
     const lineA = lineOf(edge.fromStationId)
     const lineB = lineOf(edge.toStationId)
 
