@@ -77,7 +77,9 @@ else
   # не проверить, а попиксельная сверка ловит ровно то, что видит человек.
   # При публикации не запускаем: там эталон и обновляется.
   echo "==> сравнение с эталоном docs/visual-qa"
-  ( cd "$REPO_ROOT" && node tools/visual-qa/compare.mjs "$OUT_DIR" ) || QA_DIFF=1
+  # Путь передаём ОТНОСИТЕЛЬНЫЙ: под Git Bash $OUT_DIR выглядит как
+  # /c/Users/..., и node под Windows такой путь не открывает.
+  ( cd "$REPO_ROOT" && node tools/visual-qa/compare.mjs "${OUT_DIR##*/}" ) || QA_DIFF=1
 fi
 
 echo "==> Готово. Скриншоты и report.json: $OUT_DIR"

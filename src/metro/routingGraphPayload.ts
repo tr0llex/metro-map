@@ -1,4 +1,4 @@
-import type { FullGraphEdge } from './types'
+import type { FullGraphEdge } from './types.ts'
 
 /**
  * Компактное представление графа ТОЛЬКО для поиска маршрутов.

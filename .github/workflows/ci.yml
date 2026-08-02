@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - name: Install dependencies
@@ -71,11 +71,11 @@ jobs:
     # Пороги FAIL/WARN при этом остаются как есть и продолжают печататься в
     # отчёте — они описывают цель, а не текущее состояние.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - name: Install dependencies
