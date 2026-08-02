@@ -782,15 +782,17 @@ function App() {
       return 'handled'
     }
 
+    // Подтверждения успеха здесь нет — по той же причине, что и в поповере
+    // (см. handleStationPickPopoverPick): станция сразу видна в поле и в шапке
+    // над картой, а всплывашка вдобавок закрывала собой ту самую станцию, по
+    // которой только что попали. Всплывашка остаётся только на ОТКАЗ.
     if (!fromId) {
       applyStationToField('from', stationId, stationName)
-      showStationHint('from', `Откуда: ${stationName}`, at)
       return 'handled'
     }
 
     if (!toId) {
       applyStationToField('to', stationId, stationName)
-      showStationHint('to', `Куда: ${stationName}`, at)
       return 'handled'
     }
 
@@ -1219,9 +1221,12 @@ function App() {
 
                 {showOnboardingHint && (
                   <div className="onboarding-hint" role="note">
+                    {/* Подсказка лежит поверх карты и закрывает её — поэтому в ней
+                        остаётся только то, что нельзя узнать иначе. Разбор случая
+                        «оба поля заняты» убран: там и так появляется поповер с
+                        выбором, он объясняет себя сам и ровно тогда, когда нужно. */}
                     <span className="onboarding-hint-text">
-                      Первый тап по станции — «Откуда», второй — «Куда». Когда оба поля заняты, тап
-                      спросит, что заменить. Долгое нажатие даёт выбор поля всегда.
+                      Тап по станции — «Откуда», второй — «Куда». Долгий тап — выбор поля.
                     </span>
                     <button
                       type="button"
