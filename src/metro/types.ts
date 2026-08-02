@@ -151,3 +151,27 @@ export interface StationLayoutParams {
   gridPos?: { gx: number; gy: number };
   theta?: number;
 }
+
+/**
+ * Станция в том виде, в каком её принимает раскладка: только то, что влияет
+ * на положение и подпись.
+ */
+export interface LayoutStation {
+  id: string;
+  title: string;
+  lineId: number | null;
+  hubId?: string;
+}
+
+/**
+ * Станция с координатами схемы и цветом линии — ровно то, что рисует MetroMap.
+ *
+ * Координаты приходят готовыми из `normalized/fullGraph.json`: их расставляет
+ * оффлайн-солвер, а рантайм не пересчитывает. Иначе узлы, снапнутые солвером
+ * в одну точку, разъезжались бы на экране.
+ */
+export interface PositionedStation extends LayoutStation {
+  x: number;
+  y: number;
+  lineColor: string;
+}

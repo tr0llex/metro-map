@@ -5,10 +5,8 @@ import {
   fullGraphEdges,
   fullGraphRingShapes,
 } from '../metro/fullGraph'
-import type { PositionedStation, LayoutStation } from '../metro/layoutEngine'
-import { computeLayout } from '../metro/layoutEngine'
 import { lineStationPairs } from '../metro/lineSegments'
-import type { FullGraphStation } from '../metro/types'
+import type { FullGraphStation, PositionedStation } from '../metro/types'
 import {
   LABEL_NODE_RADIUS_HUB,
   LABEL_NODE_RADIUS_STATION,
@@ -932,20 +930,39 @@ export const MetroMap = memo(function MetroMap({
       for (const sid of line.stationIds) usedStationIds.add(sid)
     }
 
-    const hasPrecomputed = fullGraphStations.some(
-      (s) => s.lineNumericId != null && typeof s.layoutX === 'number' && typeof s.layoutY === 'number',
-    )
+    const lineColorById = new Map<number, string>()
+    for (const line of fullGraphLines) {
+      lineColorById.set(line.id, line.colorHex)
+    }
 
-    if (hasPrecomputed) {
-      const lineColorById = new Map<number, string>()
-      for (const line of fullGraphLines) {
-        lineColorById.set(line.id, line.colorHex)
-      }
+    const base: PositionedStation[] = []
+    for (const s of fullGraphStations) {
+      if (s.lineNumericId == null) continue
+      if (!usedStationIds.has(s.id)) continue
+      if (typeof s.layoutX !== 'number' || typeof s.layoutY !== 'number') continue
+      if (hidden && hidden.has(s.id)) continue
 
-      const base: PositionedStation[] = []
-      for (const s of fullGraphStations) {
+      const color = lineColorById.get(s.lineNumericId) ?? '#000000'
+      const override = stationHubOverrides?.[s.id]
+      let hubId = s.hubId
+      if (override === null) hubId = undefined
+      else if (override !== undefined) hubId = override
+      const titleOverride = stationTitleOverrides?.[s.id]
+      const title = titleOverride && titleOverride.trim().length > 0 ? titleOverride : s.title
+      base.push({
+        id: s.id,
+        title,
+        lineId: s.lineNumericId,
+        hubId,
+        x: s.layoutX,
+        y: s.layoutY,
+        lineColor: color,
+      })
+    }
+
+    if (extraStations && extraStations.length > 0) {
+      for (const s of extraStations) {
         if (s.lineNumericId == null) continue
-        if (!usedStationIds.has(s.id)) continue
         if (typeof s.layoutX !== 'number' || typeof s.layoutY !== 'number') continue
         if (hidden && hidden.has(s.id)) continue
 
@@ -966,88 +983,24 @@ export const MetroMap = memo(function MetroMap({
           lineColor: color,
         })
       }
-
-      if (extraStations && extraStations.length > 0) {
-        for (const s of extraStations) {
-          if (s.lineNumericId == null) continue
-          if (typeof s.layoutX !== 'number' || typeof s.layoutY !== 'number') continue
-          if (hidden && hidden.has(s.id)) continue
-
-          const color = lineColorById.get(s.lineNumericId) ?? '#000000'
-          const override = stationHubOverrides?.[s.id]
-          let hubId = s.hubId
-          if (override === null) hubId = undefined
-          else if (override !== undefined) hubId = override
-          const titleOverride = stationTitleOverrides?.[s.id]
-          const title = titleOverride && titleOverride.trim().length > 0 ? titleOverride : s.title
-          base.push({
-            id: s.id,
-            title,
-            lineId: s.lineNumericId,
-            hubId,
-            x: s.layoutX,
-            y: s.layoutY,
-            lineColor: color,
-          })
-        }
-      }
-
-      // Применяем оверрайды из редактора, если они есть
-      const overrideEntries = Object.entries(stationOverrides)
-      const overridesMap = new Map<string, { x: number; y: number }>(overrideEntries)
-
-      const withOverrides =
-        overrideEntries.length === 0
-          ? base
-          : base.map((st) => {
-              const ov = overridesMap.get(st.id)
-              return ov ? { ...st, x: ov.x, y: ov.y } : st
-            })
-
-      // Никакой проекции станций на форму кольца: координаты из данных —
-      // это ровно то, что видит пользователь. Проекцию делает оффлайн-солвер,
-      // иначе хабы, снапнутые в одну точку, разъезжаются на экране.
-      return withOverrides
     }
 
-    // Теоретический fallback: если по какой-то причине нет layoutX/layoutY —
-    // используем computeLayout. Сейчас, после оффлайн-пайплайна, этот путь
-    // не должен использоваться.
-    const layoutStations: LayoutStation[] = fullGraphStations
-      .filter((s) => s.lineNumericId != null && !(hidden && hidden.has(s.id)))
-      .map((s) => {
-        const override = stationHubOverrides?.[s.id]
-        let hubId = s.hubId
-        if (override === null) hubId = undefined
-        else if (override !== undefined) hubId = override
-        const titleOverride = stationTitleOverrides?.[s.id]
-        const title = titleOverride && titleOverride.trim().length > 0 ? titleOverride : s.title
-        return { id: s.id, title, lineId: s.lineNumericId, hubId }
-      })
-
-    if (extraStations && extraStations.length > 0) {
-      for (const s of extraStations) {
-        if (s.lineNumericId == null) continue
-        if (hidden && hidden.has(s.id)) continue
-        const override = stationHubOverrides?.[s.id]
-        let hubId = s.hubId
-        if (override === null) hubId = undefined
-        else if (override !== undefined) hubId = override
-        const titleOverride = stationTitleOverrides?.[s.id]
-        const title = titleOverride && titleOverride.trim().length > 0 ? titleOverride : s.title
-        layoutStations.push({ id: s.id, title, lineId: s.lineNumericId, hubId })
-      }
-    }
-    const base = computeLayout(fullGraphLines, layoutStations)
-
+    // Применяем оверрайды из редактора, если они есть
     const overrideEntries = Object.entries(stationOverrides)
-    if (overrideEntries.length === 0) return base
-
     const overridesMap = new Map<string, { x: number; y: number }>(overrideEntries)
-    return base.map((st) => {
-      const ov = overridesMap.get(st.id)
-      return ov ? { ...st, x: ov.x, y: ov.y } : st
-    })
+
+    const withOverrides =
+      overrideEntries.length === 0
+        ? base
+        : base.map((st) => {
+            const ov = overridesMap.get(st.id)
+            return ov ? { ...st, x: ov.x, y: ov.y } : st
+          })
+
+    // Никакой проекции станций на форму кольца: координаты из данных —
+    // это ровно то, что видит пользователь. Проекцию делает оффлайн-солвер,
+    // иначе хабы, снапнутые в одну точку, разъезжаются на экране.
+    return withOverrides
   }, [stationOverrides, stationHubOverrides, hiddenStationIds, stationTitleOverrides, extraStations])
 
   const positionedById = useMemo(() => {
