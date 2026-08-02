@@ -21,7 +21,6 @@ interface HubEditorPanelProps {
   fullGraphLines: FullGraphLine[]
   fullGraphEdges: FullGraphEdge[]
   stationOverrides: Record<string, StationOverrideLite>
-  manualStations: Record<string, FullGraphStation>
   manualEdges: Record<string, FullGraphEdge>
   stationById: Map<string, FullGraphStation>
   lineByNumericId: Map<number, FullGraphLine>
@@ -36,7 +35,6 @@ interface HubEditorPanelProps {
   canRedo: boolean
   onChangeStationTitle: (stationId: string, newTitle: string) => void
   onChangeStationLine: (stationId: string, value: string) => void
-  onDeleteManualStation: (stationId: string) => void
   onToggleEdgeTransfer: (edge: FullGraphEdge) => void
   onChangeEdgeMinutes: (edge: FullGraphEdge, minutesStr: string) => void
   onToggleEdgeDisabled: (edge: FullGraphEdge) => void
@@ -58,7 +56,6 @@ export function HubEditorPanel({
   fullGraphLines,
   fullGraphEdges,
   stationOverrides,
-  manualStations,
   manualEdges,
   stationById,
   lineByNumericId,
@@ -73,7 +70,6 @@ export function HubEditorPanel({
   canRedo,
   onChangeStationTitle,
   onChangeStationLine,
-  onDeleteManualStation,
   onToggleEdgeTransfer,
   onChangeEdgeMinutes,
   onToggleEdgeDisabled,
@@ -206,17 +202,6 @@ export function HubEditorPanel({
                   ))}
                 </select>
               </div>
-              {manualStations[inspectedStation.id] && (
-                <div className="hub-editor-field">
-                  <button
-                    type="button"
-                    className="hub-editor-hub-remove-station"
-                    onClick={() => onDeleteManualStation(inspectedStation.id)}
-                  >
-                    Удалить эту станцию
-                  </button>
-                </div>
-              )}
               <div className="hub-editor-field">
                 <button
                   type="button"
