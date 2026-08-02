@@ -74,9 +74,18 @@ export function integrityMetrics(model: RenderModel): MetricResult[] {
   // проверки.
 
   // --- 3. Рёбра-пересадки без общего хаба ---
+  //
+  // `out_of_station` сюда НЕ входит. Это выход в город, и он не сливается в
+  // узел по определению — так устроен и загрузчик данных (см. buildTransfers
+  // в go-layout-solver/graph.go). Пока такие рёбра считались, метрика штрафовала
+  // за корректные данные: после сверки с официальной схемой наземных пересадок
+  // на МЦК стало 17 вместо прежних (ошибочных) шести, и порог, откалиброванный
+  // на неполных данных, тут же дал WARN. Настоящий дефект — это переход,
+  // который ДОЛЖЕН читаться одним значком, но нарисован двумя.
   const noHubTransfers: Offender[] = []
   for (const e of graph.edges) {
     if (!e.isTransfer) continue
+    if (e.transferKind === 'out_of_station') continue
     const a = byId.get(e.fromStationId)
     const b = byId.get(e.toStationId)
     if (!a || !b) continue
@@ -96,11 +105,11 @@ export function integrityMetrics(model: RenderModel): MetricResult[] {
       name: 'Пересадки вне хабов',
       unit: 'шт',
       value: noHubTransfers.length,
-      target: 8,
-      fail: 20,
+      target: 0,
+      fail: 4,
       direction: 'lower',
       description:
-        'Рёбра-пересадки, концы которых не в одном хабе, рисуются розовым пунктиром через всю схему. Немного таких (реальные «выход в город») допустимо, много — визуальный шум.',
+        'Переход (не «выход в город»), концы которого не попали в один узел: на схеме он рисуется пунктиром через всю картинку вместо единого значка пересадки. Уличные переходы `out_of_station` сюда не считаются — они пунктирные по замыслу.',
       offenders: noHubTransfers,
     }),
   )

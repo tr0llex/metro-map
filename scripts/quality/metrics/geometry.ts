@@ -233,9 +233,13 @@ export function geometryMetrics(model: RenderModel): MetricResult[] {
   // --- 5. Острые изломы линий ---
   const sharpTurns: Offender[] = []
   for (const line of model.graph.lines) {
-    const ids = line.stationIds.filter((id) => model.byId.has(id))
-    if (ids.length < 3) continue
     if (RING_LINE_IDS.has(line.id)) continue
+    // Обход по сегментам, как в ритме станций: по плоскому stationIds конец
+    // основного хода оказывался «соседом» первой станции ветки, и у Филёвской
+    // из этого получался излом, которого на схеме нет.
+    for (const segment of line.segments?.length ? line.segments : [line.stationIds]) {
+    const ids = segment.filter((id) => model.byId.has(id))
+    if (ids.length < 3) continue
     for (let i = 1; i < ids.length - 1; i += 1) {
       const p = model.byId.get(ids[i - 1])!
       const c = model.byId.get(ids[i])!
@@ -252,6 +256,7 @@ export function geometryMetrics(model: RenderModel): MetricResult[] {
         value: 90 - deg,
         detail: `угол ${deg.toFixed(0)}° на линии «${line.title}» — линия складывается сама на себя`,
       })
+    }
     }
   }
   out.push(
