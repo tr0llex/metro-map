@@ -277,6 +277,13 @@ export function useBottomSheet(options: BottomSheetOptions): BottomSheetState {
     const onTouchMove = (event: globalThis.TouchEvent) => {
       if (sheetTouchStartYRef.current == null) return
       if (sheetGestureAxisRef.current !== 'y') return
+      // Гонку с прокруткой мы уже проиграли: браузер начал скроллить и снял
+      // cancelable. Отменять нечего, а вызов preventDefault() на таком событии
+      // Chrome печатает в консоль как [Intervention] — по строке на каждый
+      // кадр движения пальца. Настоящее решение — не отдавать жест скроллеру
+      // вообще (touch-action: none на ручке), а этот выход нужен для случаев,
+      // где перехватить не удалось: молча уступаем прокрутке.
+      if (!event.cancelable) return
       event.preventDefault()
     }
 
@@ -404,8 +411,21 @@ export function useBottomSheet(options: BottomSheetOptions): BottomSheetState {
     if (sheetMaxOffsetPxRef.current <= 0) return
 
     stopSheetSpring()
+
+    // Ручка — единственное место, где касание не может значить ничего, кроме
+    // перетаскивания шторки. Она при этом <button>, и общее правило «касание
+    // началось на кнопке» поднимало ей порог распознавания с 6px до 12px:
+    // ровно наоборот тому, что нужно. Хуже того, порог — это ожидание, а ждать
+    // здесь нечего и нечем: пока копятся 12px, прокрутка успевает начаться и
+    // становится неотменяемой (см. touch-action на .bottom-sheet-handle).
+    // Поэтому на ручке ось известна сразу, без порога.
+    const startedOnHandle =
+      event.target instanceof Element && Boolean(event.target.closest('.bottom-sheet-handle'))
+
     sheetTouchStartedOnButtonRef.current =
-      event.target instanceof Element && Boolean(event.target.closest('button, [role="button"]'))
+      !startedOnHandle &&
+      event.target instanceof Element &&
+      Boolean(event.target.closest('button, [role="button"]'))
     sheetTouchStartedInSmartSuggestionsRef.current =
       event.target instanceof Element &&
       Boolean(
@@ -418,7 +438,7 @@ export function useBottomSheet(options: BottomSheetOptions): BottomSheetState {
     sheetTouchLastYRef.current = touch.screenY
     sheetTouchStartXRef.current = touch.screenX
     sheetTouchLastXRef.current = touch.screenX
-    sheetGestureAxisRef.current = 'pending'
+    sheetGestureAxisRef.current = startedOnHandle ? 'y' : 'pending'
     sheetDeferredRecomputeRef.current = false
     sheetDragStartProgressRef.current = sheetProgressRef.current
 
