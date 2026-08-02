@@ -54,16 +54,27 @@
   }
 }
 
-/* Дизайн-8. Тумблер был самым громким элементом интерфейса: активный сегмент
-   — залитый акцентом круг с розовым свечением, буквально самый яркий пиксель
-   экрана в тёмной теме. Настройка, к которой обращаются раз за всё время,
-   не должна спорить со схемой и маршрутом. Контейнер отдаём нейтральному
-   стеклу без цветного свечения. */
+/* Одна кнопка вместо ряда из трёх сегментов.
+ *
+ * Прежде здесь была плашка ≈140×48 с тремя вариантами: настройка, к которой
+ * обращаются раз за всё время, занимала треть верхней кромки и была вторым по
+ * заметности объектом экрана после схемы. Осталась одна цель нажатия — 36×36
+ * видимых, 44×44 по площади нажатия за счёт невидимого ореола ::after.
+ *
+ * Ореолы соседей больше не могут перекрыться: сосед всего один — кнопки зума,
+ * и они на другом рельсе. Раньше три ореола по 44px в ряд наезжали друг на
+ * друга, и промах у границы молча включал не ту тему.
+ *
+ * Стекло нейтральное, без цветного свечения: настройка не должна спорить со
+ * схемой и маршрутом (Дизайн-8). */
 .theme-toggle {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-05);
-  padding: var(--space-05);
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
   border-radius: var(--radius-pill);
   border: 1px solid rgba(var(--rgb-border-slate), 0.35);
   background: rgba(var(--rgb-card), 0.9);
@@ -72,54 +83,28 @@
   backdrop-filter: blur(var(--blur-glass-soft, 18px));
   -webkit-backdrop-filter: blur(var(--blur-glass-soft, 18px));
   box-shadow: var(--shadow-raised);
-  pointer-events: auto;
-}
-
-/* A11Y-5 / Дизайн. Требование 44×44 к тач-цели прежде выполнялось буквально:
-   три квадрата по 2.75rem давали плашку шириной ≈140px и высотой 48px —
-   переключатель темы становился вторым по заметности объектом экрана после
-   схемы, хотя к нему обращаются один раз за всё время.
-
-   Видимая часть уменьшена до 2rem, а площадь нажатия добрана невидимым
-   ореолом ::after — тем же приёмом, что уже применён к другим мелким
-   кнопкам проекта. По вертикали ореол даёт полные 44px. По горизонтали он
-   ровно стыкует соседние кнопки (ширина = кнопка + зазор), а не наезжает на
-   них: ореолы шириной 44px у трёх кнопок в ряд перекрывались бы по 5px с
-   каждой стороны, и попадание у границы уходило бы не в ту тему — молчаливая
-   смена темы вместо промаха хуже промаха. Итоговая цель — 34×44 CSS-px,
-   вчетверо больше минимума WCAG 2.5.8 (24×24). */
-.theme-toggle-option {
-  position: relative;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--color-text-secondary);
   cursor: pointer;
+  pointer-events: auto;
   transition:
-    background-color 160ms ease-out,
-    color 160ms ease-out;
+    background-color 160ms var(--ease-out-soft, ease-out),
+    color 160ms var(--ease-out-soft, ease-out),
+    transform 160ms var(--ease-out-soft, ease-out);
 }
 
-/* Невидимый ореол: кнопка рисуется на 32px, нажимается на 34×44. Ореол не
-   перехватывает жесты у схемы — родительский .theme-toggle-dock отдаёт
-   pointer-events только самому тумблеру. */
-.theme-toggle-option::after {
+/* Невидимый ореол до полных 44×44. Жесты у схемы он не перехватывает:
+   родительский .theme-toggle-dock отдаёт pointer-events только кнопке. */
+.theme-toggle::after {
   content: '';
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(100% + var(--space-05));
+  width: 44px;
   height: 44px;
   transform: translate(-50%, -50%);
 }
 
-.theme-toggle-option svg {
+.theme-toggle svg {
   width: 1.05rem;
   height: 1.05rem;
   fill: none;
@@ -129,29 +114,24 @@
   stroke-linejoin: round;
 }
 
-/* Тёмная тема рисуется заливкой: полумесяц с обводкой читается хуже. */
-.theme-toggle-option[data-theme-option='dark'] svg path {
+/* Полумесяц рисуется заливкой: с обводкой он читается хуже. */
+.theme-toggle[data-theme-next='dark'] svg path {
   fill: currentColor;
   stroke: none;
 }
 
-.theme-toggle-option:hover {
+.theme-toggle:hover {
   color: var(--color-text-primary);
-  background: rgba(var(--rgb-border-slate), 0.16);
+  background: rgba(var(--rgb-card), 1);
 }
 
-.theme-toggle-option:focus-visible {
+.theme-toggle:active {
+  transform: scale(0.94);
+}
+
+.theme-toggle:focus-visible {
   outline: 3px solid var(--color-focus-ring);
-  outline-offset: 1px;
-}
-
-/* Выбранное состояние: мягкая нейтральная подложка и тёмная иконка вместо
-   заливки акцентом. Отличие от невыбранных держится на весе и подложке,
-   а не на яркости (Дизайн-8). */
-.theme-toggle-option[aria-pressed='true'] {
-  color: var(--color-text-primary);
-  background: rgba(var(--rgb-border-slate), 0.22);
-  box-shadow: inset 0 0 0 1px rgba(var(--rgb-border-slate), 0.35);
+  outline-offset: 2px;
 }
 
 /* Пока идёт заставка, контрол не должен «выпрыгивать» поверх неё. */
@@ -161,7 +141,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .theme-toggle-option {
+  .theme-toggle {
     transition: none;
+  }
+
+  .theme-toggle:active {
+    transform: none;
   }
 }
