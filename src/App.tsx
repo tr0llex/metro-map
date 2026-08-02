@@ -1142,6 +1142,7 @@ function App() {
               logoAlt="Метро Москвы"
               headerTitle={headerTitle}
               headerChipClassName={headerChipClassName}
+              isDesktop={isDesktop}
               onChipClick={() => {
                 setRouteSheetOpenState(true)
                 if (!trimmedFrom) {
