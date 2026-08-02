@@ -1,198 +1,197 @@
-# Moscow Metro
+# Метро Москвы
 
-English · [Русский](README.ru.md)
+Русский · [English](README.en.md)
 
 [![CI](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/tr0llex/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/metro-map)
-[![prod](https://img.shields.io/website?url=https%3A%2F%2Fmetro.samoy.love&up_message=online&up_color=2ea043&down_message=offline&label=metro.samoy.love)](https://metro.samoy.love)
+[![прод](https://img.shields.io/website?url=https%3A%2F%2Fmetro.samoy.love&up_message=online&up_color=2ea043&down_message=offline&label=metro.samoy.love)](https://metro.samoy.love)
 
-An offline-first route planner for the Moscow Metro, for anyone who needs the
-diagram underground where there is no network:
-**[metro.samoy.love](https://metro.samoy.love)** — install it once and it keeps
-working with the connection off.
+Офлайн-PWA для построения маршрутов по московскому метро — для тех, кому схема
+нужна под землёй, где сети нет:
+**[metro.samoy.love](https://metro.samoy.love)**, поставил один раз и дальше
+работает с выключенным соединением.
 
-Every metro app can find you a route. Few of them draw the diagram well. A metro
-diagram is not a map: it is a deliberate lie about geography, told so that
-someone standing on a platform can read it in three seconds. The rules of that
-lie are old and specific — lines run at multiples of 45°, rings stay smooth, the
-stations of one interchange merge into a single node, and every label has to be
-readable without covering anything else. Here those rules are the product;
-routing is the easy half.
+Маршрут построит любое приложение метро. Хорошо нарисовать схему — почти
+никакое. Схема метро — не карта: это сознательная ложь о географии,
+рассказанная так, чтобы человек на платформе прочитал её за три секунды.
+Правила этой лжи давние и вполне конкретные — линии идут кратно 45°, кольца
+гладкие, станции одной пересадки сливаются в общий узел, и каждая подпись
+обязана читаться, ничего не перекрывая. Здесь эти правила и есть продукт;
+маршрутизация — простая половина.
 
-| The whole network | A route | A merged interchange |
+| Вся схема | Маршрут | Пересадочный узел |
 |---|---|---|
-| ![The whole network](docs/screenshots/overview.webp) | ![A route](docs/screenshots/route.webp) | ![A merged interchange](docs/screenshots/interchange.webp) |
+| ![Вся схема](docs/screenshots/overview.webp) | ![Маршрут](docs/screenshots/route.webp) | ![Пересадочный узел](docs/screenshots/interchange.webp) |
 
-## How it works
+## Как устроено
 
-**The geometry is solved ahead of time, in Go, because the phone should not do
-it.** [`go-layout-solver/`](go-layout-solver/) is ~3400 lines that straighten
-lines to octolinear angles, smooth the rings and push apart colliding stations
-across 304 stations, 16 lines and 386 edges. Its thresholds are derived from the
-renderer's own constants ([`separation.go`](go-layout-solver/separation.go)), so
-the optimiser measures in the same pixels the canvas paints in. The app never
-computes layout — it reads solved coordinates.
+**Геометрия решается заранее и на Go — потому что телефону это считать не
+надо.** [`go-layout-solver/`](go-layout-solver/) — около 3400 строк, которые
+выпрямляют линии до октолинейных углов, сглаживают кольца и разводят
+налезающие станции: 304 станции, 16 линий, 386 рёбер. Пороги выведены из
+констант самого рендерера
+([`separation.go`](go-layout-solver/separation.go)), поэтому оптимизатор считает
+в тех же пикселях, в которых рисует канвас. Приложение раскладку не
+пересчитывает — оно читает готовые координаты.
 
-**Label placement is a cost function, because "readable" has to be a number.**
-Overlapping labels, covered stations and crossed lines each carry an explicit
-penalty, and the ratio between them is the actual design decision; see
-[`docs/QUALITY.md`](docs/QUALITY.md). The analyser scores 25 metrics over the
-solved diagram, and the same layout code runs in two runtimes —
-[`MetroMapLabelLayout.ts`](src/components/MetroMapLabelLayout.ts) depends on
-neither DOM nor React, the text measurer is injected (`ctx.measureText` in the
-browser, a metrics table in Node). There used to be two copies required to agree
-exactly, with nothing to check that they did.
+**Раскладка подписей — функция штрафа, потому что «читаемо» должно быть
+числом.** У наложения подписей, перекрытия станции и пересечения линии свой
+явный вес, и соотношение между ними — и есть проектное решение, см.
+[`docs/QUALITY.md`](docs/QUALITY.md). Анализатор считает по решённой схеме 25
+метрик, а сам код раскладки живёт в двух рантаймах:
+[`MetroMapLabelLayout.ts`](src/components/MetroMapLabelLayout.ts) не зависит ни
+от DOM, ни от React, измеритель текста инжектится (`ctx.measureText` в браузере,
+таблица метрик в Node). Раньше было две копии, обязанные совпадать один в один,
+и проверить это было нечем.
 
-**CI checks drift, not thresholds, because a signal that is always red stops
-being a signal.** The quality analyser is deterministic and its report is
-committed; the job recomputes it and fails when it differs from the baseline. A
-deliberate change to the diagram is green as soon as the new report is committed
-alongside it; an accidental regression is not.
+**CI проверяет дрейф, а не пороги, — потому что всегда красный сигнал
+перестаёт быть сигналом.** Анализатор детерминирован, его отчёт закоммичен,
+задача пересчитывает его и падает при расхождении с базовой линией. Осознанная
+правка схемы зелёная, как только новый отчёт закоммичен рядом; случайный
+регресс — нет.
 
-**Routing runs in a worker on a 20 KB graph, because the worker is a separate
-bundle.** Importing the full graph there would have duplicated ~123 KB of JSON,
-so [`routingGraphPayload.ts`](src/metro/routingGraphPayload.ts) encodes edges
-only. The asset sits outside `assets/` on purpose: `vite-plugin-pwa` marks that
-folder `revision: null`, and a fixed-name file there would stay precached
-forever.
+**Маршруты считаются в воркере по графу в 20 КБ — потому что воркер собирается
+отдельным бандлом.** Импорт полного графа продублировал бы в сборке около
+123 КБ JSON, поэтому
+[`routingGraphPayload.ts`](src/metro/routingGraphPayload.ts) кодирует только
+рёбра. Ассет лежит вне `assets/` намеренно: `vite-plugin-pwa` помечает этот
+каталог как `revision: null`, и файл с фиксированным именем застрял бы в
+прекеше навсегда.
 
-**Updates wait for the user, because an offline app cannot be swapped under
-their feet.** No `skipWaiting`, no `clientsClaim`: with `registerType: 'prompt'`
-a new service worker waits for a confirmation, since activating it under an
-already-loaded page turns that page's lazy chunks into 404s. See
+**Обновление ждёт пользователя — потому что офлайн-приложение нельзя подменить
+у него под руками.** Ни `skipWaiting`, ни `clientsClaim`: при
+`registerType: 'prompt'` новый service worker ждёт подтверждения, ведь
+активация под уже загруженной страницей превращает её ленивые чанки в 404. См.
 [`docs/service-worker.md`](docs/service-worker.md).
 
-## Stack
+## Стек
 
-**Client** — React 19, TypeScript 6, Vite 8 and Canvas 2D; routing in a Web
-Worker, PWA and precache through `vite-plugin-pwa`. The interface is in Russian
-only.
+**Клиент** — React 19, TypeScript 6, Vite 8 и Canvas 2D; маршрутизация в Web
+Worker, PWA и precache через `vite-plugin-pwa`. Интерфейс только на русском.
 
-**Data and geometry** — a Go layout solver over `data/`, the single source of
-truth: one file per line plus `transfers.json` and `layout.json`. Station ids
-look like `1/park-kultury`.
+**Данные и геометрия** — решатель раскладки на Go поверх `data/`, единственного
+источника истины: файл на линию плюс `transfers.json` и `layout.json`.
+Идентификаторы станций выглядят как `1/park-kultury`.
 
 ```
-data/  →  go-layout-solver  →  normalized/fullGraph.json  →  app
+data/  →  go-layout-solver  →  normalized/fullGraph.json  →  приложение
 ```
 
-**Production** — static files behind the system nginx, released through
+**Прод** — статика за системным nginx, релизы через
 [deploy-kit](https://github.com/tr0llex/deploy-kit).
 
-## Quick start
+## Быстрый старт
 
 ```bash
 npm install
-npm run dev          # dev server
-npm run dev:pwa      # dev server with the service worker on
-npm run dev:editor   # schematic editor (editor.html)
+npm run dev          # дев-сервер
+npm run dev:pwa      # дев-сервер с включённым service worker
+npm run dev:editor   # редактор схемы (editor.html)
 npm run build        # tsc -b && vite build -> dist/
 ```
 
-Rebuilding the data needs Go:
+Пересборка данных требует Go:
 
 ```bash
 npm run build:data   # data/ -> normalized/fullGraph.json
-npm run quality      # layout quality report
+npm run quality      # отчёт о качестве раскладки
 ```
 
-The editor closes the loop: dragging a station and saving writes straight into
-`data/` and re-runs the solver, so a drag in the browser ends up as a diff in a
-JSON file. The write endpoint lives in a Vite plugin with `apply: 'serve'` and
-never reaches a build; a guard asserts the editor itself never reaches the
-production bundle.
+Редактор замыкает круг: станцию можно перетащить, сохранение пишет прямо в
+`data/` и заново запускает решатель — перетаскивание в браузере оборачивается
+дифом в JSON-файле. Эндпоинт записи живёт в плагине Vite с `apply: 'serve'` и в
+сборку не попадает, а сторож отдельно проверяет, что и сам редактор не попал в
+прод-бандл.
 
-Every command, the end-to-end coverage and the pre-commit checklist:
-[`docs/workflow.md`](docs/workflow.md).
+Полный список команд, что покрывают сквозные тесты и чек-лист перед коммитом —
+в [`docs/workflow.md`](docs/workflow.md).
 
-## Layout
+## Структура
 
-| Path | Purpose |
+| Путь | Назначение |
 | --- | --- |
-| `data/` | The diagram source of truth: lines, transfers, layout hints |
-| `go-layout-solver/` | The Go solver: graph, octolinear angles, ring shapes, station separation |
-| `normalized/` | Derived data: `fullGraph.json` and the committed `quality_report.json` |
-| `src/` | The app: React shell, Canvas renderer, metro model, routing |
-| `src/metro/` | Graph, routing and the compact routing payload for the worker |
-| `src/components/` | `MetroMap.tsx` (~4400 lines of canvas drawing) and the label layout |
-| `scripts/` | Guards: editor out of production, undeclared CSS variables |
-| `scripts/quality/` | The quality analyser behind `npm run quality` |
-| `scripts/editor/` | Writing editor changes back into `data/` (dev server only) |
-| `e2e/` | Playwright tests over the user's path, including offline |
-| `tools/visual-qa/` | Pixel acceptance harness (Docker + Chromium) |
-| `public/` | Icons and favicon |
-| `docs/` | Quality metrics, visual acceptance, service worker, workflow notes |
-| `.deploy-kit/` | Deployment target description |
+| `data/` | Источник истины по схеме: линии, пересадки, подсказки раскладки |
+| `go-layout-solver/` | Решатель на Go: граф, октолинейные углы, форма колец, разведение станций |
+| `normalized/` | Производные данные: `fullGraph.json` и закоммиченный `quality_report.json` |
+| `src/` | Приложение: React-оболочка, рендер на канвасе, модель метро, маршруты |
+| `src/metro/` | Граф, маршрутизация и компактная нагрузка графа для воркера |
+| `src/components/` | `MetroMap.tsx` (~4400 строк отрисовки канвасом) и раскладка подписей |
+| `scripts/` | Сторожа: редактор не в проде, необъявленные CSS-переменные |
+| `scripts/quality/` | Анализатор качества за `npm run quality` |
+| `scripts/editor/` | Запись правок редактора обратно в `data/` (только dev-сервер) |
+| `e2e/` | Playwright по пути пользователя, включая офлайн |
+| `tools/visual-qa/` | Стенд пиксельной приёмки (Docker + Chromium) |
+| `public/` | Иконки и favicon |
+| `docs/` | Метрики качества, визуальная приёмка, service worker, рабочие сценарии |
+| `.deploy-kit/` | Описание цели выкатки |
 
-The PWA manifest and the service worker name are generated by `vite-plugin-pwa`
-from the `manifest` section of `vite.config.ts` — there is no `.webmanifest` in
-`public/` and there should not be one.
+Манифест PWA и имя service worker генерируются `vite-plugin-pwa` из секции
+`manifest` в `vite.config.ts` — отдельного `.webmanifest` в `public/` нет и
+заводить его не нужно.
 
-## Tests
+## Тесты
 
-475 unit tests in 31 files (Vitest) plus 8 end-to-end tests in Playwright, and 2
-more that run against production by hand.
+475 юнит-тестов в 31 файле (Vitest) плюс 8 сквозных на Playwright и ещё 2,
+которые запускаются по проду руками.
 
 ```bash
 npx tsc -b && npm run lint && npx vitest run
-npm run e2e            # builds the project and starts preview itself
-npm run e2e:prod       # smoke against https://metro.samoy.love, not in CI
-bash tools/visual-qa/run.sh   # pixel acceptance in Docker
+npm run e2e            # сам собирает проект и поднимает preview
+npm run e2e:prod       # смоук по https://metro.samoy.love, в CI не висит
+bash tools/visual-qa/run.sh   # пиксельная приёмка в Docker
 ```
 
-CI gates the typecheck, ESLint, the CSS custom-property guard, the unit tests
-with coverage, the build, the "editor is absent from the production bundle"
-check, the end-to-end run and the quality report drift. End-to-end tests fail on
-silence too: every one of them also asserts that the browser console stayed clean
-and no request failed, because an app serving 200 with a dead routing worker
-looks alive by status code alone. Offline is covered for real — the second visit
-runs with the network cut off. Pixel acceptance
-([`docs/VISUAL_QA.md`](docs/VISUAL_QA.md)) is a local Docker step, not a CI job:
-it fails on more than 0.1% changed pixels, and a missing screenshot counts as a
-failure.
+Гейт CI: типы, ESLint, сторож CSS-переменных, юниты с покрытием, сборка,
+проверка «редактора нет в прод-бандле», сквозной прогон и дрейф отчёта о
+качестве. Сквозные тесты падают ещё и на молчании: каждый из них проверяет, что
+консоль браузера осталась чистой и ни один запрос не упал, — приложение,
+отдающее 200 с мёртвым воркером маршрутов, по коду ответа выглядит живым.
+Офлайн проверяется по-настоящему: второй заход идёт с отключённой сетью.
+Пиксельная приёмка ([`docs/VISUAL_QA.md`](docs/VISUAL_QA.md)) — локальный шаг в
+Docker, а не задача CI: она падает при расхождении больше 0.1% кадра, и
+пропавший снимок засчитывается как расхождение.
 
-## Deployment
+## Выкатка
 
 ```bash
-dk deploy metro       # deploy, the same path CI takes
+dk deploy metro       # локально, тем же путём, что и CI
 dk rollback metro
 ```
 
-The build is unpacked next to the current release, the symlink is switched
-atomically and the version is verified afterwards. The target description is
-`.deploy-kit/prod.env`; the nginx configuration and the release scripts live in
-[deploy-kit](https://github.com/tr0llex/deploy-kit). Deployment stays a
-deliberate manual step: for an installed PWA a release reaches users on the
-service worker's terms, not the pipeline's.
+Сборка раскладывается рядом с текущим релизом, симлинк переключается атомарно,
+версия сверяется после переключения. Описание цели — `.deploy-kit/prod.env`;
+конфигурация nginx и скрипты релиза — в
+[deploy-kit](https://github.com/tr0llex/deploy-kit). Выкатка намеренно остаётся
+ручным шагом: у установленного PWA релиз доходит до пользователей по правилам
+service worker, а не пайплайна.
 
-## Part of samoy.love
+## Часть samoy.love
 
-`samoy.love` reads as the owner's surname, Samoylov. One domain, one server, one
-release pipeline, one status page.
+`samoy.love` читается как фамилия владельца — Самойлов. Один домен, один
+сервер, один релизный пайплайн, одна статус-страница.
 
-| Service | What it is | Repository |
+| Сервис | Что это | Репозиторий |
 | --- | --- | --- |
-| [samoy.love](https://samoy.love) | Personal page and project showcase | [tr0llex/samoy.love](https://github.com/tr0llex/samoy.love) |
-| [metro.samoy.love](https://metro.samoy.love) | This app | [tr0llex/metro-map](https://github.com/tr0llex/metro-map) |
-| [snakes.samoy.love](https://snakes.samoy.love) | Multiplayer territory capture in the browser | [tr0llex/snakes](https://github.com/tr0llex/snakes) |
-| [launcher.samoy.love](https://launcher.samoy.love) | ChillHub, a game launcher for Windows | [tr0llex/chillhub](https://github.com/tr0llex/chillhub) |
-| [status.samoy.love](https://status.samoy.love) | Uptime, versions, incidents | [tr0llex/status.samoy.love](https://github.com/tr0llex/status.samoy.love) |
-| Monitoring | Prometheus, Grafana, traffic from nginx logs | [tr0llex/metrics.samoy.love](https://github.com/tr0llex/metrics.samoy.love) |
+| [samoy.love](https://samoy.love) | Личная страница и витрина проектов | [tr0llex/samoy.love](https://github.com/tr0llex/samoy.love) |
+| [metro.samoy.love](https://metro.samoy.love) | Это приложение | [tr0llex/metro-map](https://github.com/tr0llex/metro-map) |
+| [snakes.samoy.love](https://snakes.samoy.love) | Захват территории в браузере | [tr0llex/snakes](https://github.com/tr0llex/snakes) |
+| [launcher.samoy.love](https://launcher.samoy.love) | ChillHub, лаунчер игр для Windows | [tr0llex/chillhub](https://github.com/tr0llex/chillhub) |
+| [status.samoy.love](https://status.samoy.love) | Аптайм, версии, инциденты | [tr0llex/status.samoy.love](https://github.com/tr0llex/status.samoy.love) |
+| Мониторинг | Prometheus, Grafana, посещаемость из логов nginx | [tr0llex/metrics.samoy.love](https://github.com/tr0llex/metrics.samoy.love) |
 
-They all ship through one tool,
-[deploy-kit](https://github.com/tr0llex/deploy-kit): one target description in
-the repository, one `release.sh` on the server, one nginx configuration for
-everything.
+Все они едут одним инструментом,
+[deploy-kit](https://github.com/tr0llex/deploy-kit): одно описание цели в
+репозитории, один `release.sh` на сервере, одна конфигурация nginx на всех.
 
-## Contacts and license
+## Контакты и лицензия
 
-Alexey Samoylov — <alex@samoy.love>, [t.me/tr0llex](https://t.me/tr0llex),
-[github.com/tr0llex](https://github.com/tr0llex). Tasks live in
-[issues](https://github.com/tr0llex/metro-map/issues).
+Алексей Самойлов — <alex@samoy.love>, [t.me/tr0llex](https://t.me/tr0llex),
+[github.com/tr0llex](https://github.com/tr0llex). Задачи —
+в [issues](https://github.com/tr0llex/metro-map/issues).
 
-The code is MIT, see [LICENSE](LICENSE). Station names, line composition and
-interchange times follow the official Moscow Metro scheme; the geometry is not
-copied from it — coordinates were seeded from public reference data, then solved
-and adjusted here. The official scheme's graphic design is its authors' work:
-this project does not reproduce it, it draws its own diagram under the same
-well-known conventions.
+Код — MIT, см. [LICENSE](LICENSE). Названия станций, состав линий и времена
+пересадок соответствуют официальной схеме московского метро; геометрия с неё не
+скопирована — координаты взяты из публичных референсных данных как затравка,
+дальше решены и выправлены здесь. Графическое решение официальной схемы —
+работа её авторов: проект его не воспроизводит, а рисует собственную схему по
+тем же общеизвестным соглашениям.
