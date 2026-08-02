@@ -47,7 +47,6 @@ function setup(over: Partial<Parameters<typeof HubEditorPanel>[0]> = {}) {
     onChangeEdgeTransferKind: vi.fn(),
     onChangeEdgeMinutes: vi.fn(),
     onToggleEdgeDisabled: vi.fn(),
-    onSetNewEdgeTarget: vi.fn(),
     onSetManualEdges: vi.fn(),
     onSetInspectedStationId: vi.fn(),
     onFocusStation: vi.fn(),
@@ -74,7 +73,6 @@ function setup(over: Partial<Parameters<typeof HubEditorPanel>[0]> = {}) {
     ]),
     edgeOverrides: {},
     edgeTransferKinds: {},
-    newEdgeTarget: '',
     findExactStationByName: () => undefined,
     edgeKey,
     canUndo: false,
@@ -88,6 +86,19 @@ function setup(over: Partial<Parameters<typeof HubEditorPanel>[0]> = {}) {
 }
 
 const openConnections = () => fireEvent.click(screen.getByRole('button', { name: 'Связи' }))
+
+/**
+ * Ввести название станции в поле добавления связи.
+ *
+ * Раньше тесты передавали значение пропом `newEdgeTarget`. Поле переехало в
+ * состояние самой панели — проп молча игнорировался, поле оставалось пустым, и
+ * «Добавить» нечего было добавлять. Набираем текст так же, как человек.
+ */
+const typeNewEdgeTarget = (value: string) => {
+  fireEvent.change(screen.getByPlaceholderText('ID или название станции'), {
+    target: { value },
+  })
+}
 
 /**
  * Поля обязательно фокусируем: jsdom не шлёт blur элементу, который фокуса не
@@ -318,8 +329,9 @@ describe('тип связи', () => {
 
 describe('добавление связи', () => {
   it('несуществующая станция названа вслух, связь не создаётся', () => {
-    const { onSetManualEdges } = setup({ newEdgeTarget: 'Хогвартс' })
+    const { onSetManualEdges } = setup()
     openConnections()
+    typeNewEdgeTarget('Хогвартс')
 
     fireEvent.click(screen.getByRole('button', { name: 'Добавить' }))
 
@@ -328,8 +340,9 @@ describe('добавление связи', () => {
   })
 
   it('станцию нельзя соединить саму с собой', () => {
-    const { onSetManualEdges } = setup({ newEdgeTarget: '1/a' })
+    const { onSetManualEdges } = setup()
     openConnections()
+    typeNewEdgeTarget('1/a')
 
     fireEvent.click(screen.getByRole('button', { name: 'Добавить' }))
 
@@ -338,8 +351,9 @@ describe('добавление связи', () => {
   })
 
   it('уже существующее ребро не дублируется', () => {
-    const { onSetManualEdges } = setup({ newEdgeTarget: '1/b' })
+    const { onSetManualEdges } = setup()
     openConnections()
+    typeNewEdgeTarget('1/b')
 
     fireEvent.click(screen.getByRole('button', { name: 'Добавить' }))
 
@@ -349,8 +363,9 @@ describe('добавление связи', () => {
 
   /** Ради этого всё и делалось: пересадку между линиями иначе не добавить. */
   it('станция другой линии превращается в ручную связь', () => {
-    const { onSetManualEdges, onSetNewEdgeTarget } = setup({ newEdgeTarget: '2/a' })
+    const { onSetManualEdges } = setup()
     openConnections()
+    typeNewEdgeTarget('2/a')
 
     fireEvent.click(screen.getByRole('button', { name: 'Добавить' }))
 
@@ -367,6 +382,10 @@ describe('добавление связи', () => {
         isTransfer: false,
       },
     })
-    expect(onSetNewEdgeTarget).toHaveBeenCalledWith('')
+    // Поле очищает сама панель — коллбэка наружу больше нет, поэтому
+    // проверяем результат, а не вызов.
+    expect(
+      (screen.getByPlaceholderText('ID или название станции') as HTMLInputElement).value,
+    ).toBe('')
   })
 })
