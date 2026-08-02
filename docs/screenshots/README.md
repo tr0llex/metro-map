@@ -1,12 +1,19 @@
 # Кадры для README
 
-Плейсхолдеры. Заменить настоящими снимками:
+Настоящие снимки лежат рядом в `.webp`. Плейсхолдеры `.svg` пока остаются:
+README и `docs/README.ru.md` ссылаются на них, и удалять их можно только
+вместе с правкой этих файлов — иначе на главной странице будут битые картинки.
 
-| Файл | Что на кадре | Откуда взять |
+| Файл | Что на кадре | Источник |
 |---|---|---|
-| `overview.svg` | вся схема на малом зуме | `docs/visual-qa/desktop-20-zoomed-out.png` |
-| `route.svg` | построенный маршрут с деталями | `docs/visual-qa/desktop-08-route-built.png` |
-| `interchange.svg` | слитый узел крупным планом | `docs/visual-qa/desktop-17-hub-biblioteka.png` |
+| `overview.webp` | вся схема целиком | `docs/visual-qa/desktop-04-map-full.png` |
+| `route.webp` | построенный маршрут с деталями | `docs/visual-qa/desktop-08-route-built.png` |
+| `interchange.webp` | слитые пересадочные узлы крупным планом | `docs/visual-qa/desktop-06-map-zoom-center-deep.png` |
+
+Ждёт правки: в `README.md` и `docs/README.ru.md` заменить `overview.svg`,
+`route.svg`, `interchange.svg` на `.webp` и удалить плейсхолдеры.
+
+## Как обновить
 
 Снимки делает Playwright-харнесс в Docker:
 
@@ -14,6 +21,17 @@
 bash tools/visual-qa/run.sh
 ```
 
-Полноразмерные кадры весят по 700 КБ — для README их нужно пережать примерно
-до 1200px по ширине, иначе страница грузится секундами. Вес репозитория и так
-104 МБ, из них около 30 МБ — снимки приёмки.
+Полноразмерный кадр — 1440×900 и около 700 КБ; для README его пережимают до
+ширины 1200 в WebP. Вес репозитория и так 104 МБ, из них около 30 МБ — снимки
+приёмки, поэтому полноразмерные кадры сюда не кладут.
+
+```bash
+ffmpeg -i docs/visual-qa/<кадр>.png \
+  -vf "scale=1200:-1:flags=lanczos" \
+  -c:v libwebp -quality 96 -compression_level 6 \
+  docs/screenshots/<имя>.webp
+```
+
+WebP выбран из-за веса: PNG той же ширины весит 600 КБ, PNG с палитрой в 256
+цветов — 285 КБ и портит мягкие градиенты фона. WebP при quality 96 даёт
+87–101 КБ без видимых потерь на подписях станций. GitHub его показывает.
