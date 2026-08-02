@@ -12,7 +12,7 @@
  * НИЧЕГО НИКУДА НЕ ОТПРАВЛЯЕТСЯ. Здесь нет ни одного сетевого вызова.
  */
 
-export const ERROR_LOG_STORAGE_KEY = 'kitty-metro-error-log-v1'
+const ERROR_LOG_STORAGE_KEY = 'kitty-metro-error-log-v1'
 
 /** Больше 20 записей никто читать не станет, а место они съедят. */
 const MAX_ENTRIES = 20
@@ -24,7 +24,7 @@ const MAX_SOURCE_CHARS = 200
 /** Один и тот же сбой в цикле не должен вытеснить всю историю. */
 const DEDUPE_WINDOW_MS = 4000
 
-export type ErrorLogEntryKind = 'error' | 'promise' | 'render'
+type ErrorLogEntryKind = 'error' | 'promise' | 'render'
 
 export type ErrorLogEntry = {
   /** Момент первой записи, epoch ms. */

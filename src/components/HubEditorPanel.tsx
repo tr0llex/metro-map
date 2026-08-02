@@ -14,7 +14,7 @@ interface StationOverrideLite {
   lon?: number
 }
 
-export interface HubEditorPanelProps {
+interface HubEditorPanelProps {
   inspectedStation: FullGraphStation
   inspectedLineId: number | null
   inspectedLine: FullGraphLine | null

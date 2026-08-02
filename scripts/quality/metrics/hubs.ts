@@ -25,10 +25,10 @@ import { percentile } from '../geom.ts'
 import { makeMetric, type MetricResult, type Offender } from '../types.ts'
 
 /** Разброс станций от центра хаба, при котором группа ещё читается как один узел. */
-export const HUB_MERGE_LIMIT = HUB_STATION_RADIUS * 3
+const HUB_MERGE_LIMIT = HUB_STATION_RADIUS * 3
 
 /** Разброс, при котором хаб уже явно распадается на отдельные станции. */
-export const HUB_SPLIT_LIMIT = HUB_STATION_RADIUS * 6
+const HUB_SPLIT_LIMIT = HUB_STATION_RADIUS * 6
 
 void HUB_PIE_RADIUS
 

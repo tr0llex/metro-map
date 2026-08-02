@@ -1,4 +1,4 @@
-export type LineId = string;
+type LineId = string;
 
 export interface RouteStep {
   fromStationId: string;
@@ -48,6 +48,13 @@ export interface FullGraphStation {
   /** Схемные координаты для Canvas (px), независимые от географии */
   layoutX?: number;
   layoutY?: number;
+  /**
+   * Координаты как они заданы в `data/layout.json` — ДО проекции колец и
+   * разведения станций. Нужны только редактору: он видит уже обработанные
+   * координаты, и выгрузка их обратно скармливала бы солверу его же выход.
+   */
+  sourceX?: number;
+  sourceY?: number;
   /** Флаг пересадочного узла (есть хотя бы одна пересадка) */
   isTransfer?: boolean;
   /** ID пересадочного хаба, объединяющий несколько станций в один комплекс */
@@ -81,13 +88,14 @@ export interface EdgeOverride {
  */
 export type TransferTimeSource = 'data';
 
-export type TransferKind =
-  | 'near'
-  | 'far'
-  | 'out_of_station'
-  | 'mcc'
-  | 'mcd'
-  | 'ignored';
+/**
+ * Тип пересадки. Ровно эти четыре значения принимает загрузчик данных
+ * (`transferKinds` в go-layout-solver/graph.go) — незнакомый тип останавливает
+ * сборку. Прежде здесь были ещё 'mcd' и 'ignored': МЦД в проекте не
+ * моделируются, а 'ignored' не выставлял никто. Проверки на них в рантайме
+ * были ветками, куда нельзя попасть.
+ */
+type TransferKind = 'near' | 'far' | 'out_of_station' | 'mcc';
 
 export interface FullGraphTransferHub {
   /** Уникальный ID пересадочного узла/комплекса (например, "kievskaya-hub") */

@@ -10,7 +10,7 @@ import {
   formatTransfersForAria,
 } from '../utils/plural.ts'
 
-export type DecoratedRideSegment = {
+type DecoratedRideSegment = {
   type: 'ride'
   key: string
   fromTitle: string
@@ -20,7 +20,7 @@ export type DecoratedRideSegment = {
   travelMinutes: number
 }
 
-export type DecoratedTransferSegment = {
+type DecoratedTransferSegment = {
   type: 'transfer'
   key: string
   fromTitle: string

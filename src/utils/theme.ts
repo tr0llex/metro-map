@@ -15,9 +15,9 @@
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark'
-export type ResolvedTheme = 'light' | 'dark'
+type ResolvedTheme = 'light' | 'dark'
 
-export const THEME_STORAGE_KEY = 'kitty-metro-theme'
+const THEME_STORAGE_KEY = 'kitty-metro-theme'
 
 /** Должно совпадать с meta[name="theme-color"] в index.html. */
 const THEME_COLOR_LIGHT = '#f5f5f7'
@@ -25,7 +25,7 @@ const THEME_COLOR_DARK = '#16101c'
 
 const DARK_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
-export function isThemePreference(value: unknown): value is ThemePreference {
+function isThemePreference(value: unknown): value is ThemePreference {
   return value === 'system' || value === 'light' || value === 'dark'
 }
 
@@ -52,7 +52,7 @@ export function writeThemePreference(preference: ThemePreference): void {
   }
 }
 
-export function getSystemTheme(): ResolvedTheme {
+function getSystemTheme(): ResolvedTheme {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light'
   try {
     return window.matchMedia(DARK_MEDIA_QUERY).matches ? 'dark' : 'light'
@@ -61,7 +61,7 @@ export function getSystemTheme(): ResolvedTheme {
   }
 }
 
-export function resolveTheme(preference: ThemePreference): ResolvedTheme {
+function resolveTheme(preference: ThemePreference): ResolvedTheme {
   return preference === 'system' ? getSystemTheme() : preference
 }
 

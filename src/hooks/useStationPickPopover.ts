@@ -22,7 +22,7 @@ export type StationPickPopoverData = {
   clientPoint: { x: number; y: number; t?: number }
 }
 
-export type StationPickPopoverState = {
+type StationPickPopoverState = {
   /** Открытый поповер (null — закрыт). */
   data: StationPickPopoverData | null
   isClosing: boolean

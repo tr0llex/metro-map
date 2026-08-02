@@ -50,6 +50,17 @@ type FullGraphStation struct {
 	Lon           float64 `json:"lon,omitempty"`
 	LayoutX       float64 `json:"layoutX,omitempty"`
 	LayoutY       float64 `json:"layoutY,omitempty"`
+	// SourceX/SourceY — координаты как они лежат в data/layout.json, ДО проекции
+	// колец и разведения станций.
+	//
+	// Нужны редактору. Он видит только этот файл, то есть уже обработанные
+	// координаты, и выгружал их обратно в data/layout.json — солвер получал на
+	// вход собственный выход. Проходы итеративные, поэтому схема не сходилась, а
+	// расползалась: первый круг сдвигал станции на 6px, второй уже на 24px.
+	// Теперь редактор отдаёт исходные координаты для всех станций, кроме
+	// подвинутых руками.
+	SourceX float64 `json:"sourceX,omitempty"`
+	SourceY float64 `json:"sourceY,omitempty"`
 }
 
 type FullGraphEdge struct {
@@ -595,6 +606,8 @@ func applyLayout(file dataLayoutFile, stationByID map[string]*FullGraphStation) 
 		}
 		st.LayoutX = xy[0]
 		st.LayoutY = xy[1]
+		st.SourceX = xy[0]
+		st.SourceY = xy[1]
 	}
 
 	for id := range stationByID {

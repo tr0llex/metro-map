@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { readErrorLog, subscribeErrorLog } from '../utils/errorLog.ts'
 import type { ErrorLogEntry } from '../utils/errorLog.ts'
 
-export type ErrorLogPanelState = {
+type ErrorLogPanelState = {
   entries: ErrorLogEntry[]
   setEntries: (entries: ErrorLogEntry[]) => void
   isOpen: boolean

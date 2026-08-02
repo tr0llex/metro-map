@@ -15,7 +15,7 @@ import type { TouchEvent } from 'react'
  *
  * На десктопе шторка — обычная боковая панель: вся физика выключена.
  */
-export type BottomSheetOptions = {
+type BottomSheetOptions = {
   isDesktop: boolean
   /** Экран ошибки: тянуть шторку нечего, жест игнорируем. */
   isDragDisabled: boolean
@@ -47,7 +47,7 @@ export type BottomSheetOptions = {
   detailsRef: React.RefObject<HTMLDivElement | null>
 }
 
-export type BottomSheetState = {
+type BottomSheetState = {
   isOpen: boolean
   setOpen: (open: boolean) => void
   isSmartSuggestionsOpen: boolean

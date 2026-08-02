@@ -6,10 +6,10 @@
  * визуальными константами, что использует рантайм (src/components/MetroMap.tsx).
  */
 
-export type MetricCategory = 'integrity' | 'hubs' | 'rings' | 'geometry' | 'labels'
+type MetricCategory = 'integrity' | 'hubs' | 'rings' | 'geometry' | 'labels'
 
 /** Направление «лучше»: lower — меньше значит лучше, higher — больше значит лучше. */
-export type MetricDirection = 'lower' | 'higher'
+type MetricDirection = 'lower' | 'higher'
 
 /**
  * INFO — справочная величина: считается и печатается, но целью не является,
@@ -72,7 +72,7 @@ export interface QualityReport {
 // Формат normalized/fullGraph.json (проверено по данным, а не по документации)
 // ---------------------------------------------------------------------------
 
-export interface RawLine {
+interface RawLine {
   id: number
   title: string
   colorHex: string
@@ -94,7 +94,7 @@ export interface RawStation {
   layoutY?: number
 }
 
-export interface RawEdge {
+interface RawEdge {
   fromStationId: string
   toStationId: string
   lineNumericId?: number
@@ -103,7 +103,7 @@ export interface RawEdge {
   transferKind?: string
 }
 
-export interface RawHub {
+interface RawHub {
   id: string
   stationIds: string[]
   minTransferSeconds?: number
@@ -114,7 +114,7 @@ export interface RawHub {
  * Формы кольцевых линий, посчитанные оффлайн-солвером (ключ — ID линии строкой).
  * Поле необязательное: у данных, собранных до переноса проекции в солвер, его нет.
  */
-export type RawRingShape =
+type RawRingShape =
   | { kind: 'circle'; cx: number; cy: number; r: number }
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
 
@@ -126,10 +126,10 @@ export interface RawGraph {
   ringShapes?: Record<string, RawRingShape>
 }
 
-export const MAX_OFFENDERS = 10
+const MAX_OFFENDERS = 10
 
 /** Присвоение вердикта по значению и порогам. */
-export function verdictFor(
+function verdictFor(
   value: number,
   target: number,
   fail: number,

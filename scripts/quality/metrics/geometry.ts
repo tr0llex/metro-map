@@ -22,11 +22,11 @@ import { resolveZoneCenter } from '../labelGeom.ts'
 import { makeMetric, type MetricResult, type Offender } from '../types.ts'
 
 /** Минимальный зазор между центрами двух кружков станций, чтобы они не слиплись. */
-export const MIN_STATION_GAP = STATION_RADIUS * 2 + STATION_BORDER_WIDTH
+const MIN_STATION_GAP = STATION_RADIUS * 2 + STATION_BORDER_WIDTH
 /** Минимальный зазор от центра станции до чужой линии. */
-export const MIN_STATION_LINE_GAP = STATION_RADIUS + LINE_HALF_WIDTH + 1.5
+const MIN_STATION_LINE_GAP = STATION_RADIUS + LINE_HALF_WIDTH + 1.5
 /** Отклонение от 45° сетки, которое ещё считаем октолинейным (справочная величина). */
-export const OCTILINEAR_TOLERANCE_DEG = 5
+const OCTILINEAR_TOLERANCE_DEG = 5
 
 /**
  * Во сколько раз соседние перегоны одной линии должны различаться, чтобы место
@@ -39,7 +39,7 @@ export const OCTILINEAR_TOLERANCE_DEG = 5
  * медиана 1.29, p75 = 1.58. Отношение 2 градиентом объяснить уже нельзя: станция
  * стоит не посередине между соседями, а на трети — это локальная аномалия.
  */
-export const SPACING_JUMP_RATIO = 2
+const SPACING_JUMP_RATIO = 2
 
 /**
  * Общие пороги для «долевых» метрик однородности.
@@ -55,8 +55,8 @@ export const SPACING_JUMP_RATIO = 2
  * Пороги одинаковы для всех метрик однородности намеренно: они считают одну и ту
  * же сущность — долю мест, выбивающихся из окружения.
  */
-export const UNIFORMITY_TARGET_SHARE = 5
-export const UNIFORMITY_FAIL_SHARE = 15
+const UNIFORMITY_TARGET_SHARE = 5
+const UNIFORMITY_FAIL_SHARE = 15
 
 /**
  * Сколько ближайших соседей усредняем, оценивая «шаг схемы» вокруг станции.
@@ -64,7 +64,7 @@ export const UNIFORMITY_FAIL_SHARE = 15
  * минимум, при котором величина описывает окружение (станция + её ближайшая
  * компания), и при этом не размазывается на полсхемы.
  */
-export const DENSITY_NEIGHBOURS = 3
+const DENSITY_NEIGHBOURS = 3
 
 /**
  * Ширина скользящего окна (в станциях) по удалению от центра, по которому
@@ -72,7 +72,7 @@ export const DENSITY_NEIGHBOURS = 3
  * достаточно, чтобы медиана была устойчивой, и достаточно узко, чтобы окно
  * следовало за радиальным градиентом, а не усредняло центр с окраиной.
  */
-export const DENSITY_RADIUS_WINDOW = 41
+const DENSITY_RADIUS_WINDOW = 41
 
 /**
  * Во сколько раз плотность вокруг станции должна отличаться от обычной на этом
@@ -80,7 +80,7 @@ export const DENSITY_RADIUS_WINDOW = 41
  * Порог тот же, что у ритма, и по той же причине: радиальный градиент плавный,
  * двукратное отличие от соседей ПО РАДИУСУ градиентом объяснить нельзя.
  */
-export const DENSITY_JUMP_RATIO = 2
+const DENSITY_JUMP_RATIO = 2
 
 export function geometryMetrics(model: RenderModel): MetricResult[] {
   const out: MetricResult[] = []

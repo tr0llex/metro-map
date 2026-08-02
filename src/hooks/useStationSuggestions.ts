@@ -22,7 +22,7 @@ type StationTitleOverrides = Record<
   { title?: string; lineNumericId?: number | null } | undefined
 >
 
-export type StationSuggestionsState = {
+type StationSuggestionsState = {
   fromSuggestions: RouteSuggestionItem[]
   toSuggestions: RouteSuggestionItem[]
   /** Что показать в ПУСТОМ поле сразу по фокусу (недавние, избранные, рядом). */
