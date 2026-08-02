@@ -7,8 +7,8 @@ import {
   ROUTING_GRAPH_ASSET_PATH,
   encodeRoutingGraph,
   type RoutingGraphSource,
-} from './src/metro/routingGraphPayload'
-import { editorApiPlugin } from './scripts/editor/editorApiPlugin'
+} from './src/metro/routingGraphPayload.ts'
+import { editorApiPlugin } from './scripts/editor/editorApiPlugin.ts'
 
 /**
  * Отдаёт воркеру маршрутизации компактный граф отдельным ассетом.

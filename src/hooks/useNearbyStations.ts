@@ -141,10 +141,11 @@ export function useNearbyStations(params: {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    let shouldAutoRequest = false
+    let shouldAutoRequest: boolean
     try {
       shouldAutoRequest = window.localStorage.getItem(NEARBY_ALLOWED_KEY) === '1'
     } catch {
+      // Приватный режим: хранилище недоступно — считаем, что разрешения не было.
       shouldAutoRequest = false
     }
 

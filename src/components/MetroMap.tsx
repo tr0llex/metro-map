@@ -2516,7 +2516,6 @@ export const MetroMap = memo(function MetroMap({
               }
               const t = remaining / s.len
               ctx.lineTo(s.ax + (s.bx - s.ax) * t, s.ay + (s.by - s.ay) * t)
-              remaining = 0
               break
             }
             if (started) ctx.stroke()
