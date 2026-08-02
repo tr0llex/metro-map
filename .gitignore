@@ -46,3 +46,6 @@ go-layout-solver/metro_layout_solver
 # Рабочие каталоги агентов (скриншоты, пробники) — воспроизводятся стендом
 .fix-*
 .visual-qa
+
+# Отчёт покрытия: генерируется `vitest --coverage`, в CI уходит артефактом в Codecov.
+coverage

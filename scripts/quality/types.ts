@@ -76,7 +76,10 @@ export interface RawLine {
   id: number
   title: string
   colorHex: string
+  /** Принадлежность. Соседство по этому списку выводить нельзя — см. `segments`. */
   stationIds: string[]
+  /** Ходы линии: основной и по одному на ответвление; ветка начинается с точки отхода. */
+  segments?: string[][]
 }
 
 export interface RawStation {

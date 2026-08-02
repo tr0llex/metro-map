@@ -7,6 +7,7 @@ import {
 } from '../metro/fullGraph'
 import type { PositionedStation, LayoutStation } from '../metro/layoutEngine'
 import { computeLayout } from '../metro/layoutEngine'
+import { lineStationPairs } from '../metro/lineSegments'
 import type { FullGraphStation } from '../metro/types'
 import {
   LABEL_NODE_RADIUS_HUB,
@@ -2269,11 +2270,7 @@ export const MetroMap = memo(function MetroMap({
         }
       }
 
-      const segmentCount = isRing ? ids.length : ids.length - 1
-
-      for (let i = 0; i < segmentCount; i += 1) {
-        const aId = ids[i]
-        const bId = ids[(i + 1) % ids.length]
+      for (const [aId, bId] of lineStationPairs(line, isRing, (sid) => positionedById.has(sid))) {
         const a = positionedById.get(aId)
         const b = positionedById.get(bId)
         if (!a || !b) continue
@@ -2405,7 +2402,6 @@ export const MetroMap = memo(function MetroMap({
           const ids = line.stationIds
           if (ids.length < 2) continue
           const isRing = RING_LINE_IDS.has(line.id)
-          const segmentCount = isRing ? ids.length : ids.length - 1
 
           ctx.strokeStyle = isCasing ? routeCasingColor : line.colorHex
           ctx.lineWidth = isCasing ? routeCasingWidth : routeStrokeWidth
@@ -2416,11 +2412,10 @@ export const MetroMap = memo(function MetroMap({
 
           let inSegment = false
 
-          for (let i = 0; i < segmentCount; i += 1) {
-            const aId = ids[i]
-            const bId = ids[(i + 1) % ids.length]
-            const a = positionedById.get(aId)!
-            const b = positionedById.get(bId)!
+          for (const [aId, bId] of lineStationPairs(line, isRing)) {
+            const a = positionedById.get(aId)
+            const b = positionedById.get(bId)
+            if (!a || !b) continue
             const key = edgeKey(aId, bId)
             const inRoute = routeEdgeKeySet.has(key)
             if (inRoute) {

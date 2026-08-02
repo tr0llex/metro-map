@@ -161,24 +161,10 @@
     },
     {
       "id": "97/khoroshevskaya",
-      "title": "Хорошевская",
+      "title": "Хорошёвская",
       "lat": 55.77643,
       "lon": 37.51981,
-      "toNextSeconds": 215
-    },
-    {
-      "id": "97/shelepikha",
-      "title": "Шелепиха",
-      "lat": 55.75723,
-      "lon": 37.52571,
-      "toNextSeconds": 132
-    },
-    {
-      "id": "97/delovoy-tsentr",
-      "title": "Деловой центр",
-      "lat": 55.7491,
-      "lon": 37.5395,
-      "toNextSeconds": 427
+      "toNextSeconds": 150
     },
     {
       "id": "97/narodnoe-opolchenie",
