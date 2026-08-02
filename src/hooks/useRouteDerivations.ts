@@ -75,9 +75,13 @@ export function useRouteDerivations(params: {
     const now = new Date()
     const arrival = new Date(now.getTime() + routeResult.totalMinutes * 60 * 1000)
 
-    return arrival.toLocaleTimeString([], {
+    // Локаль задана явно, а не взята из браузера: приложение русскоязычное и
+    // время в нём везде 24-часовое. С локалью по умолчанию у пользователя с
+    // en-US тут появлялось «10:25 AM» — и тест на CI падал именно из-за этого.
+    return arrival.toLocaleTimeString('ru-RU', {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     })
     // arrivalClockTick — намеренная зависимость-таймер: без неё значение
     // замерзает на моменте построения маршрута.

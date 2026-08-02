@@ -185,12 +185,9 @@ describe('концы маршрута', () => {
 describe('время прибытия', () => {
   it('считается от текущего времени плюс длительность маршрута', () => {
     const r = setup({ routeResult: result([ride('1/a', '1/b', 1, 25)]) })
-    expect(r.current.routeArrivalTimeLabel).toBe(
-      new Date('2026-04-01T10:25:00').toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    )
+    // Ожидание считается той же локалью, что и код: с локалью по умолчанию
+    // тест зависел бы от машины, на которой запущен.
+    expect(r.current.routeArrivalTimeLabel).toBe('10:25')
   })
 
   /**
