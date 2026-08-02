@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://metro.samoy.love/sitemap.xml
