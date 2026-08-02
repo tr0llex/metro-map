@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750" role="img" aria-label="Плейсхолдер: маршрут">
-  <rect width="1200" height="750" fill="#1b2029"/>
-  <rect x="8" y="8" width="1184" height="734" fill="none" stroke="#3a4553" stroke-width="2" stroke-dasharray="12 10" rx="18"/>
-  <g fill="#8b97a8" font-family="system-ui, -apple-system, Segoe UI, sans-serif" text-anchor="middle">
-    <text x="600" y="360" font-size="34" fill="#c6d0dd">маршрут</text>
-    <text x="600" y="408" font-size="20">плейсхолдер — заменить снимком из docs/visual-qa/</text>
-    <text x="600" y="446" font-size="17" fill="#6f7c8d">docs/screenshots/route.svg</text>
-  </g>
-</svg>
