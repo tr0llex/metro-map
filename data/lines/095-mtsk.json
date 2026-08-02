@@ -160,8 +160,8 @@
       "toNextSeconds": 77
     },
     {
-      "id": "95/delovoy-tsentr",
-      "title": "Деловой центр",
+      "id": "95/moskva-siti",
+      "title": "Москва-Сити",
       "lat": 55.747222,
       "lon": 37.532222,
       "toNextSeconds": 117
@@ -175,7 +175,7 @@
     },
     {
       "id": "95/khoroshevo",
-      "title": "Хорошево",
+      "title": "Хорошёво",
       "lat": 55.777222,
       "lon": 37.507222,
       "toNextSeconds": 115

@@ -250,8 +250,11 @@ describe('findRouteAlternativesFullGraph — набор альтернатив',
       const routes = findRouteAlternativesFullGraph(from, to)
 
       // Регрессия: при нулевом штрафе все три прогона Дейкстры давали один путь
-      // и пользователь видел 2 варианта вместо 6.
-      expect(routes.length, `${label}: мало альтернатив`).toBeGreaterThanOrEqual(4)
+      // и пользователь видел 2 варианта вместо 6. Порог 3, а не 4: на паре
+      // Медведково → Саларьево столько реально и есть — после сверки данных со
+      // схемой добавились пересадки, оптимум стал явным и почти-ничьи
+      // схлопнулись. Остальные три пары дают 4, 6 и 6.
+      expect(routes.length, `${label}: мало альтернатив`).toBeGreaterThanOrEqual(3)
       expect(routes.length).toBeLessThanOrEqual(6)
 
       const keys = routes.map((r) =>

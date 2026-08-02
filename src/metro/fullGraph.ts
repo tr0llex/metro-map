@@ -14,6 +14,7 @@ interface RawFullGraph {
     title: string
     colorHex: string
     stationIds: string[]
+    segments?: string[][]
   }[]
   stations: {
     id: string
@@ -51,6 +52,9 @@ export const fullGraphLines: FullGraphLine[] = raw.lines.map((l) => ({
   title: l.title,
   colorHex: l.colorHex,
   stationIds: l.stationIds,
+  // Данные, собранные до появления ответвлений, поля не имеют: у линии без
+  // ветки сегмент ровно один и совпадает со списком станций.
+  segments: l.segments ?? [l.stationIds],
 }))
 
 export const fullGraphStations: FullGraphStation[] = raw.stations.map((s) => ({

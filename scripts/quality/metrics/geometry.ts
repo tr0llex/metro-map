@@ -324,7 +324,9 @@ export function geometryMetrics(model: RenderModel): MetricResult[] {
   const rhythmOffenders: Offender[] = []
   for (const line of model.graph.lines) {
     if (RING_LINE_IDS.has(line.id)) continue
-    const pts = line.stationIds
+    // Обход по сегментам: ответвление не образует пары с концом основного хода.
+    for (const segment of line.segments?.length ? line.segments : [line.stationIds]) {
+    const pts = segment
       .map((id) => model.byId.get(id))
       .filter((s): s is NonNullable<typeof s> => s != null)
     if (pts.length < 3) continue
@@ -343,6 +345,7 @@ export function geometryMetrics(model: RenderModel): MetricResult[] {
         value: ratio,
         detail: `соседние перегоны ${prev.toFixed(0)}px и ${next.toFixed(0)}px — разница в ${ratio.toFixed(1)} раза`,
       })
+    }
     }
   }
   const rhythmShare = rhythmPlaces > 0 ? (rhythmOffenders.length / rhythmPlaces) * 100 : 0

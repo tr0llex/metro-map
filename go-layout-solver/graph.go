@@ -27,10 +27,17 @@ import (
 // --- Public graph types exported to JSON ---
 
 type FullGraphLine struct {
-	ID         int      `json:"id"`
-	Title      string   `json:"title"`
-	ColorHex   string   `json:"colorHex"`
+	ID       int    `json:"id"`
+	Title    string `json:"title"`
+	ColorHex string `json:"colorHex"`
+	// StationIDs — ПРИНАДЛЕЖНОСТЬ: все станции линии. Соседство по этому списку
+	// выводить нельзя: ответвления идут в конец, и последняя станция основного
+	// хода оказывается «соседом» первой станции ветки.
 	StationIDs []string `json:"stationIds"`
+	// Segments — ходы линии: сначала основной, затем по одному на ответвление.
+	// Ветка начинается со станции, от которой отходит, чтобы полилиния была
+	// связной, а соседство внутри сегмента можно было брать подряд.
+	Segments [][]string `json:"segments"`
 }
 
 type FullGraphStation struct {
@@ -198,7 +205,7 @@ func BuildFullGraph(dataDir string) (FullGraphExport, error) {
 			ringLineIDs[ln.ID] = struct{}{}
 		}
 
-		lineEdges, ids, err := buildLine(ln, transfersFile.Defaults.RideSeconds, stationByID, lineOfStation)
+		lineEdges, ids, segments, err := buildLine(ln, transfersFile.Defaults.RideSeconds, stationByID, lineOfStation)
 		if err != nil {
 			return FullGraphExport{}, err
 		}
@@ -208,6 +215,7 @@ func BuildFullGraph(dataDir string) (FullGraphExport, error) {
 			Title:      ln.Title,
 			ColorHex:   ln.Color,
 			StationIDs: ids,
+			Segments:   segments,
 		})
 	}
 
@@ -249,7 +257,7 @@ func buildLine(
 	defaultRideSeconds int,
 	stationByID map[string]*FullGraphStation,
 	lineOfStation map[string]int,
-) ([]FullGraphEdge, []string, error) {
+) ([]FullGraphEdge, []string, [][]string, error) {
 	var edges []FullGraphEdge
 	ids := make([]string, 0, len(ln.Stations))
 
@@ -299,11 +307,11 @@ func buildLine(
 
 	for i, st := range ln.Stations {
 		if err := register(st, fmt.Sprintf("№%d (%q)", i+1, st.Title)); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	}
 	if len(ids) < 2 {
-		return nil, nil, fmt.Errorf("линия %d (%s): станций %d, нужно минимум 2", ln.ID, ln.Title, len(ids))
+		return nil, nil, nil, fmt.Errorf("линия %d (%s): станций %d, нужно минимум 2", ln.ID, ln.Title, len(ids))
 	}
 
 	last := len(ln.Stations) - 1
@@ -311,60 +319,68 @@ func buildLine(
 		switch {
 		case i < last:
 			if err := addEdge(st.ID, ids[i+1], rideSeconds(st.ToNextSeconds)); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		case ln.Ring:
 			if err := addEdge(st.ID, ids[0], rideSeconds(st.ToNextSeconds)); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		case st.ToNextSeconds != nil:
-			return nil, nil, fmt.Errorf(
+			return nil, nil, nil, fmt.Errorf(
 				"линия %d (%s): у конечной станции %s задан toNextSeconds, но следующей станции нет; для замыкания в кольцо нужен \"ring\": true",
 				ln.ID, ln.Title, st.ID)
 		}
 	}
 
 	if len(ln.Branches) > 0 && ln.Ring {
-		return nil, nil, fmt.Errorf("линия %d (%s): у кольцевой линии не может быть ответвлений", ln.ID, ln.Title)
+		return nil, nil, nil, fmt.Errorf("линия %d (%s): у кольцевой линии не может быть ответвлений", ln.ID, ln.Title)
 	}
 
 	for bi, br := range ln.Branches {
 		where := fmt.Sprintf("линия %d, ответвление №%d", ln.ID, bi+1)
 		if len(br.Stations) == 0 {
-			return nil, nil, fmt.Errorf("%s: нет ни одной станции", where)
+			return nil, nil, nil, fmt.Errorf("%s: нет ни одной станции", where)
 		}
 		if _, ok := stationByID[br.From]; !ok {
-			return nil, nil, fmt.Errorf("%s: станции %s, от которой оно отходит, нет", where, br.From)
+			return nil, nil, nil, fmt.Errorf("%s: станции %s, от которой оно отходит, нет", where, br.From)
 		}
 		if lineOfStation[br.From] != ln.ID {
-			return nil, nil, fmt.Errorf("%s: станция %s принадлежит линии %d, а не %d",
+			return nil, nil, nil, fmt.Errorf("%s: станция %s принадлежит линии %d, а не %d",
 				where, br.From, lineOfStation[br.From], ln.ID)
 		}
 
 		firstIdx := len(ids)
 		for i, st := range br.Stations {
 			if err := register(st, fmt.Sprintf("№%d ветки %q", i+1, br.Title)); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 
 		if err := addEdge(br.From, ids[firstIdx], rideSeconds(br.FromSeconds)); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		blast := len(br.Stations) - 1
 		for i, st := range br.Stations {
 			if i < blast {
 				if err := addEdge(st.ID, ids[firstIdx+i+1], rideSeconds(st.ToNextSeconds)); err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 			} else if st.ToNextSeconds != nil {
-				return nil, nil, fmt.Errorf("%s: у конечной станции %s задан toNextSeconds, но следующей станции нет",
+				return nil, nil, nil, fmt.Errorf("%s: у конечной станции %s задан toNextSeconds, но следующей станции нет",
 					where, st.ID)
 			}
 		}
 	}
 
-	return edges, ids, nil
+	segments := [][]string{append([]string{}, ids[:len(ln.Stations)]...)}
+	pos := len(ln.Stations)
+	for _, br := range ln.Branches {
+		seg := append([]string{br.From}, ids[pos:pos+len(br.Stations)]...)
+		segments = append(segments, seg)
+		pos += len(br.Stations)
+	}
+
+	return edges, ids, segments, nil
 }
 
 // loadDataLines читает data/lines/*.json.

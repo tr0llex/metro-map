@@ -18,8 +18,8 @@ import { undirectedEdgeKey } from './graphCore'
  */
 const EXPECTED_GRAPH_SIZE = {
   lines: 16,
-  stations: 306,
-  edges: 368,
+  stations: 304,
+  edges: 386,
   transferHubs: 56,
 } as const
 

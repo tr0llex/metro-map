@@ -6,6 +6,34 @@
   "ring": false,
   "stations": [
     {
+      "id": "98/nizhegorodskaya",
+      "title": "Нижегородская",
+      "lat": 55.73,
+      "lon": 37.73,
+      "toNextSeconds": 198
+    },
+    {
+      "id": "98/stakhanovskaya",
+      "title": "Стахановская",
+      "lat": 55.73,
+      "lon": 37.76,
+      "toNextSeconds": 141
+    },
+    {
+      "id": "98/okskaya",
+      "title": "Окская",
+      "lat": 55.72,
+      "lon": 37.77,
+      "toNextSeconds": 335
+    },
+    {
+      "id": "98/yugo-vostochnaya",
+      "title": "Юго-Восточная",
+      "lat": 55.71,
+      "lon": 37.82,
+      "toNextSeconds": 150
+    },
+    {
       "id": "98/kosino",
       "title": "Косино",
       "lat": 55.7026,
@@ -30,35 +58,7 @@
       "id": "98/nekrasovka",
       "title": "Некрасовка",
       "lat": 55.7029,
-      "lon": 37.9264,
-      "toNextSeconds": 656
-    },
-    {
-      "id": "98/yugo-vostochnaya",
-      "title": "Юго-Восточная",
-      "lat": 55.71,
-      "lon": 37.82,
-      "toNextSeconds": 335
-    },
-    {
-      "id": "98/okskaya",
-      "title": "Окская",
-      "lat": 55.72,
-      "lon": 37.77,
-      "toNextSeconds": 141
-    },
-    {
-      "id": "98/stakhanovskaya",
-      "title": "Стахановская",
-      "lat": 55.73,
-      "lon": 37.76,
-      "toNextSeconds": 198
-    },
-    {
-      "id": "98/nizhegorodskaya",
-      "title": "Нижегородская",
-      "lat": 55.73,
-      "lon": 37.73
+      "lon": 37.9264
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "$readme": "Линия метро. Порядок в `stations` — это порядок следования поездов; `toNextSeconds` — время до следующей станции в списке.",
   "id": 4,
-  "title": "Филевская",
+  "title": "Филёвская",
   "color": "#1EBCEF",
   "ring": false,
   "stations": [
@@ -21,7 +21,7 @@
     },
     {
       "id": "4/filevskiy-park",
-      "title": "Филевский парк",
+      "title": "Филёвский парк",
       "lat": 55.739665,
       "lon": 37.483902,
       "toNextSeconds": 108
@@ -79,21 +79,29 @@
       "id": "4/aleksandrovskiy-sad",
       "title": "Александровский сад",
       "lat": 55.752255,
-      "lon": 37.608775,
-      "toNextSeconds": 413
-    },
+      "lon": 37.608775
+    }
+  ],
+  "branches": [
     {
-      "id": "4/delovoy-tsentr-vystavochnaya",
-      "title": "Деловой центр (Выставочная)",
-      "lat": 55.750243,
-      "lon": 37.542641,
-      "toNextSeconds": 83
-    },
-    {
-      "id": "4/moskva-siti",
-      "title": "Москва-Сити",
-      "lat": 55.748056,
-      "lon": 37.532778
+      "title": "На Москва-Сити",
+      "from": "4/kievskaya",
+      "fromSeconds": 150,
+      "stations": [
+        {
+          "id": "4/delovoy-tsentr",
+          "title": "Деловой центр",
+          "lat": 55.750243,
+          "lon": 37.542641,
+          "toNextSeconds": 83
+        },
+        {
+          "id": "4/moskva-siti",
+          "title": "Москва-Сити",
+          "lat": 55.748056,
+          "lon": 37.532778
+        }
+      ]
     }
   ]
 }

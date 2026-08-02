@@ -7,7 +7,7 @@
   "stations": [
     {
       "id": "3/shchelkovskaya",
-      "title": "Щелковская",
+      "title": "Щёлковская",
       "lat": 55.809962,
       "lon": 37.798261,
       "toNextSeconds": 184
@@ -35,7 +35,7 @@
     },
     {
       "id": "3/semenovskaya",
-      "title": "Семеновская",
+      "title": "Семёновская",
       "lat": 55.783096,
       "lon": 37.719289,
       "toNextSeconds": 104
@@ -112,7 +112,7 @@
     },
     {
       "id": "3/molodezhnaya",
-      "title": "Молодежная",
+      "title": "Молодёжная",
       "lat": 55.741375,
       "lon": 37.415627,
       "toNextSeconds": 189

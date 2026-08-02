@@ -49,7 +49,7 @@
     },
     {
       "id": "1/krasnye-vorota",
-      "title": "Красные ворота",
+      "title": "Красные Ворота",
       "lat": 55.768307,
       "lon": 37.6478,
       "toNextSeconds": 86
@@ -70,14 +70,14 @@
     },
     {
       "id": "1/okhotnyy-ryad",
-      "title": "Охотный ряд",
+      "title": "Охотный Ряд",
       "lat": 55.757228,
       "lon": 37.615078,
       "toNextSeconds": 81
     },
     {
       "id": "1/biblioteka-im-lenina",
-      "title": "Библиотека им.Ленина",
+      "title": "Библиотека им. Ленина",
       "lat": 55.752123,
       "lon": 37.610388,
       "toNextSeconds": 101
@@ -112,7 +112,7 @@
     },
     {
       "id": "1/vorobevy-gory",
-      "title": "Воробьевы горы",
+      "title": "Воробьёвы горы",
       "lat": 55.709169,
       "lon": 37.557293,
       "toNextSeconds": 235
@@ -140,7 +140,7 @@
     },
     {
       "id": "1/troparevo",
-      "title": "Тропарево",
+      "title": "Тропарёво",
       "lat": 55.6459,
       "lon": 37.4725,
       "toNextSeconds": 247
@@ -161,7 +161,7 @@
     },
     {
       "id": "1/filatov-lug",
-      "title": "Филатов луг",
+      "title": "Филатов Луг",
       "lat": 55.5997,
       "lon": 37.4075,
       "toNextSeconds": 305

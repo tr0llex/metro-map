@@ -17,6 +17,22 @@
         "5/kievskaya",
         "5/krasnopresnenskaya",
         "5/belorusskaya"
+      ],
+      "segments": [
+        [
+          "5/novoslobodskaya",
+          "5/prospekt-mira",
+          "5/komsomolskaya",
+          "5/kurskaya",
+          "5/taganskaya",
+          "5/paveletskaya",
+          "5/dobryninskaya",
+          "5/oktyabrskaya",
+          "5/park-kultury",
+          "5/kievskaya",
+          "5/krasnopresnenskaya",
+          "5/belorusskaya"
+        ]
       ]
     },
     {
@@ -46,7 +62,7 @@
         "95/ploshchad-gagarina",
         "95/luzhniki",
         "95/kutuzovskaya",
-        "95/delovoy-tsentr",
+        "95/moskva-siti",
         "95/shelepikha",
         "95/khoroshevo",
         "95/zorge",
@@ -55,6 +71,41 @@
         "95/baltiyskaya",
         "95/koptevo",
         "95/likhobory"
+      ],
+      "segments": [
+        [
+          "95/okruzhnaya",
+          "95/vladykino",
+          "95/botanicheskiy-sad",
+          "95/rostokino",
+          "95/belokamennaya",
+          "95/bulvar-rokossovskogo",
+          "95/lokomotiv",
+          "95/izmaylovo",
+          "95/sokolinaya-gora",
+          "95/shosse-entuziastov",
+          "95/andronovka",
+          "95/nizhegorodskaya",
+          "95/novokhokhlovskaya",
+          "95/ugreshskaya",
+          "95/dubrovka",
+          "95/avtozavodskaya",
+          "95/zil",
+          "95/verkhnie-kotly",
+          "95/krymskaya",
+          "95/ploshchad-gagarina",
+          "95/luzhniki",
+          "95/kutuzovskaya",
+          "95/moskva-siti",
+          "95/shelepikha",
+          "95/khoroshevo",
+          "95/zorge",
+          "95/panfilovskaya",
+          "95/streshnevo",
+          "95/baltiyskaya",
+          "95/koptevo",
+          "95/likhobory"
+        ]
       ]
     },
     {
@@ -85,14 +136,45 @@
         "97/petrovskiy-park",
         "97/tsska",
         "97/khoroshevskaya",
-        "97/shelepikha",
-        "97/delovoy-tsentr",
         "97/narodnoe-opolchenie",
         "97/mnevniki",
         "97/terekhovo",
         "97/kuntsevskaya",
         "97/davydkovo",
         "97/aminevskaya"
+      ],
+      "segments": [
+        [
+          "97/michurinskiy-prospekt",
+          "97/prospekt-vernadskogo",
+          "97/novatorskaya",
+          "97/vorontsovskaya",
+          "97/zyuzino",
+          "97/kakhovskaya",
+          "97/varshavskaya",
+          "97/kashirskaya",
+          "97/klenovyy-bulvar",
+          "97/nagatinskiy-zaton",
+          "97/pechatniki",
+          "97/tekstilshchiki",
+          "97/nizhegorodskaya",
+          "97/aviamotornaya",
+          "97/lefortovo",
+          "97/elektrozavodskaya",
+          "97/sokolniki",
+          "97/rizhskaya",
+          "97/marina-roshcha",
+          "97/savelovskaya",
+          "97/petrovskiy-park",
+          "97/tsska",
+          "97/khoroshevskaya",
+          "97/narodnoe-opolchenie",
+          "97/mnevniki",
+          "97/terekhovo",
+          "97/kuntsevskaya",
+          "97/davydkovo",
+          "97/aminevskaya"
+        ]
       ]
     },
     {
@@ -127,6 +209,37 @@
         "1/olkhovaya",
         "1/novomoskovskaya",
         "1/potapovo"
+      ],
+      "segments": [
+        [
+          "1/bulvar-rokossovskogo",
+          "1/cherkizovskaya",
+          "1/preobrazhenskaya-ploshchad",
+          "1/sokolniki",
+          "1/krasnoselskaya",
+          "1/komsomolskaya",
+          "1/krasnye-vorota",
+          "1/chistye-prudy",
+          "1/lubyanka",
+          "1/okhotnyy-ryad",
+          "1/biblioteka-im-lenina",
+          "1/kropotkinskaya",
+          "1/park-kultury",
+          "1/frunzenskaya",
+          "1/sportivnaya",
+          "1/vorobevy-gory",
+          "1/universitet",
+          "1/prospekt-vernadskogo",
+          "1/yugo-zapadnaya",
+          "1/troparevo",
+          "1/rumyantsevo",
+          "1/salarevo",
+          "1/filatov-lug",
+          "1/prokshino",
+          "1/olkhovaya",
+          "1/novomoskovskaya",
+          "1/potapovo"
+        ]
       ]
     },
     {
@@ -158,6 +271,34 @@
         "2/domodedovskaya",
         "2/krasnogvardeyskaya",
         "2/alma-atinskaya"
+      ],
+      "segments": [
+        [
+          "2/khovrino",
+          "2/belomorskaya",
+          "2/rechnoy-vokzal",
+          "2/vodnyy-stadion",
+          "2/voykovskaya",
+          "2/sokol",
+          "2/aeroport",
+          "2/dinamo",
+          "2/belorusskaya",
+          "2/mayakovskaya",
+          "2/tverskaya",
+          "2/teatralnaya",
+          "2/novokuznetskaya",
+          "2/paveletskaya",
+          "2/avtozavodskaya",
+          "2/tekhnopark",
+          "2/kolomenskaya",
+          "2/kashirskaya",
+          "2/kantemirovskaya",
+          "2/tsaritsyno",
+          "2/orekhovo",
+          "2/domodedovskaya",
+          "2/krasnogvardeyskaya",
+          "2/alma-atinskaya"
+        ]
       ]
     },
     {
@@ -187,11 +328,37 @@
         "3/volokolamskaya",
         "3/mitino",
         "3/pyatnitskoe-shosse"
+      ],
+      "segments": [
+        [
+          "3/shchelkovskaya",
+          "3/pervomayskaya",
+          "3/izmaylovskaya",
+          "3/partizanskaya",
+          "3/semenovskaya",
+          "3/elektrozavodskaya",
+          "3/baumanskaya",
+          "3/kurskaya",
+          "3/ploshchad-revolyutsii",
+          "3/arbatskaya",
+          "3/smolenskaya",
+          "3/kievskaya",
+          "3/park-pobedy",
+          "3/slavyanskiy-bulvar",
+          "3/kuntsevskaya",
+          "3/molodezhnaya",
+          "3/krylatskoe",
+          "3/strogino",
+          "3/myakinino",
+          "3/volokolamskaya",
+          "3/mitino",
+          "3/pyatnitskoe-shosse"
+        ]
       ]
     },
     {
       "id": 4,
-      "title": "Филевская",
+      "title": "Филёвская",
       "colorHex": "#1EBCEF",
       "stationIds": [
         "4/kuntsevskaya",
@@ -205,8 +372,28 @@
         "4/smolenskaya",
         "4/arbatskaya",
         "4/aleksandrovskiy-sad",
-        "4/delovoy-tsentr-vystavochnaya",
+        "4/delovoy-tsentr",
         "4/moskva-siti"
+      ],
+      "segments": [
+        [
+          "4/kuntsevskaya",
+          "4/pionerskaya",
+          "4/filevskiy-park",
+          "4/bagrationovskaya",
+          "4/fili",
+          "4/kutuzovskaya",
+          "4/studencheskaya",
+          "4/kievskaya",
+          "4/smolenskaya",
+          "4/arbatskaya",
+          "4/aleksandrovskiy-sad"
+        ],
+        [
+          "4/kievskaya",
+          "4/delovoy-tsentr",
+          "4/moskva-siti"
+        ]
       ]
     },
     {
@@ -238,6 +425,34 @@
         "6/teplyy-stan",
         "6/yasenevo",
         "6/novoyasenevskaya"
+      ],
+      "segments": [
+        [
+          "6/medvedkovo",
+          "6/babushkinskaya",
+          "6/sviblovo",
+          "6/botanicheskiy-sad",
+          "6/vdnkh",
+          "6/alekseevskaya",
+          "6/rizhskaya",
+          "6/prospekt-mira",
+          "6/sukharevskaya",
+          "6/turgenevskaya",
+          "6/kitay-gorod",
+          "6/tretyakovskaya",
+          "6/oktyabrskaya",
+          "6/shabolovskaya",
+          "6/leninskiy-prospekt",
+          "6/akademicheskaya",
+          "6/profsoyuznaya",
+          "6/novye-cheremushki",
+          "6/kaluzhskaya",
+          "6/belyaevo",
+          "6/konkovo",
+          "6/teplyy-stan",
+          "6/yasenevo",
+          "6/novoyasenevskaya"
+        ]
       ]
     },
     {
@@ -268,6 +483,33 @@
         "7/lermontovskiy-prospekt",
         "7/zhulebino",
         "7/kotelniki"
+      ],
+      "segments": [
+        [
+          "7/planernaya",
+          "7/skhodnenskaya",
+          "7/tushinskaya",
+          "7/spartak",
+          "7/shchukinskaya",
+          "7/oktyabrskoe-pole",
+          "7/polezhaevskaya",
+          "7/begovaya",
+          "7/ulitsa-1905-goda",
+          "7/barrikadnaya",
+          "7/pushkinskaya",
+          "7/kuznetskiy-most",
+          "7/kitay-gorod",
+          "7/taganskaya",
+          "7/proletarskaya",
+          "7/volgogradskiy-prospekt",
+          "7/tekstilshchiki",
+          "7/kuzminki",
+          "7/ryazanskiy-prospekt",
+          "7/vykhino",
+          "7/lermontovskiy-prospekt",
+          "7/zhulebino",
+          "7/kotelniki"
+        ]
       ]
     },
     {
@@ -283,6 +525,18 @@
         "8/ploshchad-ilicha",
         "8/marksistskaya",
         "8/tretyakovskaya"
+      ],
+      "segments": [
+        [
+          "8/novokosino",
+          "8/novogireevo",
+          "8/perovo",
+          "8/shosse-entuziastov",
+          "8/aviamotornaya",
+          "8/ploshchad-ilicha",
+          "8/marksistskaya",
+          "8/tretyakovskaya"
+        ]
       ]
     },
     {
@@ -315,6 +569,35 @@
         "9/ulitsa-akademika-yangelya",
         "9/annino",
         "9/bulvar-dmitriya-donskogo"
+      ],
+      "segments": [
+        [
+          "9/altufevo",
+          "9/bibirevo",
+          "9/otradnoe",
+          "9/vladykino",
+          "9/petrovsko-razumovskaya",
+          "9/timiryazevskaya",
+          "9/dmitrovskaya",
+          "9/savelovskaya",
+          "9/mendeleevskaya",
+          "9/tsvetnoy-bulvar",
+          "9/chekhovskaya",
+          "9/borovitskaya",
+          "9/polyanka",
+          "9/serpukhovskaya",
+          "9/tulskaya",
+          "9/nagatinskaya",
+          "9/nagornaya",
+          "9/nakhimovskiy-prospekt",
+          "9/sevastopolskaya",
+          "9/chertanovskaya",
+          "9/yuzhnaya",
+          "9/prazhskaya",
+          "9/ulitsa-akademika-yangelya",
+          "9/annino",
+          "9/bulvar-dmitriya-donskogo"
+        ]
       ]
     },
     {
@@ -348,6 +631,36 @@
         "10/borisovo",
         "10/shipilovskaya",
         "10/zyablikovo"
+      ],
+      "segments": [
+        [
+          "10/fiztekh",
+          "10/lianozovo",
+          "10/yakhromskaya",
+          "10/seligerskaya",
+          "10/verkhnie-likhobory",
+          "10/okruzhnaya",
+          "10/petrovsko-razumovskaya",
+          "10/fonvizinskaya",
+          "10/butyrskaya",
+          "10/marina-roshcha",
+          "10/dostoevskaya",
+          "10/trubnaya",
+          "10/sretenskiy-bulvar",
+          "10/chkalovskaya",
+          "10/rimskaya",
+          "10/krestyanskaya-zastava",
+          "10/dubrovka",
+          "10/kozhukhovskaya",
+          "10/pechatniki",
+          "10/volzhskaya",
+          "10/lyublino",
+          "10/bratislavskaya",
+          "10/marino",
+          "10/borisovo",
+          "10/shipilovskaya",
+          "10/zyablikovo"
+        ]
       ]
     },
     {
@@ -362,6 +675,17 @@
         "12/ulitsa-starokachalovskaya",
         "12/lesoparkovaya",
         "12/bittsevskiy-park"
+      ],
+      "segments": [
+        [
+          "12/buninskaya-alleya",
+          "12/ulitsa-gorchakova",
+          "12/bulvar-admirala-ushakova",
+          "12/ulitsa-skobelevskaya",
+          "12/ulitsa-starokachalovskaya",
+          "12/lesoparkovaya",
+          "12/bittsevskiy-park"
+        ]
       ]
     },
     {
@@ -369,14 +693,26 @@
       "title": "Некрасовская",
       "colorHex": "#CC0066",
       "stationIds": [
+        "98/nizhegorodskaya",
+        "98/stakhanovskaya",
+        "98/okskaya",
+        "98/yugo-vostochnaya",
         "98/kosino",
         "98/ulitsa-dmitrievskogo",
         "98/lukhmanovskaya",
-        "98/nekrasovka",
-        "98/yugo-vostochnaya",
-        "98/okskaya",
-        "98/stakhanovskaya",
-        "98/nizhegorodskaya"
+        "98/nekrasovka"
+      ],
+      "segments": [
+        [
+          "98/nizhegorodskaya",
+          "98/stakhanovskaya",
+          "98/okskaya",
+          "98/yugo-vostochnaya",
+          "98/kosino",
+          "98/ulitsa-dmitrievskogo",
+          "98/lukhmanovskaya",
+          "98/nekrasovka"
+        ]
       ]
     },
     {
@@ -398,6 +734,24 @@
         "133/rasskazovka",
         "133/pykhtino",
         "133/aeroport-vnukovo"
+      ],
+      "segments": [
+        [
+          "133/delovoy-tsentr",
+          "133/park-pobedy",
+          "133/minskaya",
+          "133/lomonosovskiy-prospekt",
+          "133/ramenki",
+          "133/michurinskiy-prospekt",
+          "133/ozernaya",
+          "133/govorovo",
+          "133/solntsevo",
+          "133/borovskoe-shosse",
+          "133/novoperedelkino",
+          "133/rasskazovka",
+          "133/pykhtino",
+          "133/aeroport-vnukovo"
+        ]
       ]
     },
     {
@@ -416,20 +770,35 @@
         "137/kornilovskaya",
         "137/kommunarka",
         "137/novomoskovskaya"
+      ],
+      "segments": [
+        [
+          "137/zil",
+          "137/krymskaya",
+          "137/akademicheskaya",
+          "137/vavilovskaya",
+          "137/novatorskaya",
+          "137/universitet-druzhby-narodov",
+          "137/generala-tyuleneva",
+          "137/tyutchevskaya",
+          "137/kornilovskaya",
+          "137/kommunarka",
+          "137/novomoskovskaya"
+        ]
       ]
     }
   ],
   "stations": [
     {
       "id": "1/biblioteka-im-lenina",
-      "title": "Библиотека им.Ленина",
+      "title": "Библиотека им. Ленина",
       "lineNumericId": 1,
       "isTransfer": true,
       "hubId": "hub-1",
       "lat": 55.752123,
       "lon": 37.610388,
-      "layoutX": 873.9329803304571,
-      "layoutY": 847.9369199448772
+      "layoutX": 873.9326618213905,
+      "layoutY": 847.9526380656259
     },
     {
       "id": "1/bulvar-rokossovskogo",
@@ -438,8 +807,8 @@
       "isTransfer": true,
       "lat": 55.814916,
       "lon": 37.732227,
-      "layoutX": 1302.8694416641763,
-      "layoutY": 227.6073487167456
+      "layoutX": 1295.0004566086704,
+      "layoutY": 223.7784087191301
     },
     {
       "id": "1/cherkizovskaya",
@@ -449,8 +818,8 @@
       "hubId": "hub-2",
       "lat": 55.802787,
       "lon": 37.744863,
-      "layoutX": 1303.4319553822534,
-      "layoutY": 264.99005801862086
+      "layoutX": 1309.8838346466487,
+      "layoutY": 272.2417953669211
     },
     {
       "id": "1/chistye-prudy",
@@ -465,7 +834,7 @@
     },
     {
       "id": "1/filatov-lug",
-      "title": "Филатов луг",
+      "title": "Филатов Луг",
       "lineNumericId": 1,
       "isTransfer": false,
       "lat": 55.5997,
@@ -506,7 +875,7 @@
     },
     {
       "id": "1/krasnye-vorota",
-      "title": "Красные ворота",
+      "title": "Красные Ворота",
       "lineNumericId": 1,
       "isTransfer": false,
       "lat": 55.768307,
@@ -548,14 +917,14 @@
     },
     {
       "id": "1/okhotnyy-ryad",
-      "title": "Охотный ряд",
+      "title": "Охотный Ряд",
       "lineNumericId": 1,
       "isTransfer": true,
       "hubId": "hub-7",
       "lat": 55.757228,
       "lon": 37.615078,
-      "layoutX": 959.2862722204371,
-      "layoutY": 786.0794335438501
+      "layoutX": 960.0650707149154,
+      "layoutY": 785.4022699385608
     },
     {
       "id": "1/olkhovaya",
@@ -616,8 +985,8 @@
       "hubId": "hub-9",
       "lat": 55.676549,
       "lon": 37.504584,
-      "layoutX": 542.6870834573173,
-      "layoutY": 1204.2327522337202
+      "layoutX": 543.6353937728871,
+      "layoutY": 1203.6465418324035
     },
     {
       "id": "1/rumyantsevo",
@@ -647,22 +1016,22 @@
       "hubId": "hub-10",
       "lat": 55.789282,
       "lon": 37.679895,
-      "layoutX": 1204.448530231158,
-      "layoutY": 432.70586116658313
+      "layoutX": 1203.5308581881402,
+      "layoutY": 434.3973628958651
     },
     {
       "id": "1/sportivnaya",
       "title": "Спортивная",
       "lineNumericId": 1,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.722388,
       "lon": 37.562041,
-      "layoutX": 686.9709543568465,
-      "layoutY": 1024.7717842323652
+      "layoutX": 683.5897249357095,
+      "layoutY": 1025.5562940265547
     },
     {
       "id": "1/troparevo",
-      "title": "Тропарево",
+      "title": "Тропарёво",
       "lineNumericId": 1,
       "isTransfer": false,
       "lat": 55.6459,
@@ -682,7 +1051,7 @@
     },
     {
       "id": "1/vorobevy-gory",
-      "title": "Воробьевы горы",
+      "title": "Воробьёвы горы",
       "lineNumericId": 1,
       "isTransfer": false,
       "lat": 55.709169,
@@ -722,7 +1091,7 @@
     },
     {
       "id": "10/butyrskaya",
-      "title": "Бутырская ",
+      "title": "Бутырская",
       "lineNumericId": 10,
       "isTransfer": false,
       "lat": 55.813333,
@@ -756,11 +1125,10 @@
       "title": "Дубровка",
       "lineNumericId": 10,
       "isTransfer": true,
-      "hubId": "hub-12",
       "lat": 55.71807,
       "lon": 37.676259,
-      "layoutX": 1384.4986445490213,
-      "layoutY": 1010.7792374517841
+      "layoutX": 1391.3876429676811,
+      "layoutY": 1009.6204097753563
     },
     {
       "id": "10/fiztekh",
@@ -786,21 +1154,22 @@
       "id": "10/kozhukhovskaya",
       "title": "Кожуховская",
       "lineNumericId": 10,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.706156,
       "lon": 37.68544,
-      "layoutX": 1441.3700039697576,
-      "layoutY": 1044.5493338866709
+      "layoutX": 1418.4473488087547,
+      "layoutY": 1032.2848043020044
     },
     {
       "id": "10/krestyanskaya-zastava",
-      "title": "Крестьянская застава",
+      "title": "Крестьянская Застава",
       "lineNumericId": 10,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-12",
       "lat": 55.732278,
       "lon": 37.665325,
-      "layoutX": 1354.8440405974952,
-      "layoutY": 937.2292862455457
+      "layoutX": 1357.5058341648491,
+      "layoutY": 936.004212384607
     },
     {
       "id": "10/lianozovo",
@@ -830,8 +1199,8 @@
       "hubId": "hub-13",
       "lat": 55.793723,
       "lon": 37.61618,
-      "layoutX": 973.5678372062143,
-      "layoutY": 390.1412819821654
+      "layoutX": 973.1558710390308,
+      "layoutY": 392.69255771254996
     },
     {
       "id": "10/marino",
@@ -851,8 +1220,8 @@
       "hubId": "hub-14",
       "lat": 55.848889,
       "lon": 37.571111,
-      "layoutX": 856.122219176219,
-      "layoutY": 181.67700358776312
+      "layoutX": 856.1222191758869,
+      "layoutY": 181.67700358784387
     },
     {
       "id": "10/pechatniki",
@@ -862,8 +1231,8 @@
       "hubId": "hub-15",
       "lat": 55.692921,
       "lon": 37.728338,
-      "layoutX": 1485.6496188765423,
-      "layoutY": 1070.0643198722928
+      "layoutX": 1486.971045370272,
+      "layoutY": 1070.6490707576475
     },
     {
       "id": "10/petrovsko-razumovskaya",
@@ -972,7 +1341,7 @@
     },
     {
       "id": "12/bittsevskiy-park",
-      "title": "Битцевский Парк",
+      "title": "Битцевский парк",
       "lineNumericId": 12,
       "isTransfer": true,
       "hubId": "hub-20",
@@ -1070,8 +1439,8 @@
       "hubId": "hub-22",
       "lat": 55.7491,
       "lon": 37.5395,
-      "layoutX": 434.4459337417308,
-      "layoutY": 564.7564457255197
+      "layoutX": 390.67746435235017,
+      "layoutY": 559.400279170374
     },
     {
       "id": "133/govorovo",
@@ -1101,8 +1470,8 @@
       "hubId": "hub-23",
       "lat": 55.6888,
       "lon": 37.485,
-      "layoutX": 370.9358798368527,
-      "layoutY": 1111.5720391981772
+      "layoutX": 372.5871048104567,
+      "layoutY": 1110.759528729826
     },
     {
       "id": "133/minskaya",
@@ -1142,8 +1511,8 @@
       "hubId": "hub-24",
       "lat": 55.736478,
       "lon": 37.514401,
-      "layoutX": 480.6597739265222,
-      "layoutY": 908.8746895145214
+      "layoutX": 478.42266504091475,
+      "layoutY": 909.2966233626647
     },
     {
       "id": "133/pykhtino",
@@ -1234,8 +1603,8 @@
       "hubId": "hub-26",
       "lat": 55.689971,
       "lon": 37.605612,
-      "layoutX": 1012.3890042561395,
-      "layoutY": 1175.3548904800832
+      "layoutX": 1009.1100972935897,
+      "layoutY": 1173.853951429298
     },
     {
       "id": "137/novatorskaya",
@@ -1245,8 +1614,8 @@
       "hubId": "hub-27",
       "lat": 55.670833,
       "lon": 37.52,
-      "layoutX": 708.978719575231,
-      "layoutY": 1268.8423318171576
+      "layoutX": 709.208631993366,
+      "layoutY": 1268.493746183085
     },
     {
       "id": "137/novomoskovskaya",
@@ -1271,7 +1640,7 @@
     },
     {
       "id": "137/universitet-druzhby-narodov",
-      "title": "Университет дружбы народов",
+      "title": "Университет Дружбы Народов",
       "lineNumericId": 137,
       "isTransfer": false,
       "lat": 55.64824,
@@ -1294,11 +1663,10 @@
       "title": "ЗИЛ",
       "lineNumericId": 137,
       "isTransfer": true,
-      "hubId": "hub-28",
       "lat": 55.697915,
       "lon": 37.647565,
-      "layoutX": 1231.3801730554821,
-      "layoutY": 1123.4039369908023
+      "layoutX": 1236.1952614204536,
+      "layoutY": 1128.344681052033
     },
     {
       "id": "2/aeroport",
@@ -1307,8 +1675,8 @@
       "isTransfer": false,
       "lat": 55.800441,
       "lon": 37.530477,
-      "layoutX": 655.3852480140097,
-      "layoutY": 386.19953818286587
+      "layoutX": 655.3852480140043,
+      "layoutY": 386.1995381828632
     },
     {
       "id": "2/alma-atinskaya",
@@ -1325,11 +1693,10 @@
       "title": "Автозаводская",
       "lineNumericId": 2,
       "isTransfer": true,
-      "hubId": "hub-29",
       "lat": 55.706634,
       "lon": 37.657008,
-      "layoutX": 1311.6651491855146,
-      "layoutY": 1070.3529397297991
+      "layoutX": 1319.272307920043,
+      "layoutY": 1078.1225285238509
     },
     {
       "id": "2/belomorskaya",
@@ -1346,7 +1713,7 @@
       "title": "Белорусская",
       "lineNumericId": 2,
       "isTransfer": true,
-      "hubId": "hub-30",
+      "hubId": "hub-28",
       "lat": 55.777439,
       "lon": 37.582107,
       "layoutX": 759.3045648792709,
@@ -1356,11 +1723,12 @@
       "id": "2/dinamo",
       "title": "Динамо",
       "lineNumericId": 2,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-29",
       "lat": 55.789704,
       "lon": 37.558212,
-      "layoutX": 677.286224699129,
-      "layoutY": 426.21878260657286
+      "layoutX": 680.3157619487563,
+      "layoutY": 397.3143697421745
     },
     {
       "id": "2/domodedovskaya",
@@ -1387,11 +1755,11 @@
       "title": "Каширская",
       "lineNumericId": 2,
       "isTransfer": true,
-      "hubId": "hub-31",
+      "hubId": "hub-30",
       "lat": 55.655745,
       "lon": 37.649683,
-      "layoutX": 1249.3327194450976,
-      "layoutY": 1269.432771719422
+      "layoutX": 1241.0112167671095,
+      "layoutY": 1275.8389720976813
     },
     {
       "id": "2/khovrino",
@@ -1410,8 +1778,8 @@
       "isTransfer": false,
       "lat": 55.677423,
       "lon": 37.663719,
-      "layoutX": 1284.694811899352,
-      "layoutY": 1198.7344908970288
+      "layoutX": 1295.3451329364757,
+      "layoutY": 1207.1602901897734
     },
     {
       "id": "2/krasnogvardeyskaya",
@@ -1438,11 +1806,12 @@
       "id": "2/novokuznetskaya",
       "title": "Новокузнецкая",
       "lineNumericId": 2,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-31",
       "lat": 55.742391,
       "lon": 37.62928,
-      "layoutX": 1025.300445485865,
-      "layoutY": 869.9377427074601
+      "layoutX": 1051.72403356107,
+      "layoutY": 876.2447834714393
     },
     {
       "id": "2/orekhovo",
@@ -1462,8 +1831,8 @@
       "hubId": "hub-32",
       "lat": 55.729741,
       "lon": 37.638693,
-      "layoutX": 1138.4240407157831,
-      "layoutY": 953.6498247380586
+      "layoutX": 1138.725425263559,
+      "layoutY": 953.5249827848478
     },
     {
       "id": "2/rechnoy-vokzal",
@@ -1493,8 +1862,8 @@
       "hubId": "hub-7",
       "lat": 55.758808,
       "lon": 37.61768,
-      "layoutX": 945.4298657598857,
-      "layoutY": 778.0794335438517
+      "layoutX": 946.208664254364,
+      "layoutY": 777.4022699385624
     },
     {
       "id": "2/tekhnopark",
@@ -1555,8 +1924,8 @@
       "hubId": "hub-1",
       "lat": 55.752312,
       "lon": 37.60349,
-      "layoutX": 857.9329803304568,
-      "layoutY": 831.9369199448772
+      "layoutX": 857.9326618213902,
+      "layoutY": 831.9526380656259
     },
     {
       "id": "3/baumanskaya",
@@ -1576,8 +1945,8 @@
       "hubId": "hub-34",
       "lat": 55.782057,
       "lon": 37.7053,
-      "layoutX": 1343.023742946272,
-      "layoutY": 460.6754516232831
+      "layoutX": 1341.8865962332475,
+      "layoutY": 461.65680377092286
     },
     {
       "id": "3/izmaylovskaya",
@@ -1597,8 +1966,8 @@
       "hubId": "hub-35",
       "lat": 55.743117,
       "lon": 37.564132,
-      "layoutX": 696.9485807074026,
-      "layoutY": 825.69385305824
+      "layoutX": 696.9510900308857,
+      "layoutY": 825.7009381821962
     },
     {
       "id": "3/krylatskoe",
@@ -1618,8 +1987,8 @@
       "hubId": "hub-36",
       "lat": 55.730673,
       "lon": 37.446522,
-      "layoutX": 266.8864080311675,
-      "layoutY": 768.3897416841934
+      "layoutX": 270.4147686419739,
+      "layoutY": 768.8164385936386
     },
     {
       "id": "3/kurskaya",
@@ -1644,7 +2013,7 @@
     },
     {
       "id": "3/molodezhnaya",
-      "title": "Молодежная",
+      "title": "Молодёжная",
       "lineNumericId": 3,
       "isTransfer": false,
       "lat": 55.741375,
@@ -1670,14 +2039,14 @@
       "hubId": "hub-24",
       "lat": 55.735679,
       "lon": 37.516865,
-      "layoutX": 464.6597739265222,
-      "layoutY": 908.8746895145214
+      "layoutX": 462.42266504091475,
+      "layoutY": 909.2966233626647
     },
     {
       "id": "3/partizanskaya",
       "title": "Партизанская",
       "lineNumericId": 3,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.788401,
       "lon": 37.74882,
       "layoutX": 1429.377593360996,
@@ -1701,8 +2070,8 @@
       "hubId": "hub-7",
       "lat": 55.756741,
       "lon": 37.62236,
-      "layoutX": 959.2862722204355,
-      "layoutY": 770.0794335438505
+      "layoutX": 960.0650707149138,
+      "layoutY": 769.4022699385613
     },
     {
       "id": "3/pyatnitskoe-shosse",
@@ -1716,7 +2085,7 @@
     },
     {
       "id": "3/semenovskaya",
-      "title": "Семеновская",
+      "title": "Семёновская",
       "lineNumericId": 3,
       "isTransfer": false,
       "lat": 55.783096,
@@ -1726,7 +2095,7 @@
     },
     {
       "id": "3/shchelkovskaya",
-      "title": "Щелковская",
+      "title": "Щёлковская",
       "lineNumericId": 3,
       "isTransfer": false,
       "lat": 55.809962,
@@ -1748,12 +2117,11 @@
       "id": "3/smolenskaya",
       "title": "Смоленская",
       "lineNumericId": 3,
-      "isTransfer": true,
-      "hubId": "hub-37",
+      "isTransfer": false,
       "lat": 55.747713,
       "lon": 37.583802,
-      "layoutX": 768.0455782116261,
-      "layoutY": 829.2586433796638
+      "layoutX": 768.046101133813,
+      "layoutY": 828.1592790783363
     },
     {
       "id": "3/strogino",
@@ -1783,8 +2151,8 @@
       "hubId": "hub-1",
       "lat": 55.752255,
       "lon": 37.608775,
-      "layoutX": 857.9329803304568,
-      "layoutY": 847.9369199448772
+      "layoutX": 857.9326618213902,
+      "layoutY": 847.9526380656259
     },
     {
       "id": "4/arbatskaya",
@@ -1793,8 +2161,8 @@
       "isTransfer": false,
       "lat": 55.752122,
       "lon": 37.601553,
-      "layoutX": 812.5716678465612,
-      "layoutY": 846.028381452478
+      "layoutX": 812.5822848154446,
+      "layoutY": 845.5044440941772
     },
     {
       "id": "4/bagrationovskaya",
@@ -1807,18 +2175,19 @@
       "layoutY": 804.4843524586374
     },
     {
-      "id": "4/delovoy-tsentr-vystavochnaya",
-      "title": "Деловой центр (Выставочная)",
+      "id": "4/delovoy-tsentr",
+      "title": "Деловой центр",
       "lineNumericId": 4,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-22",
       "lat": 55.750243,
       "lon": 37.542641,
-      "layoutX": 640.6556643137309,
-      "layoutY": 648.3636008181523
+      "layoutX": 637.8384639365187,
+      "layoutY": 646.7624725554776
     },
     {
       "id": "4/filevskiy-park",
-      "title": "Филевский парк",
+      "title": "Филёвский парк",
       "lineNumericId": 4,
       "isTransfer": false,
       "lat": 55.739665,
@@ -1833,8 +2202,8 @@
       "isTransfer": false,
       "lat": 55.746763,
       "lon": 37.514035,
-      "layoutX": 454.39578929700934,
-      "layoutY": 824.7149627864463
+      "layoutX": 472.69856053136135,
+      "layoutY": 824.9723713030012
     },
     {
       "id": "4/kievskaya",
@@ -1844,8 +2213,8 @@
       "hubId": "hub-35",
       "lat": 55.743168,
       "lon": 37.565425,
-      "layoutX": 701.0896854290428,
-      "layoutY": 841.1486662788649
+      "layoutX": 701.0921947525259,
+      "layoutY": 841.155751402821
     },
     {
       "id": "4/kuntsevskaya",
@@ -1855,15 +2224,15 @@
       "hubId": "hub-36",
       "lat": 55.730815,
       "lon": 37.446754,
-      "layoutX": 266.8864080311674,
-      "layoutY": 752.3897416841934
+      "layoutX": 270.4147686419738,
+      "layoutY": 752.8164385936386
     },
     {
       "id": "4/kutuzovskaya",
       "title": "Кутузовская",
       "lineNumericId": 4,
       "isTransfer": true,
-      "hubId": "hub-38",
+      "hubId": "hub-37",
       "lat": 55.740544,
       "lon": 37.5341,
       "layoutX": 514.1937254849012,
@@ -1874,11 +2243,11 @@
       "title": "Москва-Сити",
       "lineNumericId": 4,
       "isTransfer": true,
-      "hubId": "hub-39",
+      "hubId": "hub-38",
       "lat": 55.748056,
       "lon": 37.532778,
-      "layoutX": 478.79747854728396,
-      "layoutY": 564.6661957618913
+      "layoutX": 481.8839675708032,
+      "layoutY": 554.9956218737051
     },
     {
       "id": "4/pionerskaya",
@@ -1894,12 +2263,11 @@
       "id": "4/smolenskaya",
       "title": "Смоленская",
       "lineNumericId": 4,
-      "isTransfer": true,
-      "hubId": "hub-37",
+      "isTransfer": false,
       "lat": 55.749083,
       "lon": 37.582173,
-      "layoutX": 768.0455782116256,
-      "layoutY": 845.2586433796638
+      "layoutX": 768.0437812531834,
+      "layoutY": 846.4208801639887
     },
     {
       "id": "4/studencheskaya",
@@ -1908,15 +2276,15 @@
       "isTransfer": false,
       "lat": 55.738761,
       "lon": 37.54842,
-      "layoutX": 603.9373696077758,
-      "layoutY": 842.5972741040673
+      "layoutX": 603.8962799284926,
+      "layoutY": 842.4789290132773
     },
     {
       "id": "5/belorusskaya",
       "title": "Белорусская",
       "lineNumericId": 5,
       "isTransfer": true,
-      "hubId": "hub-30",
+      "hubId": "hub-28",
       "lat": 55.775179,
       "lon": 37.582303,
       "layoutX": 740.6396410267575,
@@ -1926,11 +2294,12 @@
       "id": "5/dobryninskaya",
       "title": "Добрынинская",
       "lineNumericId": 5,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-39",
       "lat": 55.728994,
       "lon": 37.622533,
-      "layoutX": 1007.9514465867775,
-      "layoutY": 1027.7099374733912
+      "layoutX": 1020.0149679157323,
+      "layoutY": 1025.5338011764134
     },
     {
       "id": "5/kievskaya",
@@ -2080,29 +2449,29 @@
       "isTransfer": false,
       "lat": 55.642357,
       "lon": 37.526115,
-      "layoutX": 880.0247411304568,
-      "layoutY": 1356.5605643895537
+      "layoutX": 878.9211618257261,
+      "layoutY": 1356.5173007223366
     },
     {
       "id": "6/botanicheskiy-sad",
       "title": "Ботанический сад",
       "lineNumericId": 6,
       "isTransfer": true,
-      "hubId": "hub-45",
       "lat": 55.844597,
       "lon": 37.637811,
-      "layoutX": 1077.1693205925012,
-      "layoutY": 172.32233407499572
+      "layoutX": 1077.0939927315958,
+      "layoutY": 172.3477642848698
     },
     {
       "id": "6/kaluzhskaya",
       "title": "Калужская",
       "lineNumericId": 6,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-45",
       "lat": 55.656682,
       "lon": 37.540075,
-      "layoutX": 882.4302488708869,
-      "layoutY": 1295.1929622673429
+      "layoutX": 875.6968248558784,
+      "layoutY": 1328.2963040390787
     },
     {
       "id": "6/kitay-gorod",
@@ -2133,8 +2502,8 @@
       "hubId": "hub-47",
       "lat": 55.70678,
       "lon": 37.58499,
-      "layoutX": 872.7543172816595,
-      "layoutY": 1156.8856979572747
+      "layoutX": 872.7543172847027,
+      "layoutY": 1156.885697957909
     },
     {
       "id": "6/medvedkovo",
@@ -2159,7 +2528,7 @@
     },
     {
       "id": "6/novye-cheremushki",
-      "title": "Новые Черемушки",
+      "title": "Новые Черёмушки",
       "lineNumericId": 6,
       "isTransfer": false,
       "lat": 55.670077,
@@ -2175,8 +2544,8 @@
       "hubId": "hub-42",
       "lat": 55.731232,
       "lon": 37.612851,
-      "layoutX": 882.8190701833431,
-      "layoutY": 1005.9316893760833
+      "layoutX": 882.8190701832946,
+      "layoutY": 1005.9316893760698
     },
     {
       "id": "6/profsoyuznaya",
@@ -2196,8 +2565,8 @@
       "hubId": "hub-43",
       "lat": 55.781827,
       "lon": 37.633199,
-      "layoutX": 1093.8628365245772,
-      "layoutY": 501.72184739960665
+      "layoutX": 1093.862836522419,
+      "layoutY": 501.7218473985912
     },
     {
       "id": "6/rizhskaya",
@@ -2207,8 +2576,8 @@
       "hubId": "hub-48",
       "lat": 55.792494,
       "lon": 37.636114,
-      "layoutX": 1087.410384203432,
-      "layoutY": 403.0015112818692
+      "layoutX": 1086.6755039081604,
+      "layoutY": 405.1719373258578
     },
     {
       "id": "6/shabolovskaya",
@@ -2242,7 +2611,7 @@
     },
     {
       "id": "6/teplyy-stan",
-      "title": "Теплый Стан",
+      "title": "Тёплый Стан",
       "lineNumericId": 6,
       "isTransfer": false,
       "lat": 55.61873,
@@ -2255,11 +2624,11 @@
       "title": "Третьяковская",
       "lineNumericId": 6,
       "isTransfer": true,
-      "hubId": "hub-49",
+      "hubId": "hub-31",
       "lat": 55.74073,
       "lon": 37.625624,
-      "layoutX": 1021.7321244306447,
-      "layoutY": 843.445700156351
+      "layoutX": 1036.0164322712076,
+      "layoutY": 863.2648297643368
     },
     {
       "id": "6/turgenevskaya",
@@ -2310,8 +2679,8 @@
       "isTransfer": false,
       "lat": 55.773505,
       "lon": 37.545518,
-      "layoutX": 599.0569631110505,
-      "layoutY": 541.3212153626458
+      "layoutX": 598.8381742738588,
+      "layoutY": 541.5352697095436
     },
     {
       "id": "7/kitay-gorod",
@@ -2346,7 +2715,7 @@
     },
     {
       "id": "7/kuznetskiy-most",
-      "title": "Кузнецкий мост",
+      "title": "Кузнецкий Мост",
       "lineNumericId": 7,
       "isTransfer": true,
       "hubId": "hub-5",
@@ -2359,21 +2728,22 @@
       "id": "7/lermontovskiy-prospekt",
       "title": "Лермонтовский проспект",
       "lineNumericId": 7,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-49",
       "lat": 55.702036,
       "lon": 37.851044,
-      "layoutX": 1731.9989716716423,
-      "layoutY": 1017.7073247505305
+      "layoutX": 1734.8911610904763,
+      "layoutY": 1017.2925053183759
     },
     {
       "id": "7/oktyabrskoe-pole",
-      "title": "Октябрьское поле",
+      "title": "Октябрьское Поле",
       "lineNumericId": 7,
       "isTransfer": true,
       "lat": 55.793581,
       "lon": 37.493317,
-      "layoutX": 508.6394058856478,
-      "layoutY": 379.9664970627363
+      "layoutX": 508.15468562305136,
+      "layoutY": 380.03752648271825
     },
     {
       "id": "7/planernaya",
@@ -2389,21 +2759,23 @@
       "id": "7/polezhaevskaya",
       "title": "Полежаевская",
       "lineNumericId": 7,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-50",
       "lat": 55.777201,
       "lon": 37.517895,
-      "layoutX": 517.2033810606034,
-      "layoutY": 457.65719563118864
+      "layoutX": 520.8200598064212,
+      "layoutY": 462.7218942091301
     },
     {
       "id": "7/proletarskaya",
       "title": "Пролетарская",
       "lineNumericId": 7,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-12",
       "lat": 55.731546,
       "lon": 37.666917,
-      "layoutX": 1293.9773872707724,
-      "layoutY": 881.4847020423247
+      "layoutX": 1296.6391808381263,
+      "layoutY": 880.2596281813858
     },
     {
       "id": "7/pushkinskaya",
@@ -2472,11 +2844,11 @@
       "title": "Текстильщики",
       "lineNumericId": 7,
       "isTransfer": true,
-      "hubId": "hub-50",
+      "hubId": "hub-51",
       "lat": 55.709211,
       "lon": 37.732117,
-      "layoutX": 1565.862792220512,
-      "layoutY": 902.0399698234199
+      "layoutX": 1567.0737619770166,
+      "layoutY": 902.0682497107849
     },
     {
       "id": "7/tushinskaya",
@@ -2502,11 +2874,11 @@
       "id": "7/volgogradskiy-prospekt",
       "title": "Волгоградский проспект",
       "lineNumericId": 7,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.725546,
       "lon": 37.685197,
-      "layoutX": 1385.711256220714,
-      "layoutY": 889.0959044427227
+      "layoutX": 1404.3794217761958,
+      "layoutY": 899.7035632945963
     },
     {
       "id": "7/vykhino",
@@ -2515,8 +2887,8 @@
       "isTransfer": false,
       "lat": 55.715983,
       "lon": 37.816788,
-      "layoutX": 1717.729566383337,
-      "layoutY": 966.1234416856422
+      "layoutX": 1717.1230779457796,
+      "layoutY": 966.2967624512221
     },
     {
       "id": "7/zhulebino",
@@ -2533,11 +2905,11 @@
       "title": "Авиамоторная",
       "lineNumericId": 8,
       "isTransfer": true,
-      "hubId": "hub-51",
+      "hubId": "hub-52",
       "lat": 55.751933,
       "lon": 37.717444,
-      "layoutX": 1413.9066055971384,
-      "layoutY": 545.2551825937703
+      "layoutX": 1413.1248696610664,
+      "layoutY": 545.8414880923858
     },
     {
       "id": "8/marksistskaya",
@@ -2577,8 +2949,8 @@
       "isTransfer": false,
       "lat": 55.75098,
       "lon": 37.78422,
-      "layoutX": 1573.1941965173946,
-      "layoutY": 464.7555576252637
+      "layoutX": 1573.3615421753873,
+      "layoutY": 465.1751983459221
     },
     {
       "id": "8/ploshchad-ilicha",
@@ -2596,22 +2968,21 @@
       "title": "Шоссе Энтузиастов",
       "lineNumericId": 8,
       "isTransfer": true,
-      "hubId": "hub-52",
       "lat": 55.75809,
       "lon": 37.751703,
-      "layoutX": 1482.1555355581722,
-      "layoutY": 501.69932143685236
+      "layoutX": 1475.0989026720922,
+      "layoutY": 504.3606854864965
     },
     {
       "id": "8/tretyakovskaya",
       "title": "Третьяковская",
       "lineNumericId": 8,
       "isTransfer": true,
-      "hubId": "hub-49",
+      "hubId": "hub-31",
       "lat": 55.741125,
       "lon": 37.626142,
-      "layoutX": 1037.7321244306436,
-      "layoutY": 843.445700156351
+      "layoutX": 1052.0164322712071,
+      "layoutY": 863.2648297643368
     },
     {
       "id": "9/altufevo",
@@ -2651,8 +3022,8 @@
       "hubId": "hub-1",
       "lat": 55.750399,
       "lon": 37.60934,
-      "layoutX": 873.9329803304569,
-      "layoutY": 831.9369199448771
+      "layoutX": 873.9326618213903,
+      "layoutY": 831.9526380656258
     },
     {
       "id": "9/bulvar-dmitriya-donskogo",
@@ -2683,8 +3054,8 @@
       "isTransfer": false,
       "lat": 55.640538,
       "lon": 37.606065,
-      "layoutX": 1099.4890823818366,
-      "layoutY": 1328.0050137416679
+      "layoutX": 1099.2135615776833,
+      "layoutY": 1328.1164829407173
     },
     {
       "id": "9/dmitrovskaya",
@@ -2704,18 +3075,18 @@
       "hubId": "hub-41",
       "lat": 55.781999,
       "lon": 37.599141,
-      "layoutX": 860.5889016637658,
-      "layoutY": 520.1677454161304
+      "layoutX": 860.5889016633133,
+      "layoutY": 520.1677454162985
     },
     {
       "id": "9/nagatinskaya",
       "title": "Нагатинская",
       "lineNumericId": 9,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.682099,
       "lon": 37.620917,
-      "layoutX": 1097.3298337056146,
-      "layoutY": 1127.7751870433012
+      "layoutX": 1102.2010554576218,
+      "layoutY": 1126.8147746642592
     },
     {
       "id": "9/nagornaya",
@@ -2765,8 +3136,8 @@
       "isTransfer": false,
       "lat": 55.736795,
       "lon": 37.618594,
-      "layoutX": 976.6815490074551,
-      "layoutY": 961.5074352403343
+      "layoutX": 975.3529031528091,
+      "layoutY": 962.5138634379821
     },
     {
       "id": "9/prazhskaya",
@@ -2786,28 +3157,30 @@
       "hubId": "hub-53",
       "lat": 55.794054,
       "lon": 37.587163,
-      "layoutX": 842.5623391119047,
-      "layoutY": 363.17013631742907
+      "layoutX": 842.9072339528536,
+      "layoutY": 366.004403925424
     },
     {
       "id": "9/serpukhovskaya",
       "title": "Серпуховская",
       "lineNumericId": 9,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-39",
       "lat": 55.726548,
       "lon": 37.624792,
-      "layoutX": 1034.6385986206506,
-      "layoutY": 1038.0209432113652
+      "layoutX": 1032.7878225120357,
+      "layoutY": 1038.5653099474334
     },
     {
       "id": "9/sevastopolskaya",
       "title": "Севастопольская",
       "lineNumericId": 9,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-54",
       "lat": 55.651451,
       "lon": 37.59809,
-      "layoutX": 1098.8292366517976,
-      "layoutY": 1280.6067228189177
+      "layoutX": 1105.5042635753266,
+      "layoutY": 1310.909235562033
     },
     {
       "id": "9/timiryazevskaya",
@@ -2855,11 +3228,11 @@
       "title": "Владыкино",
       "lineNumericId": 9,
       "isTransfer": true,
-      "hubId": "hub-54",
+      "hubId": "hub-55",
       "lat": 55.848236,
       "lon": 37.590451,
-      "layoutX": 952.533479733126,
-      "layoutY": 136.3231758473106
+      "layoutX": 952.5334797330855,
+      "layoutY": 136.32317584731294
     },
     {
       "id": "9/yuzhnaya",
@@ -2875,23 +3248,21 @@
       "id": "95/andronovka",
       "title": "Андроновка",
       "lineNumericId": 95,
-      "isTransfer": true,
-      "hubId": "hub-52",
+      "isTransfer": false,
       "lat": 55.741111,
       "lon": 37.734444,
-      "layoutX": 1499.58206607628,
-      "layoutY": 505.1599910765273
+      "layoutX": 1501.2558081197212,
+      "layoutY": 510.40837256526584
     },
     {
       "id": "95/avtozavodskaya",
       "title": "Автозаводская",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-29",
       "lat": 55.70631,
       "lon": 37.66314,
-      "layoutX": 1292.0209058406722,
-      "layoutY": 1065.0823144113224
+      "layoutX": 1282.6528366476264,
+      "layoutY": 1071.0135094886914
     },
     {
       "id": "95/baltiyskaya",
@@ -2918,11 +3289,10 @@
       "title": "Ботанический сад",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-45",
       "lat": 55.845556,
       "lon": 37.640278,
-      "layoutX": 1095.087746662112,
-      "layoutY": 160.13109935169444
+      "layoutX": 1095.087746662134,
+      "layoutY": 160.13109935169854
     },
     {
       "id": "95/bulvar-rokossovskogo",
@@ -2931,36 +3301,24 @@
       "isTransfer": true,
       "lat": 55.817222,
       "lon": 37.736944,
-      "layoutX": 1286.719925877688,
-      "layoutY": 235.3226596324593
-    },
-    {
-      "id": "95/delovoy-tsentr",
-      "title": "Деловой центр",
-      "lineNumericId": 95,
-      "isTransfer": true,
-      "hubId": "hub-39",
-      "lat": 55.747222,
-      "lon": 37.532222,
-      "layoutX": 465.2097689188039,
-      "layoutY": 558.2738277474477
+      "layoutX": 1318.7452283028501,
+      "layoutY": 257.1992015676344
     },
     {
       "id": "95/dubrovka",
       "title": "Дубровка",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-12",
       "lat": 55.71268,
       "lon": 37.677775,
-      "layoutX": 1365.4894485150899,
-      "layoutY": 1007.7424832653671
+      "layoutX": 1372.1424635883152,
+      "layoutY": 1001.4130742831526
     },
     {
       "id": "95/izmaylovo",
       "title": "Измайлово",
       "lineNumericId": 95,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.788611,
       "lon": 37.742778,
       "layoutX": 1399.7156135638527,
@@ -2968,13 +3326,13 @@
     },
     {
       "id": "95/khoroshevo",
-      "title": "Хорошево",
+      "title": "Хорошёво",
       "lineNumericId": 95,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.777222,
       "lon": 37.507222,
-      "layoutX": 501.2890756835883,
-      "layoutY": 449.26505939787927
+      "layoutX": 502.9046364627509,
+      "layoutY": 445.85832865934805
     },
     {
       "id": "95/koptevo",
@@ -2994,15 +3352,15 @@
       "hubId": "hub-26",
       "lat": 55.690038,
       "lon": 37.605,
-      "layoutX": 1009.8930958015173,
-      "layoutY": 1153.2389093211834
+      "layoutX": 1008.1970064912126,
+      "layoutY": 1153.2977506156521
     },
     {
       "id": "95/kutuzovskaya",
       "title": "Кутузовская",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-38",
+      "hubId": "hub-37",
       "lat": 55.740833,
       "lon": 37.533333,
       "layoutX": 497.3851787069051,
@@ -3026,29 +3384,40 @@
       "hubId": "hub-2",
       "lat": 55.803219,
       "lon": 37.745742,
-      "layoutX": 1322.8472657535885,
-      "layoutY": 260.2568143220384
+      "layoutX": 1331.7071672096722,
+      "layoutY": 267.0756740636655
     },
     {
       "id": "95/luzhniki",
       "title": "Лужники",
       "lineNumericId": 95,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.720278,
       "lon": 37.563056,
-      "layoutX": 642.7391431868014,
-      "layoutY": 1033.297266518404
+      "layoutX": 644.4219012012784,
+      "layoutY": 1034.6439770879617
+    },
+    {
+      "id": "95/moskva-siti",
+      "title": "Москва-Сити",
+      "lineNumericId": 95,
+      "isTransfer": true,
+      "hubId": "hub-38",
+      "lat": 55.747222,
+      "lon": 37.532222,
+      "layoutX": 465.8839675708032,
+      "layoutY": 554.9956218737051
     },
     {
       "id": "95/nizhegorodskaya",
       "title": "Нижегородская",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-55",
+      "hubId": "hub-56",
       "lat": 55.732222,
       "lon": 37.72825,
-      "layoutX": 1521.4114126467696,
-      "layoutY": 614.3008234696664
+      "layoutX": 1521.4344894019364,
+      "layoutY": 614.590717188013
     },
     {
       "id": "95/novokhokhlovskaya",
@@ -3106,23 +3475,21 @@
       "id": "95/shelepikha",
       "title": "Шелепиха",
       "lineNumericId": 95,
-      "isTransfer": true,
-      "hubId": "hub-56",
+      "isTransfer": false,
       "lat": 55.7575,
       "lon": 37.525556,
-      "layoutX": 473.4674953795404,
-      "layoutY": 523.9911875743499
+      "layoutX": 486.3319978056754,
+      "layoutY": 484.7113040749231
     },
     {
       "id": "95/shosse-entuziastov",
       "title": "Шоссе Энтузиастов",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-52",
       "lat": 55.758633,
       "lon": 37.748477,
-      "layoutX": 1494.384127809969,
-      "layoutY": 490.0389407851451
+      "layoutX": 1491.2253641149457,
+      "layoutY": 481.5726970442969
     },
     {
       "id": "95/sokolinaya-gora",
@@ -3138,7 +3505,7 @@
       "id": "95/streshnevo",
       "title": "Стрешнево",
       "lineNumericId": 95,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.813611,
       "lon": 37.486944,
       "layoutX": 588.0132959419121,
@@ -3148,53 +3515,52 @@
       "id": "95/ugreshskaya",
       "title": "Угрешская",
       "lineNumericId": 95,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.718333,
       "lon": 37.697778,
-      "layoutX": 1441.1779989666354,
-      "layoutY": 918.7575695480151
+      "layoutX": 1440.277176579386,
+      "layoutY": 920.1014505625803
     },
     {
       "id": "95/verkhnie-kotly",
       "title": "Верхние Котлы",
       "lineNumericId": 95,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.69,
       "lon": 37.618889,
-      "layoutX": 1162.15356027281,
-      "layoutY": 1126.5742419389892
+      "layoutX": 1142.106135944817,
+      "layoutY": 1132.6140401790472
     },
     {
       "id": "95/vladykino",
       "title": "Владыкино",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-54",
+      "hubId": "hub-55",
       "lat": 55.847222,
       "lon": 37.591944,
-      "layoutX": 969.3510282201959,
-      "layoutY": 150.5378398555692
+      "layoutX": 969.3510282197147,
+      "layoutY": 150.53783985558618
     },
     {
       "id": "95/zil",
       "title": "ЗИЛ",
       "lineNumericId": 95,
       "isTransfer": true,
-      "hubId": "hub-28",
       "lat": 55.698333,
       "lon": 37.648333,
-      "layoutX": 1224.6846408620218,
-      "layoutY": 1102.1787304931981
+      "layoutX": 1227.2489811617313,
+      "layoutY": 1100.9857066875577
     },
     {
       "id": "95/zorge",
       "title": "Зорге",
       "lineNumericId": 95,
-      "isTransfer": false,
+      "isTransfer": true,
       "lat": 55.787778,
       "lon": 37.504444,
-      "layoutX": 526.176647191778,
-      "layoutY": 402.90955699810576
+      "layoutX": 526.7431869351877,
+      "layoutY": 401.97989451606713
     },
     {
       "id": "97/aminevskaya",
@@ -3203,19 +3569,19 @@
       "isTransfer": false,
       "lat": 55.697222,
       "lon": 37.464167,
-      "layoutX": 322.89556307797204,
-      "layoutY": 1021.0470642538294
+      "layoutX": 325.16903752881274,
+      "layoutY": 1020.3797225702491
     },
     {
       "id": "97/aviamotornaya",
       "title": "Авиамоторная",
       "lineNumericId": 97,
       "isTransfer": true,
-      "hubId": "hub-51",
+      "hubId": "hub-52",
       "lat": 55.753056,
       "lon": 37.718611,
-      "layoutX": 1433.1131098525243,
-      "layoutY": 541.2825516572767
+      "layoutX": 1432.3695317974093,
+      "layoutY": 541.8180386923958
     },
     {
       "id": "97/davydkovo",
@@ -3224,19 +3590,8 @@
       "isTransfer": false,
       "lat": 55.715278,
       "lon": 37.451667,
-      "layoutX": 275.2320589534926,
-      "layoutY": 874.7797482589997
-    },
-    {
-      "id": "97/delovoy-tsentr",
-      "title": "Деловой центр",
-      "lineNumericId": 97,
-      "isTransfer": true,
-      "hubId": "hub-22",
-      "lat": 55.7491,
-      "lon": 37.5395,
-      "layoutX": 422.89195192032514,
-      "layoutY": 545.4131791338923
+      "layoutX": 278.37696516355527,
+      "layoutY": 874.591315025562
     },
     {
       "id": "97/elektrozavodskaya",
@@ -3246,39 +3601,41 @@
       "hubId": "hub-34",
       "lat": 55.782057,
       "lon": 37.7053,
-      "layoutX": 1323.290483563076,
-      "layoutY": 467.2478054925832
+      "layoutX": 1322.229634914791,
+      "layoutY": 468.3365586697771
     },
     {
       "id": "97/kakhovskaya",
       "title": "Каховская",
       "lineNumericId": 97,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-54",
       "lat": 55.653056,
       "lon": 37.598333,
-      "layoutX": 1083.6786469482986,
-      "layoutY": 1298.988966058754
+      "layoutX": 1086.9653089387803,
+      "layoutY": 1298.9702588488494
     },
     {
       "id": "97/kashirskaya",
       "title": "Каширская",
       "lineNumericId": 97,
       "isTransfer": true,
-      "hubId": "hub-31",
+      "hubId": "hub-30",
       "lat": 55.655,
       "lon": 37.648611,
-      "layoutX": 1241.0086784079865,
-      "layoutY": 1256.1695822975248
+      "layoutX": 1222.1142952402988,
+      "layoutY": 1264.0264739387835
     },
     {
       "id": "97/khoroshevskaya",
-      "title": "Хорошевская",
+      "title": "Хорошёвская",
       "lineNumericId": 97,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-50",
       "lat": 55.77643,
       "lon": 37.51981,
-      "layoutX": 516.4973642353111,
-      "layoutY": 478.9387173670956
+      "layoutX": 521.4050928526706,
+      "layoutY": 480.14635547935956
     },
     {
       "id": "97/klenovyy-bulvar",
@@ -3287,8 +3644,8 @@
       "isTransfer": false,
       "lat": 55.674444,
       "lon": 37.680833,
-      "layoutX": 1327.5293995550628,
-      "layoutY": 1216.4748421136087
+      "layoutX": 1328.3691582345223,
+      "layoutY": 1217.2420991517185
     },
     {
       "id": "97/kuntsevskaya",
@@ -3298,8 +3655,8 @@
       "hubId": "hub-36",
       "lat": 55.730278,
       "lon": 37.445833,
-      "layoutX": 283.49526822142377,
-      "layoutY": 762.3995073626411
+      "layoutX": 286.9974100096688,
+      "layoutY": 763.1067192559834
     },
     {
       "id": "97/lefortovo",
@@ -3308,8 +3665,8 @@
       "isTransfer": false,
       "lat": 55.764444,
       "lon": 37.702778,
-      "layoutX": 1378.75323915126,
-      "layoutY": 500.3672928904623
+      "layoutX": 1377.8242100651005,
+      "layoutY": 501.18628833849584
     },
     {
       "id": "97/marina-roshcha",
@@ -3319,8 +3676,8 @@
       "hubId": "hub-13",
       "lat": 55.798333,
       "lon": 37.617222,
-      "layoutX": 990.1851437345606,
-      "layoutY": 376.00768320871896
+      "layoutX": 989.7747722100744,
+      "layoutY": 378.5099576457828
     },
     {
       "id": "97/michurinskiy-prospekt",
@@ -3330,8 +3687,8 @@
       "hubId": "hub-23",
       "lat": 55.688333,
       "lon": 37.485,
-      "layoutX": 389.64695904299833,
-      "layoutY": 1109.059209341542
+      "layoutX": 391.27349049270606,
+      "layoutY": 1108.267391775677
     },
     {
       "id": "97/mnevniki",
@@ -3340,8 +3697,8 @@
       "isTransfer": false,
       "lat": 55.761153,
       "lon": 37.47139,
-      "layoutX": 338.4269089810149,
-      "layoutY": 640.0218206942737
+      "layoutX": 342.0750146931648,
+      "layoutY": 641.2845205021453
     },
     {
       "id": "97/nagatinskiy-zaton",
@@ -3350,8 +3707,8 @@
       "isTransfer": false,
       "lat": 55.684444,
       "lon": 37.703611,
-      "layoutX": 1404.8043466468614,
-      "layoutY": 1167.253111834561
+      "layoutX": 1405.8856185372676,
+      "layoutY": 1167.9912177302676
     },
     {
       "id": "97/narodnoe-opolchenie",
@@ -3360,19 +3717,19 @@
       "isTransfer": false,
       "lat": 55.77592,
       "lon": 37.485073,
-      "layoutX": 373.49055213889005,
-      "layoutY": 594.5188099012637
+      "layoutX": 377.03418083398856,
+      "layoutY": 596.111928009223
     },
     {
       "id": "97/nizhegorodskaya",
       "title": "Нижегородская",
       "lineNumericId": 97,
       "isTransfer": true,
-      "hubId": "hub-55",
+      "hubId": "hub-56",
       "lat": 55.7325,
       "lon": 37.728611,
-      "layoutX": 1509.8375917790117,
-      "layoutY": 622.3317476010686
+      "layoutX": 1510.3824490726615,
+      "layoutY": 623.5748240786454
     },
     {
       "id": "97/novatorskaya",
@@ -3382,8 +3739,8 @@
       "hubId": "hub-27",
       "lat": 55.670833,
       "lon": 37.52,
-      "layoutX": 690.1519255387908,
-      "layoutY": 1279.4298572646198
+      "layoutX": 690.3918503860543,
+      "layoutY": 1279.0530707792461
     },
     {
       "id": "97/pechatniki",
@@ -3393,18 +3750,19 @@
       "hubId": "hub-15",
       "lat": 55.694722,
       "lon": 37.7275,
-      "layoutX": 1487.1092236555655,
-      "layoutY": 1091.7236875507847
+      "layoutX": 1488.427821105467,
+      "layoutY": 1092.312981113113
     },
     {
       "id": "97/petrovskiy-park",
       "title": "Петровский парк",
       "lineNumericId": 97,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-29",
       "lat": 55.79233,
       "lon": 37.55952,
-      "layoutX": 711.5032652614342,
-      "layoutY": 400.8816663550254
+      "layoutX": 700.2656237099512,
+      "layoutY": 407.0690297296422
     },
     {
       "id": "97/prospekt-vernadskogo",
@@ -3414,8 +3772,8 @@
       "hubId": "hub-9",
       "lat": 55.677778,
       "lon": 37.505,
-      "layoutX": 523.1733182679286,
-      "layoutY": 1210.8824488509224
+      "layoutX": 524.0389953690582,
+      "layoutY": 1210.2156733501101
     },
     {
       "id": "97/rizhskaya",
@@ -3425,8 +3783,8 @@
       "hubId": "hub-48",
       "lat": 55.792222,
       "lon": 37.633889,
-      "layoutX": 1105.6156965013665,
-      "layoutY": 391.06025500963267
+      "layoutX": 1104.7350665942763,
+      "layoutY": 393.14813267751134
     },
     {
       "id": "97/savelovskaya",
@@ -3436,19 +3794,8 @@
       "hubId": "hub-53",
       "lat": 55.794054,
       "lon": 37.587163,
-      "layoutX": 859.8414537911548,
-      "layoutY": 376.77575674617236
-    },
-    {
-      "id": "97/shelepikha",
-      "title": "Шелепиха",
-      "lineNumericId": 97,
-      "isTransfer": true,
-      "hubId": "hub-56",
-      "lat": 55.75723,
-      "lon": 37.52571,
-      "layoutX": 460.5878255991855,
-      "layoutY": 515.3646200665587
+      "layoutX": 860.1825912346317,
+      "layoutY": 379.5820160348283
     },
     {
       "id": "97/sokolniki",
@@ -3458,19 +3805,19 @@
       "hubId": "hub-10",
       "lat": 55.791111,
       "lon": 37.678889,
-      "layoutX": 1224.3890384330932,
-      "layoutY": 423.6773955037279
+      "layoutX": 1223.306371415715,
+      "layoutY": 425.2501286669332
     },
     {
       "id": "97/tekstilshchiki",
       "title": "Текстильщики",
       "lineNumericId": 97,
       "isTransfer": true,
-      "hubId": "hub-50",
+      "hubId": "hub-51",
       "lat": 55.708333,
       "lon": 37.728333,
-      "layoutX": 1581.862792220512,
-      "layoutY": 902.0399698234199
+      "layoutX": 1583.0737619770166,
+      "layoutY": 902.0682497107849
     },
     {
       "id": "97/terekhovo",
@@ -3479,8 +3826,8 @@
       "isTransfer": false,
       "lat": 55.748108,
       "lon": 37.459738,
-      "layoutX": 307.53598015507,
-      "layoutY": 694.4634161587218
+      "layoutX": 311.21055983146505,
+      "layoutY": 695.3368599474167
     },
     {
       "id": "97/tsska",
@@ -3489,29 +3836,29 @@
       "isTransfer": false,
       "lat": 55.78643,
       "lon": 37.53502,
-      "layoutX": 625.4846074241376,
-      "layoutY": 427.6793142333359
+      "layoutX": 627.5181759106616,
+      "layoutY": 430.44050742713574
     },
     {
       "id": "97/varshavskaya",
       "title": "Варшавская",
       "lineNumericId": 97,
-      "isTransfer": true,
-      "hubId": "hub-31",
+      "isTransfer": false,
       "lat": 55.653333,
       "lon": 37.619444,
-      "layoutX": 1255.8430361427809,
-      "layoutY": 1250.3053136941267
+      "layoutX": 1237.2886274551265,
+      "layoutY": 1258.5198673903515
     },
     {
       "id": "97/vorontsovskaya",
       "title": "Воронцовская",
       "lineNumericId": 97,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-45",
       "lat": 55.658333,
       "lon": 37.540833,
-      "layoutX": 866.6609901656399,
-      "layoutY": 1309.7268068122492
+      "layoutX": 875.6968248558784,
+      "layoutY": 1310.3709928357594
     },
     {
       "id": "97/zyuzino",
@@ -3520,18 +3867,19 @@
       "isTransfer": false,
       "lat": 55.655158,
       "lon": 37.575786,
-      "layoutX": 982.7176821536051,
-      "layoutY": 1310.451038601057
+      "layoutX": 982.63222208318,
+      "layoutY": 1310.7653667371453
     },
     {
       "id": "98/kosino",
       "title": "Косино",
       "lineNumericId": 98,
-      "isTransfer": false,
+      "isTransfer": true,
+      "hubId": "hub-49",
       "lat": 55.7026,
       "lon": 37.8511,
-      "layoutX": 1750.0787757974695,
-      "layoutY": 1015.1469782756266
+      "layoutX": 1747.259364991123,
+      "layoutY": 1015.540999215902
     },
     {
       "id": "98/lukhmanovskaya",
@@ -3558,11 +3906,11 @@
       "title": "Нижегородская",
       "lineNumericId": 98,
       "isTransfer": true,
-      "hubId": "hub-55",
+      "hubId": "hub-56",
       "lat": 55.73,
       "lon": 37.73,
-      "layoutX": 1534.0333290406948,
-      "layoutY": 618.9227505855254
+      "layoutX": 1534.2996228744535,
+      "layoutY": 619.0513965433289
     },
     {
       "id": "98/okskaya",
@@ -3601,8 +3949,8 @@
       "isTransfer": false,
       "lat": 55.71,
       "lon": 37.82,
-      "layoutX": 1695.1107163567706,
-      "layoutY": 833.336586898972
+      "layoutX": 1695.1834949692686,
+      "layoutY": 833.3157884070981
     }
   ],
   "edges": [
@@ -3806,12 +4154,12 @@
     },
     {
       "fromStationId": "95/kutuzovskaya",
-      "toStationId": "95/delovoy-tsentr",
+      "toStationId": "95/moskva-siti",
       "lineNumericId": 95,
       "medianTravelSeconds": 77
     },
     {
-      "fromStationId": "95/delovoy-tsentr",
+      "fromStationId": "95/moskva-siti",
       "toStationId": "95/shelepikha",
       "lineNumericId": 95,
       "medianTravelSeconds": 117
@@ -3998,21 +4346,9 @@
     },
     {
       "fromStationId": "97/khoroshevskaya",
-      "toStationId": "97/shelepikha",
-      "lineNumericId": 97,
-      "medianTravelSeconds": 215
-    },
-    {
-      "fromStationId": "97/shelepikha",
-      "toStationId": "97/delovoy-tsentr",
-      "lineNumericId": 97,
-      "medianTravelSeconds": 132
-    },
-    {
-      "fromStationId": "97/delovoy-tsentr",
       "toStationId": "97/narodnoe-opolchenie",
       "lineNumericId": 97,
-      "medianTravelSeconds": 427
+      "medianTravelSeconds": 150
     },
     {
       "fromStationId": "97/narodnoe-opolchenie",
@@ -4531,13 +4867,13 @@
       "medianTravelSeconds": 63
     },
     {
-      "fromStationId": "4/aleksandrovskiy-sad",
-      "toStationId": "4/delovoy-tsentr-vystavochnaya",
+      "fromStationId": "4/kievskaya",
+      "toStationId": "4/delovoy-tsentr",
       "lineNumericId": 4,
-      "medianTravelSeconds": 413
+      "medianTravelSeconds": 150
     },
     {
-      "fromStationId": "4/delovoy-tsentr-vystavochnaya",
+      "fromStationId": "4/delovoy-tsentr",
       "toStationId": "4/moskva-siti",
       "lineNumericId": 4,
       "medianTravelSeconds": 83
@@ -5185,6 +5521,30 @@
       "medianTravelSeconds": 253
     },
     {
+      "fromStationId": "98/nizhegorodskaya",
+      "toStationId": "98/stakhanovskaya",
+      "lineNumericId": 98,
+      "medianTravelSeconds": 198
+    },
+    {
+      "fromStationId": "98/stakhanovskaya",
+      "toStationId": "98/okskaya",
+      "lineNumericId": 98,
+      "medianTravelSeconds": 141
+    },
+    {
+      "fromStationId": "98/okskaya",
+      "toStationId": "98/yugo-vostochnaya",
+      "lineNumericId": 98,
+      "medianTravelSeconds": 335
+    },
+    {
+      "fromStationId": "98/yugo-vostochnaya",
+      "toStationId": "98/kosino",
+      "lineNumericId": 98,
+      "medianTravelSeconds": 150
+    },
+    {
       "fromStationId": "98/kosino",
       "toStationId": "98/ulitsa-dmitrievskogo",
       "lineNumericId": 98,
@@ -5201,30 +5561,6 @@
       "toStationId": "98/nekrasovka",
       "lineNumericId": 98,
       "medianTravelSeconds": 183
-    },
-    {
-      "fromStationId": "98/nekrasovka",
-      "toStationId": "98/yugo-vostochnaya",
-      "lineNumericId": 98,
-      "medianTravelSeconds": 656
-    },
-    {
-      "fromStationId": "98/yugo-vostochnaya",
-      "toStationId": "98/okskaya",
-      "lineNumericId": 98,
-      "medianTravelSeconds": 335
-    },
-    {
-      "fromStationId": "98/okskaya",
-      "toStationId": "98/stakhanovskaya",
-      "lineNumericId": 98,
-      "medianTravelSeconds": 141
-    },
-    {
-      "fromStationId": "98/stakhanovskaya",
-      "toStationId": "98/nizhegorodskaya",
-      "lineNumericId": 98,
-      "medianTravelSeconds": 198
     },
     {
       "fromStationId": "133/delovoy-tsentr",
@@ -5421,15 +5757,22 @@
       "transferKind": "near"
     },
     {
-      "fromStationId": "1/okhotnyy-ryad",
-      "toStationId": "2/teatralnaya",
+      "fromStationId": "1/lubyanka",
+      "toStationId": "7/kuznetskiy-most",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "1/novomoskovskaya",
+      "toStationId": "137/novomoskovskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
       "fromStationId": "1/okhotnyy-ryad",
-      "toStationId": "3/ploshchad-revolyutsii",
+      "toStationId": "2/teatralnaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5442,11 +5785,67 @@
       "transferKind": "near"
     },
     {
+      "fromStationId": "1/prospekt-vernadskogo",
+      "toStationId": "97/prospekt-vernadskogo",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "1/sokolniki",
+      "toStationId": "97/sokolniki",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "1/sportivnaya",
+      "toStationId": "95/luzhniki",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "10/chkalovskaya",
+      "toStationId": "3/kurskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "10/chkalovskaya",
+      "toStationId": "5/kurskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
       "fromStationId": "10/dubrovka",
       "toStationId": "95/dubrovka",
-      "medianTravelSeconds": 300,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
-      "transferKind": "mcc"
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "10/kozhukhovskaya",
+      "toStationId": "95/dubrovka",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "10/krestyanskaya-zastava",
+      "toStationId": "7/proletarskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "10/marina-roshcha",
+      "toStationId": "97/marina-roshcha",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
     },
     {
       "fromStationId": "10/okruzhnaya",
@@ -5470,6 +5869,27 @@
       "transferKind": "near"
     },
     {
+      "fromStationId": "10/rimskaya",
+      "toStationId": "8/ploshchad-ilicha",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "10/sretenskiy-bulvar",
+      "toStationId": "6/turgenevskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "10/trubnaya",
+      "toStationId": "9/tsvetnoy-bulvar",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
       "fromStationId": "10/zyablikovo",
       "toStationId": "2/krasnogvardeyskaya",
       "medianTravelSeconds": 180,
@@ -5477,18 +5897,25 @@
       "transferKind": "near"
     },
     {
-      "fromStationId": "133/delovoy-tsentr",
-      "toStationId": "4/moskva-siti",
-      "medianTravelSeconds": 480,
+      "fromStationId": "12/bittsevskiy-park",
+      "toStationId": "6/novoyasenevskaya",
+      "medianTravelSeconds": 180,
       "isTransfer": true,
-      "transferKind": "out_of_station"
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "12/ulitsa-starokachalovskaya",
+      "toStationId": "9/bulvar-dmitriya-donskogo",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
     },
     {
       "fromStationId": "133/delovoy-tsentr",
-      "toStationId": "95/delovoy-tsentr",
-      "medianTravelSeconds": 480,
+      "toStationId": "4/delovoy-tsentr",
+      "medianTravelSeconds": 180,
       "isTransfer": true,
-      "transferKind": "out_of_station"
+      "transferKind": "near"
     },
     {
       "fromStationId": "133/michurinskiy-prospekt",
@@ -5505,6 +5932,20 @@
       "transferKind": "near"
     },
     {
+      "fromStationId": "137/akademicheskaya",
+      "toStationId": "6/akademicheskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "137/krymskaya",
+      "toStationId": "95/krymskaya",
+      "medianTravelSeconds": 300,
+      "isTransfer": true,
+      "transferKind": "mcc"
+    },
+    {
       "fromStationId": "137/novatorskaya",
       "toStationId": "97/novatorskaya",
       "medianTravelSeconds": 180,
@@ -5512,22 +5953,78 @@
       "transferKind": "near"
     },
     {
-      "fromStationId": "137/novomoskovskaya",
-      "toStationId": "1/novomoskovskaya",
+      "fromStationId": "137/zil",
+      "toStationId": "95/zil",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "2/avtozavodskaya",
+      "toStationId": "95/avtozavodskaya",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "2/belorusskaya",
+      "toStationId": "5/belorusskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
-      "fromStationId": "2/avtozavodskaya",
-      "toStationId": "95/avtozavodskaya",
-      "medianTravelSeconds": 300,
+      "fromStationId": "2/dinamo",
+      "toStationId": "97/petrovskiy-park",
+      "medianTravelSeconds": 180,
       "isTransfer": true,
-      "transferKind": "mcc"
+      "transferKind": "near"
     },
     {
       "fromStationId": "2/kashirskaya",
-      "toStationId": "97/varshavskaya",
+      "toStationId": "97/kashirskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "2/novokuznetskaya",
+      "toStationId": "6/tretyakovskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "2/novokuznetskaya",
+      "toStationId": "8/tretyakovskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "2/paveletskaya",
+      "toStationId": "5/paveletskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "2/teatralnaya",
+      "toStationId": "3/ploshchad-revolyutsii",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "2/tverskaya",
+      "toStationId": "7/pushkinskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "2/tverskaya",
+      "toStationId": "9/chekhovskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5540,8 +6037,43 @@
       "transferKind": "out_of_station"
     },
     {
+      "fromStationId": "2/voykovskaya",
+      "toStationId": "95/streshnevo",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "3/arbatskaya",
+      "toStationId": "4/aleksandrovskiy-sad",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "3/arbatskaya",
+      "toStationId": "9/borovitskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
       "fromStationId": "3/elektrozavodskaya",
       "toStationId": "97/elektrozavodskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "3/kievskaya",
+      "toStationId": "4/kievskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "3/kievskaya",
+      "toStationId": "5/kievskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5554,8 +6086,43 @@
       "transferKind": "near"
     },
     {
-      "fromStationId": "3/smolenskaya",
-      "toStationId": "4/smolenskaya",
+      "fromStationId": "3/kuntsevskaya",
+      "toStationId": "97/kuntsevskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "3/kurskaya",
+      "toStationId": "5/kurskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "3/partizanskaya",
+      "toStationId": "95/izmaylovo",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "4/aleksandrovskiy-sad",
+      "toStationId": "9/borovitskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "4/kievskaya",
+      "toStationId": "5/kievskaya",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "4/kuntsevskaya",
+      "toStationId": "97/kuntsevskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5569,42 +6136,21 @@
     },
     {
       "fromStationId": "4/moskva-siti",
-      "toStationId": "95/delovoy-tsentr",
+      "toStationId": "95/moskva-siti",
       "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
-      "fromStationId": "5/belorusskaya",
-      "toStationId": "2/belorusskaya",
+      "fromStationId": "5/dobryninskaya",
+      "toStationId": "9/serpukhovskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
-      "fromStationId": "5/kievskaya",
-      "toStationId": "3/kievskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "5/kievskaya",
-      "toStationId": "4/kievskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "5/kurskaya",
-      "toStationId": "10/chkalovskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "5/kurskaya",
-      "toStationId": "3/kurskaya",
+      "fromStationId": "5/krasnopresnenskaya",
+      "toStationId": "7/barrikadnaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5619,13 +6165,6 @@
     {
       "fromStationId": "5/oktyabrskaya",
       "toStationId": "6/oktyabrskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "5/paveletskaya",
-      "toStationId": "2/paveletskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5652,22 +6191,36 @@
       "transferKind": "near"
     },
     {
-      "fromStationId": "6/akademicheskaya",
-      "toStationId": "137/akademicheskaya",
+      "fromStationId": "6/botanicheskiy-sad",
+      "toStationId": "95/botanicheskiy-sad",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "6/kaluzhskaya",
+      "toStationId": "97/vorontsovskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
-      "fromStationId": "6/botanicheskiy-sad",
-      "toStationId": "95/botanicheskiy-sad",
+      "fromStationId": "6/kitay-gorod",
+      "toStationId": "7/kitay-gorod",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "6/leninskiy-prospekt",
+      "toStationId": "95/ploshchad-gagarina",
       "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
-      "fromStationId": "6/novoyasenevskaya",
-      "toStationId": "12/bittsevskiy-park",
+      "fromStationId": "6/rizhskaya",
+      "toStationId": "97/rizhskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5680,22 +6233,8 @@
       "transferKind": "near"
     },
     {
-      "fromStationId": "7/barrikadnaya",
-      "toStationId": "5/krasnopresnenskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "7/kitay-gorod",
-      "toStationId": "6/kitay-gorod",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "7/kuznetskiy-most",
-      "toStationId": "1/lubyanka",
+      "fromStationId": "7/lermontovskiy-prospekt",
+      "toStationId": "98/kosino",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5708,8 +6247,22 @@
       "transferKind": "out_of_station"
     },
     {
-      "fromStationId": "7/pushkinskaya",
-      "toStationId": "2/tverskaya",
+      "fromStationId": "7/oktyabrskoe-pole",
+      "toStationId": "95/zorge",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "7/polezhaevskaya",
+      "toStationId": "95/khoroshevo",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "7/polezhaevskaya",
+      "toStationId": "97/khoroshevskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5729,6 +6282,20 @@
       "transferKind": "near"
     },
     {
+      "fromStationId": "7/tekstilshchiki",
+      "toStationId": "97/tekstilshchiki",
+      "medianTravelSeconds": 180,
+      "isTransfer": true,
+      "transferKind": "near"
+    },
+    {
+      "fromStationId": "7/volgogradskiy-prospekt",
+      "toStationId": "95/ugreshskaya",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
       "fromStationId": "8/aviamotornaya",
       "toStationId": "97/aviamotornaya",
       "medianTravelSeconds": 180,
@@ -5736,29 +6303,29 @@
       "transferKind": "near"
     },
     {
-      "fromStationId": "8/ploshchad-ilicha",
-      "toStationId": "10/rimskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
       "fromStationId": "8/shosse-entuziastov",
       "toStationId": "95/shosse-entuziastov",
-      "medianTravelSeconds": 300,
+      "medianTravelSeconds": 480,
       "isTransfer": true,
-      "transferKind": "mcc"
+      "transferKind": "out_of_station"
     },
     {
-      "fromStationId": "9/bulvar-dmitriya-donskogo",
-      "toStationId": "12/ulitsa-starokachalovskaya",
+      "fromStationId": "9/nagatinskaya",
+      "toStationId": "95/verkhnie-kotly",
+      "medianTravelSeconds": 480,
+      "isTransfer": true,
+      "transferKind": "out_of_station"
+    },
+    {
+      "fromStationId": "9/savelovskaya",
+      "toStationId": "97/savelovskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
     },
     {
-      "fromStationId": "9/tsvetnoy-bulvar",
-      "toStationId": "10/trubnaya",
+      "fromStationId": "9/sevastopolskaya",
+      "toStationId": "97/kakhovskaya",
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
@@ -5771,67 +6338,25 @@
       "transferKind": "mcc"
     },
     {
-      "fromStationId": "95/andronovka",
-      "toStationId": "8/shosse-entuziastov",
-      "medianTravelSeconds": 300,
-      "isTransfer": true,
-      "transferKind": "mcc"
-    },
-    {
-      "fromStationId": "95/delovoy-tsentr",
-      "toStationId": "97/delovoy-tsentr",
+      "fromStationId": "95/khoroshevo",
+      "toStationId": "97/khoroshevskaya",
       "medianTravelSeconds": 480,
       "isTransfer": true,
       "transferKind": "out_of_station"
     },
     {
-      "fromStationId": "95/krymskaya",
-      "toStationId": "137/krymskaya",
+      "fromStationId": "95/nizhegorodskaya",
+      "toStationId": "97/nizhegorodskaya",
       "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
     },
     {
-      "fromStationId": "95/ploshchad-gagarina",
-      "toStationId": "6/leninskiy-prospekt",
+      "fromStationId": "95/nizhegorodskaya",
+      "toStationId": "98/nizhegorodskaya",
       "medianTravelSeconds": 300,
       "isTransfer": true,
       "transferKind": "mcc"
-    },
-    {
-      "fromStationId": "95/zil",
-      "toStationId": "137/zil",
-      "medianTravelSeconds": 300,
-      "isTransfer": true,
-      "transferKind": "mcc"
-    },
-    {
-      "fromStationId": "97/delovoy-tsentr",
-      "toStationId": "133/delovoy-tsentr",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/kashirskaya",
-      "toStationId": "2/kashirskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/kuntsevskaya",
-      "toStationId": "3/kuntsevskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/marina-roshcha",
-      "toStationId": "10/marina-roshcha",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
     },
     {
       "fromStationId": "97/nizhegorodskaya",
@@ -5839,55 +6364,6 @@
       "medianTravelSeconds": 180,
       "isTransfer": true,
       "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/prospekt-vernadskogo",
-      "toStationId": "1/prospekt-vernadskogo",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/rizhskaya",
-      "toStationId": "6/rizhskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/savelovskaya",
-      "toStationId": "9/savelovskaya",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/shelepikha",
-      "toStationId": "95/shelepikha",
-      "medianTravelSeconds": 300,
-      "isTransfer": true,
-      "transferKind": "mcc"
-    },
-    {
-      "fromStationId": "97/sokolniki",
-      "toStationId": "1/sokolniki",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "97/tekstilshchiki",
-      "toStationId": "7/tekstilshchiki",
-      "medianTravelSeconds": 180,
-      "isTransfer": true,
-      "transferKind": "near"
-    },
-    {
-      "fromStationId": "98/nizhegorodskaya",
-      "toStationId": "95/nizhegorodskaya",
-      "medianTravelSeconds": 300,
-      "isTransfer": true,
-      "transferKind": "mcc"
     }
   ],
   "transferHubs": [
@@ -5998,8 +6474,8 @@
     {
       "id": "hub-12",
       "stationIds": [
-        "10/dubrovka",
-        "95/dubrovka"
+        "10/krestyanskaya-zastava",
+        "7/proletarskaya"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6089,7 +6565,7 @@
       "id": "hub-22",
       "stationIds": [
         "133/delovoy-tsentr",
-        "97/delovoy-tsentr"
+        "4/delovoy-tsentr"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6142,24 +6618,6 @@
     {
       "id": "hub-28",
       "stationIds": [
-        "137/zil",
-        "95/zil"
-      ],
-      "minTransferSeconds": 240,
-      "source": "data"
-    },
-    {
-      "id": "hub-29",
-      "stationIds": [
-        "2/avtozavodskaya",
-        "95/avtozavodskaya"
-      ],
-      "minTransferSeconds": 240,
-      "source": "data"
-    },
-    {
-      "id": "hub-30",
-      "stationIds": [
         "2/belorusskaya",
         "5/belorusskaya"
       ],
@@ -6167,11 +6625,29 @@
       "source": "data"
     },
     {
-      "id": "hub-31",
+      "id": "hub-29",
+      "stationIds": [
+        "2/dinamo",
+        "97/petrovskiy-park"
+      ],
+      "minTransferSeconds": 240,
+      "source": "data"
+    },
+    {
+      "id": "hub-30",
       "stationIds": [
         "2/kashirskaya",
-        "97/kashirskaya",
-        "97/varshavskaya"
+        "97/kashirskaya"
+      ],
+      "minTransferSeconds": 240,
+      "source": "data"
+    },
+    {
+      "id": "hub-31",
+      "stationIds": [
+        "2/novokuznetskaya",
+        "6/tretyakovskaya",
+        "8/tretyakovskaya"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6227,15 +6703,6 @@
     {
       "id": "hub-37",
       "stationIds": [
-        "3/smolenskaya",
-        "4/smolenskaya"
-      ],
-      "minTransferSeconds": 240,
-      "source": "data"
-    },
-    {
-      "id": "hub-38",
-      "stationIds": [
         "4/kutuzovskaya",
         "95/kutuzovskaya"
       ],
@@ -6243,10 +6710,19 @@
       "source": "data"
     },
     {
-      "id": "hub-39",
+      "id": "hub-38",
       "stationIds": [
         "4/moskva-siti",
-        "95/delovoy-tsentr"
+        "95/moskva-siti"
+      ],
+      "minTransferSeconds": 240,
+      "source": "data"
+    },
+    {
+      "id": "hub-39",
+      "stationIds": [
+        "5/dobryninskaya",
+        "9/serpukhovskaya"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6300,8 +6776,8 @@
     {
       "id": "hub-45",
       "stationIds": [
-        "6/botanicheskiy-sad",
-        "95/botanicheskiy-sad"
+        "6/kaluzhskaya",
+        "97/vorontsovskaya"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6336,14 +6812,23 @@
     {
       "id": "hub-49",
       "stationIds": [
-        "6/tretyakovskaya",
-        "8/tretyakovskaya"
+        "7/lermontovskiy-prospekt",
+        "98/kosino"
       ],
       "minTransferSeconds": 240,
       "source": "data"
     },
     {
       "id": "hub-50",
+      "stationIds": [
+        "7/polezhaevskaya",
+        "97/khoroshevskaya"
+      ],
+      "minTransferSeconds": 240,
+      "source": "data"
+    },
+    {
+      "id": "hub-51",
       "stationIds": [
         "7/tekstilshchiki",
         "97/tekstilshchiki"
@@ -6352,20 +6837,10 @@
       "source": "data"
     },
     {
-      "id": "hub-51",
+      "id": "hub-52",
       "stationIds": [
         "8/aviamotornaya",
         "97/aviamotornaya"
-      ],
-      "minTransferSeconds": 240,
-      "source": "data"
-    },
-    {
-      "id": "hub-52",
-      "stationIds": [
-        "8/shosse-entuziastov",
-        "95/andronovka",
-        "95/shosse-entuziastov"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6382,8 +6857,8 @@
     {
       "id": "hub-54",
       "stationIds": [
-        "9/vladykino",
-        "95/vladykino"
+        "9/sevastopolskaya",
+        "97/kakhovskaya"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6391,9 +6866,8 @@
     {
       "id": "hub-55",
       "stationIds": [
-        "95/nizhegorodskaya",
-        "97/nizhegorodskaya",
-        "98/nizhegorodskaya"
+        "9/vladykino",
+        "95/vladykino"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6401,8 +6875,9 @@
     {
       "id": "hub-56",
       "stationIds": [
-        "95/shelepikha",
-        "97/shelepikha"
+        "95/nizhegorodskaya",
+        "97/nizhegorodskaya",
+        "98/nizhegorodskaya"
       ],
       "minTransferSeconds": 240,
       "source": "data"
@@ -6425,10 +6900,10 @@
     },
     "97": {
       "kind": "ellipse",
-      "cx": 930.4052017568932,
-      "cy": 843.0009639365783,
-      "rx": 656.6827514297125,
-      "ry": 468.94038839466066
+      "cx": 932.5416251532279,
+      "cy": 844.4283748619148,
+      "rx": 655.5293021584057,
+      "ry": 467.7044215946846
     }
   }
 }
