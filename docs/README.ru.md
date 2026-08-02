@@ -232,7 +232,7 @@ dk rollback metro
 
 ## Экосистема samoy.love
 
-`samoy` читается как фамилия владельца — Самойлов. Соседние сайты на том же хосте:
+`samoylove` читается как фамилия владельца — Самойлов. Соседние сайты на том же хосте:
 [samoy.love](https://samoy.love) · [snakes.samoy.love](https://snakes.samoy.love) ·
 [launcher.samoy.love](https://launcher.samoy.love) · [status.samoy.love](https://status.samoy.love)
 
