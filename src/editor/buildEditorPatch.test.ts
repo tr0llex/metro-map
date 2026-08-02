@@ -215,3 +215,86 @@ describe('круг «редактор -> data/layout.json»', () => {
     expect(moved).toEqual([])
   })
 })
+
+/**
+ * Ради этого раздела всё и переделывалось: добавить пересадку было НЕЛЬЗЯ
+ * ни одним путём. Через существующее ребро сервер отвечал «это перегон, а не
+ * пересадка» — все рёбра внутри линии одноимённые. Через кнопку «Добавить»
+ * связь попадала в manualEdges, а manualEdges сюда не передавались вовсе:
+ * поля во входе не было. Правка исчезала бесследно, панель писала «Правок нет».
+ */
+describe('связь, созданная в редакторе', () => {
+  /** Две станции разных линий, между которыми в данных связи нет. */
+  const crossLine = () => {
+    const a = fullGraphStations.find((s) => s.lineNumericId === 1)!
+    const b = fullGraphStations.find(
+      (s) => s.lineNumericId === 2 && !fullGraphEdges.some((e) =>
+        edgeKey(e.fromStationId, e.toStationId) === edgeKey(a.id, s.id)),
+    )!
+    return { a, b }
+  }
+
+  const manualEdge = (fromStationId: string, toStationId: string, seconds: number) => ({
+    [`manual:${edgeKey(fromStationId, toStationId)}`]: {
+      fromStationId,
+      toStationId,
+      medianTravelSeconds: seconds,
+      isTransfer: true,
+    } as never,
+  })
+
+  it('между разными линиями становится пересадкой в файле', () => {
+    const { a, b } = crossLine()
+    const result = build({ manualEdges: manualEdge(a.id, b.id, 180) })
+
+    expect(result.counts.transfers).toBe(1)
+    expect(result.patch.transfers?.upsert).toEqual([
+      { stations: [a.id, b.id], kind: 'near', seconds: 180 },
+    ])
+    expect(hasSavableChanges(result)).toBe(true)
+  })
+
+  /** Молчаливая потеря — худший исход: правка была, файлы не изменились. */
+  it('не теряется, даже если время после создания не трогали', () => {
+    const { a, b } = crossLine()
+    const result = build({ manualEdges: manualEdge(a.id, b.id, 180) })
+    expect(result.unsupported).toEqual([])
+    expect(result.counts.transfers).toBe(1)
+  })
+
+  it('правка времени в панели важнее того, с которым связь создали', () => {
+    const { a, b } = crossLine()
+    const result = build({
+      manualEdges: manualEdge(a.id, b.id, 180),
+      edgeOverrides: { [edgeKey(a.id, b.id)]: { medianTravelSeconds: 240 } },
+    })
+
+    expect(result.patch.transfers?.upsert).toEqual([
+      { stations: [a.id, b.id], kind: 'near', seconds: 240 },
+    ])
+  })
+
+  /**
+   * Сервер такую пару отвергает целиком, и правильно: внутри линии связь —
+   * это перегон. Сказать об этом надо ДО сохранения, а не отказом на весь патч.
+   */
+  it('внутри одной линии названа вслух, а не отправлена на сервер', () => {
+    const [a, b] = fullGraphStations.filter((s) => s.lineNumericId === 1).slice(0, 2)
+    const result = build({ manualEdges: manualEdge(a.id, b.id, 180) })
+
+    expect(result.patch.transfers).toBeUndefined()
+    expect(result.unsupported).toHaveLength(1)
+    expect(result.unsupported[0]).toContain('одной линии')
+  })
+
+  /** Иначе одна и та же пересадка уехала бы в файл дважды. */
+  it('уже существующая связь не дублируется', () => {
+    const existing = fullGraphEdges.find((e) => e.isTransfer)!
+    const result = build({
+      manualEdges: manualEdge(existing.fromStationId, existing.toStationId, 180),
+    })
+
+    expect(result.patch.transfers).toBeUndefined()
+    expect(result.unsupported).toEqual([])
+  })
+})

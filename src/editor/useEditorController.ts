@@ -909,10 +909,20 @@ export function useEditorController(): EditorController {
       }
 
       const title = stationOverrides[stationId]?.title?.trim() || base.title
-      const query = `станция метро ${title}, Москва`
+
+      // Запрос был «станция метро {название}, Москва» и не находил НИЧЕГО.
+      // В OSM объект называется просто «Боровицкая»; слова «станция метро» в
+      // имени нет, а свободный поиск Nominatim не разбирает их как категорию —
+      // он честно ищет эту фразу целиком. Ломалось для любой станции, в чьём
+      // названии нет слова «метро», то есть практически для всех.
+      //
+      // Ищем по имени, а принадлежность к метро проверяем по классу объекта в
+      // ответе. Берём пять кандидатов, а не один: по названию станции первым
+      // может прийти одноимённая улица или площадь.
+      const query = `${title}, Москва`
       const url =
         'https://nominatim.openstreetmap.org/search' +
-        `?format=jsonv2&limit=1&countrycodes=ru&accept-language=ru&q=${encodeURIComponent(query)}`
+        `?format=jsonv2&limit=5&countrycodes=ru&accept-language=ru&q=${encodeURIComponent(query)}`
 
       const resp = await fetch(url, {
         method: 'GET',
@@ -921,12 +931,29 @@ export function useEditorController(): EditorController {
         },
       })
 
+      if (resp.status === 429 || resp.status === 403) {
+        // Nominatim ограничивает до одного запроса в секунду. Без этой ветки
+        // отказ выглядел как «координаты не найдены», и станцию искали в OSM
+        // руками, хотя она там есть.
+        throw new Error('OSM: слишком часто, подожди секунду и повтори')
+      }
+
       if (!resp.ok) {
         throw new Error(`OSM API error: ${resp.status}`)
       }
 
-      const data = (await resp.json()) as Array<{ lat?: string; lon?: string }>
-      const first = data[0]
+      const data = (await resp.json()) as Array<{
+        lat?: string
+        lon?: string
+        category?: string
+        class?: string
+        type?: string
+      }>
+
+      const isRailway = (item: (typeof data)[number]) =>
+        item.category === 'railway' || item.class === 'railway'
+
+      const first = data.find(isRailway) ?? data[0]
       const lat = first?.lat != null ? Number(first.lat) : NaN
       const lon = first?.lon != null ? Number(first.lon) : NaN
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
@@ -963,7 +990,18 @@ export function useEditorController(): EditorController {
           return cloned
         }
 
-        if (current && current.title === next.title && current.lineNumericId === next.lineNumericId) {
+        // Сравнение «ничего не изменилось» смотрело только title и
+        // lineNumericId — то есть ровно те два поля, которых эта операция не
+        // касается. У станции с любым оверрайдом (например, переименованной)
+        // полученные координаты молча выбрасывались, а тост «lat/lon обновлены»
+        // всё равно показывался: снаружи это выглядело как успешная запись.
+        if (
+          current &&
+          current.title === next.title &&
+          current.lineNumericId === next.lineNumericId &&
+          current.lat === next.lat &&
+          current.lon === next.lon
+        ) {
           return prev
         }
 

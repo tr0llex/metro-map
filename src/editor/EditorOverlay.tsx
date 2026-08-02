@@ -32,7 +32,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
             stationOverrides={editor.stationOverrides}
             manualStations={editor.manualStations}
             manualEdges={editor.manualEdges}
-            hiddenStations={editor.hiddenStations}
             stationById={editor.stationById}
             lineByNumericId={editor.lineByNumericId}
             edgeOverrides={editor.edgeOverrides}
@@ -50,7 +49,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
             onToggleEdgeTransfer={editor.toggleEdgeTransfer}
             onChangeEdgeMinutes={editor.changeEdgeMinutes}
             onToggleEdgeDisabled={editor.toggleEdgeDisabled}
-            onToggleStationHidden={editor.toggleStationHidden}
             onSetNewEdgeTarget={editor.setNewEdgeTarget}
             onSetManualEdges={editor.setManualEdges}
             onSetInspectedStationId={editor.setInspectedStationId}

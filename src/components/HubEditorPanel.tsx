@@ -23,7 +23,6 @@ interface HubEditorPanelProps {
   stationOverrides: Record<string, StationOverrideLite>
   manualStations: Record<string, FullGraphStation>
   manualEdges: Record<string, FullGraphEdge>
-  hiddenStations: Record<string, true>
   stationById: Map<string, FullGraphStation>
   lineByNumericId: Map<number, FullGraphLine>
   edgeOverrides: Record<string, EdgeOverride>
@@ -41,7 +40,6 @@ interface HubEditorPanelProps {
   onToggleEdgeTransfer: (edge: FullGraphEdge) => void
   onChangeEdgeMinutes: (edge: FullGraphEdge, minutesStr: string) => void
   onToggleEdgeDisabled: (edge: FullGraphEdge) => void
-  onToggleStationHidden: (stationId: string) => void
   onSetNewEdgeTarget: (value: string) => void
   onSetManualEdges: (
     updater: (prev: Record<string, FullGraphEdge>) => Record<string, FullGraphEdge>,
@@ -62,7 +60,6 @@ export function HubEditorPanel({
   stationOverrides,
   manualStations,
   manualEdges,
-  hiddenStations,
   stationById,
   lineByNumericId,
   edgeOverrides,
@@ -80,7 +77,6 @@ export function HubEditorPanel({
   onToggleEdgeTransfer,
   onChangeEdgeMinutes,
   onToggleEdgeDisabled,
-  onToggleStationHidden,
   onSetNewEdgeTarget,
   onSetManualEdges,
   onSetInspectedStationId,
@@ -268,25 +264,15 @@ export function HubEditorPanel({
               )}
             </section>
 
-            <section className="hub-editor-section">
-              <div className="hub-editor-section-title">Станция на схеме</div>
-              <div className="hub-editor-section-subtitle">
-                {hiddenStations[inspectedStation.id]
-                  ? 'Станция скрыта на схеме'
-                  : 'Станция отображается на схеме'}
-              </div>
-              <button
-                type="button"
-                className="hub-editor-hub-new"
-                onClick={() => onToggleStationHidden(inspectedStation.id)}
-              >
-                {hiddenStations[inspectedStation.id] ? 'Показать станцию' : 'Скрыть станцию'}
-              </button>
-            </section>
+            {/* Здесь было «Скрыть станцию». Кнопка не просто не сохранялась —
+                она ломала сохранение целиком: скрытая станция выпадала из
+                снапшота раскладки, сервер требует координаты у всех и отвечал
+                отказом, после чего не применялась НИ ОДНА правка, включая
+                переименования и сдвиги. Понятия «скрытая станция» в формате
+                data/ нет, класть его туда незачем — станция либо есть на линии,
+                либо её оттуда убирают. */}
           </>
         )}
-
-
 
         {activeTab === 'connections' && (
           <section className="hub-editor-section">

@@ -46,9 +46,19 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
         layout: editor.lastLayoutOverrides,
         stationOverrides: editor.stationOverrides,
         edgeOverrides: editor.edgeOverrides,
+        // Связи, созданные кнопкой «Добавить». Сюда их не передавали вовсе:
+        // новая пересадка без последующей правки времени исчезала бесследно,
+        // а панель писала «Правок нет».
+        manualEdges: editor.manualEdges,
         edgeKey: editor.edgeKey,
       }),
-    [editor.lastLayoutOverrides, editor.stationOverrides, editor.edgeOverrides, editor.edgeKey],
+    [
+      editor.lastLayoutOverrides,
+      editor.stationOverrides,
+      editor.edgeOverrides,
+      editor.manualEdges,
+      editor.edgeKey,
+    ],
   )
 
   const dirty = hasSavableChanges(built)
