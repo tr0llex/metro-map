@@ -1108,9 +1108,10 @@ function App() {
           visibleInsets={mapVisibleInsets}
           getBottomInsetPx={getBottomInsetPx}
           onInitialViewportReady={markMapReady}
-          // editMode, collisionDebug, editorLayout*, stationHubOverrides,
-          // hiddenStationIds, stationTitleOverrides, extraStations, hub*Command,
-          // onEdit*: имена и семантика те же, просто собраны редактором.
+          // editMode, collisionDebug, onLayoutChange, editorLayoutOverrides,
+          // editorLayoutApplyToken, onEditStationInspect, stationTitleOverrides,
+          // editorFocusCommand — имена и семантика те же, просто собраны
+          // редактором. Точный список — EditorMapProps в editor/editorTypes.ts.
           {...editor.mapProps}
           routeSheetOpen={isRouteSheetOpen}
         />
