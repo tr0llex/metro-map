@@ -1,7 +1,7 @@
 # Кадры для README
 
 Настоящие снимки лежат рядом в `.webp`. Плейсхолдеры `.svg` пока остаются:
-README и `docs/README.ru.md` ссылаются на них, и удалять их можно только
+README и `README.ru.md` ссылаются на них, и удалять их можно только
 вместе с правкой этих файлов — иначе на главной странице будут битые картинки.
 
 | Файл | Что на кадре | Источник |
@@ -10,7 +10,7 @@ README и `docs/README.ru.md` ссылаются на них, и удалять 
 | `route.webp` | построенный маршрут с деталями | `docs/visual-qa/desktop-08-route-built.png` |
 | `interchange.webp` | слитые пересадочные узлы крупным планом | `docs/visual-qa/desktop-06-map-zoom-center-deep.png` |
 
-Ждёт правки: в `README.md` и `docs/README.ru.md` заменить `overview.svg`,
+Ждёт правки: в `README.md` и `README.ru.md` заменить `overview.svg`,
 `route.svg`, `interchange.svg` на `.webp` и удалить плейсхолдеры.
 
 ## Как обновить
