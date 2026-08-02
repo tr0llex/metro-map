@@ -37,7 +37,7 @@ async function resetAppAndReload(): Promise<void> {
   // Чистим только свои ключи и только те, что можно безболезненно потерять:
   // выбор темы и признак «инструкцию по установке уже видел» переживают сброс.
   try {
-    for (const key of ['kitty-metro-favorites-v1', 'kitty-metro-recents-v1']) {
+    for (const key of ['metro-map-favorites-v1', 'metro-map-recents-v1']) {
       window.localStorage.removeItem(key)
     }
   } catch {

@@ -11,7 +11,7 @@ import type { FullGraphEdge } from './types.ts'
  * Воркеру не нужны ни названия станций, ни координаты, ни линии, ни хабы —
  * только рёбра (и список id станций, чтобы сохранить прежнюю семантику вызовов).
  * Это сжимает полезную нагрузку до ~20 КБ, которые собираются в отдельный ассет
- * `assets/kitty-metro-routing-graph.json` и подгружаются воркером на старте.
+ * `assets/metro-map-routing-graph.json` и подгружаются воркером на старте.
  *
  * Кодировщик вызывается на этапе сборки (плагин в `vite.config.ts`),
  * декодировщик — в воркере. Формат версионируется полем `v`.
@@ -25,7 +25,7 @@ import type { FullGraphEdge } from './types.ts'
  * постоянным именем там навсегда застрял бы в precache старой версией. В корне
  * Workbox считает для него revision-хеш и корректно обновляет при смене данных.
  */
-export const ROUTING_GRAPH_ASSET_PATH = 'kitty-metro-routing-graph.json'
+export const ROUTING_GRAPH_ASSET_PATH = 'metro-map-routing-graph.json'
 
 const ROUTING_GRAPH_PAYLOAD_VERSION = 1
 

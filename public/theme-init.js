@@ -15,7 +15,7 @@
  * оба места вместе: ключ хранилища, допустимые значения и цвета статус-бара.
  */
 ;(function () {
-  var STORAGE_KEY = 'kitty-metro-theme'
+  var STORAGE_KEY = 'metro-map-theme'
   var THEME_COLOR_LIGHT = '#f5f5f7'
   var THEME_COLOR_DARK = '#16101c'
 

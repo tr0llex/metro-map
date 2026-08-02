@@ -96,7 +96,7 @@ function readBody(req: Connect.IncomingMessage): Promise<string> {
 
 export function editorApiPlugin(root: string): Plugin {
   return {
-    name: 'kitty-metro:editor-api',
+    name: 'metro-map:editor-api',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use(EDITOR_SAVE_ENDPOINT, (req, res) => {

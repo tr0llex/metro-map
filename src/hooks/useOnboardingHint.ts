@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 
-const ONBOARDING_HINT_STORAGE_KEY = 'kitty-metro-onboarding-hint-seen'
+const ONBOARDING_HINT_STORAGE_KEY = 'metro-map-onboarding-hint-seen'
 
 type OnboardingHintState = {
   /** Подсказка ещё не закрывалась ни разу за всю историю установки. */

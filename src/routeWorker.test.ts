@@ -95,7 +95,7 @@ describe('routeWorker — загрузка графа', () => {
     // Ключевое требование: fetch стартует на этапе загрузки воркера, иначе первый
     // маршрут ждал бы ещё и сеть.
     expect(fetchedUrls.length).toBe(1)
-    expect(fetchedUrls[0]).toContain('kitty-metro-routing-graph.json')
+    expect(fetchedUrls[0]).toContain('metro-map-routing-graph.json')
     expect(posted).toEqual([])
   })
 

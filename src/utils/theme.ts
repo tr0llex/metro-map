@@ -17,7 +17,7 @@
 export type ThemePreference = 'system' | 'light' | 'dark'
 type ResolvedTheme = 'light' | 'dark'
 
-const THEME_STORAGE_KEY = 'kitty-metro-theme'
+const THEME_STORAGE_KEY = 'metro-map-theme'
 
 /** Должно совпадать с meta[name="theme-color"] в index.html. */
 const THEME_COLOR_LIGHT = '#f5f5f7'

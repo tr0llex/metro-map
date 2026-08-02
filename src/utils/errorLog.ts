@@ -12,7 +12,7 @@
  * НИЧЕГО НИКУДА НЕ ОТПРАВЛЯЕТСЯ. Здесь нет ни одного сетевого вызова.
  */
 
-const ERROR_LOG_STORAGE_KEY = 'kitty-metro-error-log-v1'
+const ERROR_LOG_STORAGE_KEY = 'metro-map-error-log-v1'
 
 /** Больше 20 записей никто читать не станет, а место они съедят. */
 const MAX_ENTRIES = 20

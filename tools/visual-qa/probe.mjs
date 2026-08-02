@@ -57,7 +57,7 @@ const PROFILES = {
   },
 }
 
-const INIT = `try{localStorage.setItem('kitty-metro-install-guide-seen','1');localStorage.setItem('kitty-metro-onboarding-hint-seen','1')}catch(e){}`
+const INIT = `try{localStorage.setItem('metro-map-install-guide-seen','1');localStorage.setItem('metro-map-onboarding-hint-seen','1')}catch(e){}`
 
 const out = { probes: [] }
 

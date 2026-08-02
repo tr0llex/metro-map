@@ -9,7 +9,7 @@ import {
   writeThemePreference,
 } from './theme.ts'
 
-const STORAGE_KEY = 'kitty-metro-theme'
+const STORAGE_KEY = 'metro-map-theme'
 
 /** Подменяет matchMedia так, чтобы можно было и «переключить систему», и слать событие. */
 function stubMatchMedia(dark: boolean) {
