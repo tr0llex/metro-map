@@ -20,7 +20,9 @@ jobs:
     uses: tr0llex/deploy-kit/.github/workflows/static-site.yml@main
     with:
       config: .deploy-kit/prod.env
-      nginx-conf: deploy/nginx/metro.conf
+      # nginx-conf сознательно не передаём: конфигурация nginx живёт только в
+      # deploy-kit и применяется там же. Путь в этом репозитории указывать
+      # некуда — deploy/ здесь нет.
       # Полный регресс: типы, линт, токены CSS, тесты с покрытием, сборка и
       # проверка, что редактор не попал в прод-бандл. Красный = выкатки нет.
       gates: >-
