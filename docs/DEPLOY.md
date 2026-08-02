@@ -17,48 +17,39 @@ npm run build:editor   # -> dist-editor/
 
 ## Свой сервер (nginx)
 
-```bash
-npm run deploy          # сборка + конфиг + статика + smoke-тест
-npm run deploy:config   # только nginx-конфиг
-npm run deploy:app      # только статика
-npm run deploy:dry      # ничего не менять, показать план и диффы
-```
-
-> **`deploy:dry` — не локальная проверка.** Все четыре команды, включая `--dry-run`,
-> ходят на боевой сервер по SSH: чтобы показать дифф конфига, надо его оттуда прочитать.
-> Без ключа (`METRO_SSH_KEY`, по умолчанию `~/.ssh/oracle-2025-09-21.key`) или без сети
-> команда падает на первой же проверке.
-
-Скрипт — [`scripts/deploy.sh`](../scripts/deploy.sh), конфиг под версионным
-контролем — [`deploy/nginx/metro.conf`](../deploy/nginx/metro.conf).
-
-**На сервере живёт несколько проектов** (`metro.samoy.love`, `launcher.samoy.love`).
-Поэтому скрипт устроен так:
-
-* трогает ровно две вещи — `/etc/nginx/sites-available/metro.conf` и `/var/www/metro`;
-  соседние конфиги и каталоги не открываются на запись;
-* **отказывается работать, если `nginx -t` падает ещё до деплоя** — иначе чужая поломка
-  попала бы в наш бэкап и «чинилась» бы нашим откатом;
-* перед заменой конфига кладёт бэкап в `/etc/nginx/sites-available/.backups/metro.conf.<дата>`;
-* перезагружает nginx **только** после успешного `nginx -t`, а при неудаче автоматически
-  возвращает предыдущий конфиг;
-* статику выкладывает атомарно: распаковывает рядом, потом переставляет каталоги;
-  предыдущая версия остаётся в `/var/www/metro.prev` для быстрого отката;
-* после выкладки проверяет главную, service worker, манифест, **фактические заголовки
-  ответа** (см. ниже) **и что соседний проект жив**.
-
-Быстрый откат статики:
+Выкатка — общим пайплайном [deploy-kit](https://github.com/tr0llex/deploy-kit).
+Что именно катится, описано в [`.deploy-kit/prod.env`](../.deploy-kit/prod.env).
 
 ```bash
-ssh ubuntu@<host> 'sudo rm -rf /var/www/metro && sudo mv /var/www/metro.prev /var/www/metro'
+# из GitHub Actions: вкладка Actions -> Deploy -> Run workflow
+# локально тем же контрактом:
+deploy-kit/bin/deploy --config .deploy-kit/prod.env            # выкатить
+deploy-kit/bin/deploy --config .deploy-kit/prod.env --dry-run  # показать план
 ```
 
-Настройки переопределяются переменными окружения: `METRO_SSH_HOST`, `METRO_SSH_KEY`,
-`METRO_DOMAIN`.
+Триггер только ручной. Приложение раздаётся как офлайн-PWA: у пользователя с
+установленным service worker новая версия подхватывается по своим правилам,
+поэтому выкатка должна быть решением, а не побочным эффектом мержа.
 
-> Деплой из GitHub Actions заведён: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml),
-> запуск только вручную (workflow_dispatch) с выбором цели. Чтобы он заработал, владельцу
-> репозитория нужно добавить секрет `METRO_SSH_KEY` с приватным SSH-ключом.
+Перед выкаткой обязателен полный регресс: типы, линт, токены CSS, тесты с
+покрытием, сборка и проверка, что редактор не попал в прод-бандл. Красный
+регресс — выкатки нет.
+
+Раскладка на сервере: релизы в `/var/www/metro/releases/<версия>`, nginx смотрит
+в симлинк `current`. Переключение атомарно, откат не требует пересборки:
+
+```bash
+ssh ubuntu@<host> 'sudo /opt/deploy-kit/rollback.sh --app metro --root /var/www/metro --list'
+ssh ubuntu@<host> 'sudo /opt/deploy-kit/rollback.sh --app metro --root /var/www/metro --nginx-reload'
+```
+
+Конфиг nginx — [`deploy/nginx/metro.conf`](../deploy/nginx/metro.conf); его ставит
+`nginx-apply.sh`: снимает состояние до правки (иначе чужая поломка попала бы в наш
+бэкап), кладёт бэкап, проверяет `nginx -t` и откатывается при неудаче. Проект
+трогает только свой файл — на сервере живут ещё четыре сайта.
+
+После выкатки проверяются главная, service worker, манифест, сверяется версия из
+`/version.json` и то, что соседние сайты живы.
 
 ### Требования к конфигу
 

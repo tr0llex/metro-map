@@ -18,11 +18,7 @@
     "quality": "tsx scripts/quality/analyze.ts",
     "quality:check": "tsx scripts/quality/analyze.ts --check",
     "check:bundle": "node scripts/check-prod-bundle.mjs",
-    "check:css": "node scripts/check-css-tokens.mjs",
-    "deploy": "npm run build && bash scripts/deploy.sh",
-    "deploy:config": "bash scripts/deploy.sh --config",
-    "deploy:app": "npm run build && bash scripts/deploy.sh --app",
-    "deploy:dry": "bash scripts/deploy.sh --dry-run"
+    "check:css": "node scripts/check-css-tokens.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
