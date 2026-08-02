@@ -11,6 +11,18 @@ export type BuildPatchInput = {
   layout: Record<string, { x: number; y: number }>
   stationOverrides: Record<string, StationOverride>
   edgeOverrides: Record<string, EdgeOverride>
+  /**
+   * Связи, созданные в редакторе кнопкой «Добавить». Ключ — `manual:<edgeKey>`.
+   *
+   * Раньше их сюда просто не передавали: поля в этом типе не было, а SaveBar
+   * его и не заполнял. Новая связь без последующей правки времени исчезала
+   * бесследно — счётчик показывал ноль, панель писала «Правок нет».
+   *
+   * Связь между станциями РАЗНЫХ линий — это пересадка, и она выражается в
+   * data/transfers.json. Между станциями одной линии — это добавление станции
+   * в ход линии, другая операция; такие честно объявляются неподдержанными.
+   */
+  manualEdges?: Record<string, FullGraphEdge>
   edgeKey: (a: string, b: string) => string
 }
 
@@ -42,6 +54,7 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
     layout,
     stationOverrides,
     edgeOverrides,
+    manualEdges = {},
     edgeKey,
   } = input
 
@@ -104,13 +117,64 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
   const edgeByKey = new Map<string, FullGraphEdge>()
   for (const e of edges) edgeByKey.set(edgeKey(e.fromStationId, e.toStationId), e)
 
+  /**
+   * Линия станции с учётом правки: перенесли станцию на другую линию — связь
+   * с прежними соседями становится межлинейной, то есть пересадкой.
+   */
+  const lineOf = (id: string) => {
+    const override = stationOverrides[id]?.lineNumericId
+    if (override !== undefined) return override
+    return stationById.get(id)?.lineNumericId ?? null
+  }
+
   const ridesOut: NonNullable<EditorPatch['rides']> = {}
   const upsert: NonNullable<NonNullable<EditorPatch['transfers']>['upsert']> = []
   const remove: [string, string][] = []
 
+  // --- Связи, созданные в редакторе ---
+  // Ключ вида `manual:<a>|<b>`; ребро несёт станции и время.
+  const manualKeys = new Set<string>()
+  for (const edge of Object.values(manualEdges)) {
+    const key = edgeKey(edge.fromStationId, edge.toStationId)
+    manualKeys.add(key)
+
+    const label = `${titleOf(edge.fromStationId)} — ${titleOf(edge.toStationId)}`
+
+    if (edgeByKey.has(key)) {
+      // Связь уже есть в графе: её правки идут обычным путём через
+      // edgeOverrides, здесь дублировать нечего.
+      continue
+    }
+
+    const lineA = lineOf(edge.fromStationId)
+    const lineB = lineOf(edge.toStationId)
+
+    if (lineA == null || lineB == null || lineA === lineB) {
+      unsupported.push(
+        `связь «${label}» соединяет станции одной линии — это добавление станции в ход линии, правьте data/lines/*.json`,
+      )
+      continue
+    }
+
+    // Время правится тут же в панели и приходит в edgeOverrides — оно
+    // приоритетнее того, с которым связь создали.
+    const seconds =
+      edgeOverrides[key]?.medianTravelSeconds ?? edge.medianTravelSeconds
+
+    upsert.push({
+      stations: [edge.fromStationId, edge.toStationId],
+      kind: edge.transferKind ?? 'near',
+      seconds,
+    })
+  }
+
   for (const [key, override] of Object.entries(edgeOverrides)) {
     const base = edgeByKey.get(key)
     if (!base) {
+      // Ручная связь уже разобрана выше: её время учтено в upsert, и повторно
+      // жаловаться на неё нельзя. Раньше жалоба звучала всегда, потому что
+      // ручные связи сюда просто не доходили.
+      if (manualKeys.has(key)) continue
       unsupported.push(`ребро ${key} создано в редакторе — добавьте его в data/`)
       continue
     }
