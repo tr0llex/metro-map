@@ -6,51 +6,51 @@
       "metrics": {
         ".bottom-sheet": {
           "clientHeight": 658,
-          "scrollHeight": 1488,
+          "scrollHeight": 1554,
           "scrollTopBefore": 0,
           "overflowY": "auto",
           "cssHeight": "658.312px",
           "maxHeight": "none",
-          "scrollTopAfter": 830
+          "scrollTopAfter": 896
         },
         ".bottom-sheet-inner": {
-          "clientHeight": 1486,
-          "scrollHeight": 1486,
+          "clientHeight": 1552,
+          "scrollHeight": 1552,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "1488.06px",
+          "cssHeight": "1554.44px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".bottom-route-details": {
-          "clientHeight": 1264,
-          "scrollHeight": 1264,
+          "clientHeight": 1374,
+          "scrollHeight": 1374,
           "scrollTopBefore": 0,
           "overflowY": "auto",
-          "cssHeight": "1263.58px",
+          "cssHeight": "1373.78px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result": {
-          "clientHeight": 1247,
-          "scrollHeight": 1247,
+          "clientHeight": 1360,
+          "scrollHeight": 1360,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "1217.59px",
+          "cssHeight": "1331.78px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result-scroll": {
-          "clientHeight": 1218,
-          "scrollHeight": 1218,
+          "clientHeight": 1332,
+          "scrollHeight": 1332,
           "scrollTopBefore": 0,
           "overflowY": "auto",
-          "cssHeight": "1205.59px",
+          "cssHeight": "1319.78px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         "viewportH": 844,
-        "lastStepBottom": 1622,
+        "lastStepBottom": 1689,
         "stepsCount": 5
       }
     },
@@ -60,51 +60,51 @@
       "metrics": {
         ".bottom-sheet": {
           "clientHeight": 658,
-          "scrollHeight": 1488,
-          "scrollTopBefore": 830,
+          "scrollHeight": 1554,
+          "scrollTopBefore": 896,
           "overflowY": "auto",
           "cssHeight": "658.312px",
           "maxHeight": "none",
-          "scrollTopAfter": 830
+          "scrollTopAfter": 896
         },
         ".bottom-sheet-inner": {
-          "clientHeight": 1486,
-          "scrollHeight": 1486,
+          "clientHeight": 1552,
+          "scrollHeight": 1552,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "1488.06px",
+          "cssHeight": "1554.44px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".bottom-route-details": {
-          "clientHeight": 1264,
-          "scrollHeight": 1264,
+          "clientHeight": 1374,
+          "scrollHeight": 1374,
           "scrollTopBefore": 0,
           "overflowY": "auto",
-          "cssHeight": "1263.58px",
+          "cssHeight": "1373.78px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result": {
-          "clientHeight": 1247,
-          "scrollHeight": 1247,
+          "clientHeight": 1360,
+          "scrollHeight": 1360,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "1217.59px",
+          "cssHeight": "1331.78px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result-scroll": {
-          "clientHeight": 1218,
-          "scrollHeight": 1218,
+          "clientHeight": 1332,
+          "scrollHeight": 1332,
           "scrollTopBefore": 0,
           "overflowY": "auto",
-          "cssHeight": "1205.59px",
+          "cssHeight": "1319.78px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         "viewportH": 844,
-        "lastStepBottom": 792,
+        "lastStepBottom": 793,
         "stepsCount": 5
       }
     },
@@ -131,34 +131,34 @@
           "scrollTopAfter": 0
         },
         ".bottom-route-details": {
-          "clientHeight": 614,
-          "scrollHeight": 614,
+          "clientHeight": 608,
+          "scrollHeight": 608,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "614.469px",
+          "cssHeight": "607.609px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result": {
-          "clientHeight": 598,
-          "scrollHeight": 598,
+          "clientHeight": 594,
+          "scrollHeight": 594,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "568.484px",
+          "cssHeight": "565.609px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result-scroll": {
-          "clientHeight": 477,
-          "scrollHeight": 1218,
+          "clientHeight": 472,
+          "scrollHeight": 1332,
           "scrollTopBefore": 0,
           "overflowY": "auto",
-          "cssHeight": "465.141px",
+          "cssHeight": "460.141px",
           "maxHeight": "none",
-          "scrollTopAfter": 741
+          "scrollTopAfter": 860
         },
         "viewportH": 900,
-        "lastStepBottom": 1562,
+        "lastStepBottom": 1682,
         "stepsCount": 5
       }
     },
@@ -185,34 +185,34 @@
           "scrollTopAfter": 0
         },
         ".bottom-route-details": {
-          "clientHeight": 614,
-          "scrollHeight": 614,
+          "clientHeight": 608,
+          "scrollHeight": 608,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "614.469px",
+          "cssHeight": "607.609px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result": {
-          "clientHeight": 598,
-          "scrollHeight": 598,
+          "clientHeight": 594,
+          "scrollHeight": 594,
           "scrollTopBefore": 0,
           "overflowY": "visible",
-          "cssHeight": "568.484px",
+          "cssHeight": "565.609px",
           "maxHeight": "none",
           "scrollTopAfter": 0
         },
         ".route-result-scroll": {
-          "clientHeight": 477,
-          "scrollHeight": 1218,
-          "scrollTopBefore": 741,
+          "clientHeight": 472,
+          "scrollHeight": 1332,
+          "scrollTopBefore": 860,
           "overflowY": "auto",
-          "cssHeight": "465.141px",
+          "cssHeight": "460.141px",
           "maxHeight": "none",
-          "scrollTopAfter": 741
+          "scrollTopAfter": 860
         },
         "viewportH": 900,
-        "lastStepBottom": 821,
+        "lastStepBottom": 822,
         "stepsCount": 5
       }
     }

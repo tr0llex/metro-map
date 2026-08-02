@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-08-01T16:11:54.671Z",
+  "startedAt": "2026-08-02T13:16:43.459Z",
   "appDir": "/app/dist",
   "baseUrl": "http://127.0.0.1:4173/",
   "route": {
@@ -11,11 +11,6 @@
       "profile": "mobile",
       "name": "01-splash",
       "file": "mobile-01-splash.png"
-    },
-    {
-      "profile": "mobile",
-      "name": "02-install-guide",
-      "file": "mobile-02-install-guide.png"
     },
     {
       "profile": "mobile",
@@ -74,11 +69,6 @@
     },
     {
       "profile": "desktop",
-      "name": "02-install-guide",
-      "file": "desktop-02-install-guide.png"
-    },
-    {
-      "profile": "desktop",
       "name": "03-onboarding-hint",
       "file": "desktop-03-onboarding-hint.png"
     },
@@ -132,6 +122,7 @@
   "pageErrors": [],
   "network": [],
   "notes": [
+    "mobile: карточка установки PWA не показалась на чистом localStorage",
     "mobile: вариантов маршрута — 6",
     "mobile: шагов маршрута в деталях — 5",
     {
@@ -147,522 +138,523 @@
               "x": 1,
               "y": 185,
               "w": 388,
-              "h": 1488
+              "h": 1554
             },
             "overRight": -1,
             "overLeft": -1,
-            "overBottom": 829
+            "overBottom": 895
           },
           {
             "cls": "bottom-route-chip route-choice-chip",
             "tag": "BUTTON",
             "rect": {
-              "x": 361,
-              "y": 309,
-              "w": 107,
-              "h": 72
+              "x": 355,
+              "y": 267,
+              "w": 109,
+              "h": 69
             },
-            "overRight": 77,
-            "overLeft": -361,
-            "overBottom": -463
+            "overRight": 73,
+            "overLeft": -355,
+            "overBottom": -508
           },
           {
             "cls": "bottom-route-chip-main",
             "tag": "DIV",
             "rect": {
-              "x": 376,
-              "y": 319,
-              "w": 66,
+              "x": 372,
+              "y": 276,
+              "w": 75,
               "h": 21
             },
-            "overRight": 52,
-            "overLeft": -376,
-            "overBottom": -504
+            "overRight": 56,
+            "overLeft": -372,
+            "overBottom": -547
           },
           {
             "cls": "bottom-route-chip-time",
             "tag": "SPAN",
             "rect": {
-              "x": 376,
-              "y": 319,
-              "w": 66,
+              "x": 372,
+              "y": 276,
+              "w": 75,
               "h": 21
             },
-            "overRight": 52,
-            "overLeft": -376,
-            "overBottom": -504
+            "overRight": 56,
+            "overLeft": -372,
+            "overBottom": -547
           },
           {
             "cls": "route-line-pills",
             "tag": "SPAN",
             "rect": {
-              "x": 376,
-              "y": 344,
+              "x": 372,
+              "y": 301,
               "w": 72,
               "h": 4
             },
-            "overRight": 58,
-            "overLeft": -376,
-            "overBottom": -495
+            "overRight": 54,
+            "overLeft": -372,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 391,
-              "y": 344,
-              "w": 13,
+              "x": 384,
+              "y": 301,
+              "w": 10,
               "h": 4
             },
-            "overRight": 14,
-            "overLeft": -391,
-            "overBottom": -495
+            "overRight": 4,
+            "overLeft": -384,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 406,
-              "y": 344,
-              "w": 13,
+              "x": 396,
+              "y": 301,
+              "w": 10,
               "h": 4
             },
-            "overRight": 28,
-            "overLeft": -406,
-            "overBottom": -495
+            "overRight": 17,
+            "overLeft": -396,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 420,
-              "y": 344,
-              "w": 13,
+              "x": 409,
+              "y": 301,
+              "w": 10,
               "h": 4
             },
-            "overRight": 43,
-            "overLeft": -420,
-            "overBottom": -495
+            "overRight": 29,
+            "overLeft": -409,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 435,
-              "y": 344,
-              "w": 13,
+              "x": 421,
+              "y": 301,
+              "w": 10,
               "h": 4
             },
-            "overRight": 58,
-            "overLeft": -435,
-            "overBottom": -495
+            "overRight": 41,
+            "overLeft": -421,
+            "overBottom": -539
+          },
+          {
+            "cls": "route-line-pills-item",
+            "tag": "SPAN",
+            "rect": {
+              "x": 433,
+              "y": 301,
+              "w": 10,
+              "h": 4
+            },
+            "overRight": 54,
+            "overLeft": -433,
+            "overBottom": -539
           },
           {
             "cls": "bottom-route-chip-sub",
             "tag": "DIV",
             "rect": {
-              "x": 376,
-              "y": 352,
-              "w": 76,
+              "x": 372,
+              "y": 309,
+              "w": 71,
               "h": 18
             },
-            "overRight": 62,
-            "overLeft": -376,
-            "overBottom": -474
+            "overRight": 53,
+            "overLeft": -372,
+            "overBottom": -517
           },
           {
             "cls": "bottom-route-chip route-choice-chip",
             "tag": "BUTTON",
             "rect": {
-              "x": 475,
-              "y": 309,
-              "w": 107,
-              "h": 72
+              "x": 471,
+              "y": 267,
+              "w": 109,
+              "h": 69
             },
-            "overRight": 192,
-            "overLeft": -475,
-            "overBottom": -463
+            "overRight": 190,
+            "overLeft": -471,
+            "overBottom": -508
           },
           {
             "cls": "bottom-route-chip-main",
             "tag": "DIV",
             "rect": {
-              "x": 491,
-              "y": 319,
+              "x": 488,
+              "y": 276,
               "w": 75,
               "h": 21
             },
-            "overRight": 176,
-            "overLeft": -491,
-            "overBottom": -504
+            "overRight": 173,
+            "overLeft": -488,
+            "overBottom": -547
           },
           {
             "cls": "bottom-route-chip-time",
             "tag": "SPAN",
             "rect": {
-              "x": 491,
-              "y": 319,
+              "x": 488,
+              "y": 276,
               "w": 75,
               "h": 21
             },
-            "overRight": 176,
-            "overLeft": -491,
-            "overBottom": -504
+            "overRight": 173,
+            "overLeft": -488,
+            "overBottom": -547
           },
           {
             "cls": "[object SVGAnimatedString]",
             "tag": "svg",
             "rect": {
-              "x": 491,
-              "y": 323,
+              "x": 488,
+              "y": 279,
               "w": 15,
               "h": 15
             },
-            "overRight": 115,
-            "overLeft": -491,
-            "overBottom": -507
+            "overRight": 113,
+            "overLeft": -488,
+            "overBottom": -550
           },
           {
             "cls": "[object SVGAnimatedString]",
             "tag": "circle",
             "rect": {
-              "x": 493,
-              "y": 325,
+              "x": 491,
+              "y": 281,
               "w": 10,
               "h": 10
             },
-            "overRight": 113,
-            "overLeft": -493,
-            "overBottom": -509
+            "overRight": 111,
+            "overLeft": -491,
+            "overBottom": -552
           },
           {
             "cls": "route-line-pills",
             "tag": "SPAN",
             "rect": {
-              "x": 491,
-              "y": 344,
+              "x": 488,
+              "y": 301,
               "w": 72,
               "h": 4
             },
-            "overRight": 173,
-            "overLeft": -491,
-            "overBottom": -495
+            "overRight": 170,
+            "overLeft": -488,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 491,
-              "y": 344,
-              "w": 10,
+              "x": 488,
+              "y": 301,
+              "w": 13,
               "h": 4
             },
             "overRight": 111,
-            "overLeft": -491,
-            "overBottom": -495
+            "overLeft": -488,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
               "x": 503,
-              "y": 344,
-              "w": 10,
+              "y": 301,
+              "w": 13,
               "h": 4
             },
-            "overRight": 123,
+            "overRight": 126,
             "overLeft": -503,
-            "overBottom": -495
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 515,
-              "y": 344,
-              "w": 10,
+              "x": 518,
+              "y": 301,
+              "w": 13,
               "h": 4
             },
-            "overRight": 136,
-            "overLeft": -515,
-            "overBottom": -495
+            "overRight": 141,
+            "overLeft": -518,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 528,
-              "y": 344,
-              "w": 10,
+              "x": 533,
+              "y": 301,
+              "w": 13,
               "h": 4
             },
-            "overRight": 148,
-            "overLeft": -528,
-            "overBottom": -495
+            "overRight": 156,
+            "overLeft": -533,
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
-              "x": 540,
-              "y": 344,
-              "w": 10,
+              "x": 548,
+              "y": 301,
+              "w": 13,
               "h": 4
             },
-            "overRight": 160,
-            "overLeft": -540,
-            "overBottom": -495
-          },
-          {
-            "cls": "route-line-pills-item",
-            "tag": "SPAN",
-            "rect": {
-              "x": 552,
-              "y": 344,
-              "w": 10,
-              "h": 4
-            },
-            "overRight": 173,
-            "overLeft": -552,
-            "overBottom": -495
+            "overRight": 170,
+            "overLeft": -548,
+            "overBottom": -539
           },
           {
             "cls": "bottom-route-chip-sub",
             "tag": "DIV",
             "rect": {
-              "x": 491,
-              "y": 352,
-              "w": 76,
+              "x": 488,
+              "y": 309,
+              "w": 71,
               "h": 18
             },
-            "overRight": 177,
-            "overLeft": -491,
-            "overBottom": -474
+            "overRight": 169,
+            "overLeft": -488,
+            "overBottom": -517
           },
           {
             "cls": "bottom-route-chip route-choice-chip",
             "tag": "BUTTON",
             "rect": {
-              "x": 590,
-              "y": 309,
-              "w": 107,
-              "h": 72
+              "x": 588,
+              "y": 267,
+              "w": 109,
+              "h": 69
             },
             "overRight": 307,
-            "overLeft": -590,
-            "overBottom": -463
+            "overLeft": -588,
+            "overBottom": -508
           },
           {
             "cls": "bottom-route-chip-main",
             "tag": "DIV",
             "rect": {
               "x": 605,
-              "y": 319,
+              "y": 276,
               "w": 75,
               "h": 21
             },
             "overRight": 290,
             "overLeft": -605,
-            "overBottom": -504
+            "overBottom": -547
           },
           {
             "cls": "bottom-route-chip-time",
             "tag": "SPAN",
             "rect": {
               "x": 605,
-              "y": 319,
+              "y": 276,
               "w": 75,
               "h": 21
             },
             "overRight": 290,
             "overLeft": -605,
-            "overBottom": -504
+            "overBottom": -547
           },
           {
             "cls": "[object SVGAnimatedString]",
             "tag": "svg",
             "rect": {
               "x": 605,
-              "y": 323,
+              "y": 279,
               "w": 15,
               "h": 15
             },
             "overRight": 230,
             "overLeft": -605,
-            "overBottom": -507
+            "overBottom": -550
           },
           {
             "cls": "[object SVGAnimatedString]",
             "tag": "circle",
             "rect": {
               "x": 608,
-              "y": 325,
+              "y": 281,
               "w": 10,
               "h": 10
             },
             "overRight": 228,
             "overLeft": -608,
-            "overBottom": -509
+            "overBottom": -552
           },
           {
             "cls": "route-line-pills",
             "tag": "SPAN",
             "rect": {
               "x": 605,
-              "y": 344,
+              "y": 301,
               "w": 72,
               "h": 4
             },
             "overRight": 287,
             "overLeft": -605,
-            "overBottom": -495
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
               "x": 605,
-              "y": 344,
+              "y": 301,
               "w": 13,
               "h": 4
             },
             "overRight": 228,
             "overLeft": -605,
-            "overBottom": -495
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
               "x": 620,
-              "y": 344,
+              "y": 301,
               "w": 13,
               "h": 4
             },
             "overRight": 243,
             "overLeft": -620,
-            "overBottom": -495
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
               "x": 635,
-              "y": 344,
+              "y": 301,
               "w": 13,
               "h": 4
             },
             "overRight": 258,
             "overLeft": -635,
-            "overBottom": -495
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
               "x": 650,
-              "y": 344,
+              "y": 301,
               "w": 13,
               "h": 4
             },
             "overRight": 273,
             "overLeft": -650,
-            "overBottom": -495
+            "overBottom": -539
           },
           {
             "cls": "route-line-pills-item",
             "tag": "SPAN",
             "rect": {
               "x": 665,
-              "y": 344,
+              "y": 301,
               "w": 13,
               "h": 4
             },
             "overRight": 287,
             "overLeft": -665,
-            "overBottom": -495
+            "overBottom": -539
           },
           {
             "cls": "bottom-route-chip-sub",
             "tag": "DIV",
             "rect": {
               "x": 605,
-              "y": 352,
-              "w": 76,
+              "y": 309,
+              "w": 71,
               "h": 18
             },
-            "overRight": 291,
+            "overRight": 286,
             "overLeft": -605,
-            "overBottom": -474
+            "overBottom": -517
           },
           {
             "cls": "bottom-route-details bottom-route-details--open",
             "tag": "DIV",
             "rect": {
-              "x": 16,
-              "y": 393,
-              "w": 357,
-              "h": 1264
+              "x": 14,
+              "y": 348,
+              "w": 362,
+              "h": 1374
             },
-            "overRight": -16,
-            "overLeft": -16,
-            "overBottom": 813
+            "overRight": -14,
+            "overLeft": -14,
+            "overBottom": 878
           },
           {
             "cls": "route-result",
             "tag": "DIV",
             "rect": {
-              "x": 16,
-              "y": 402,
-              "w": 357,
-              "h": 1249
+              "x": 14,
+              "y": 356,
+              "w": 362,
+              "h": 1362
             },
-            "overRight": -16,
-            "overLeft": -16,
-            "overBottom": 807
+            "overRight": -14,
+            "overLeft": -14,
+            "overBottom": 874
           },
           {
             "cls": "route-result-scroll",
             "tag": "DIV",
             "rect": {
-              "x": 31,
-              "y": 416,
-              "w": 328,
-              "h": 1218
+              "x": 27,
+              "y": 369,
+              "w": 336,
+              "h": 1332
             },
-            "overRight": -31,
-            "overLeft": -31,
-            "overBottom": 790
+            "overRight": -27,
+            "overLeft": -27,
+            "overBottom": 857
           },
           {
             "cls": "route-steps route-steps--animate",
             "tag": "OL",
             "rect": {
-              "x": 31,
-              "y": 484,
-              "w": 328,
-              "h": 1138
+              "x": 27,
+              "y": 436,
+              "w": 336,
+              "h": 1253
             },
-            "overRight": -31,
-            "overLeft": -31,
-            "overBottom": 778
+            "overRight": -27,
+            "overLeft": -27,
+            "overBottom": 845
           },
           {
             "cls": "route-step route-step--transfer",
             "tag": "LI",
             "rect": {
-              "x": 31,
-              "y": 814,
-              "w": 328,
-              "h": 60
+              "x": 27,
+              "y": 807,
+              "w": 336,
+              "h": 62
             },
-            "overRight": -31,
-            "overLeft": -31,
-            "overBottom": 31
+            "overRight": -27,
+            "overLeft": -27,
+            "overBottom": 25
           }
         ]
       }
     },
+    "desktop: карточка установки PWA не показалась на чистом localStorage",
     "desktop: вариантов маршрута — 6",
     "desktop: шагов маршрута в деталях — 5",
     {
@@ -674,5 +666,5 @@
       }
     }
   ],
-  "finishedAt": "2026-08-01T16:12:40.660Z"
+  "finishedAt": "2026-08-02T13:17:27.366Z"
 }
