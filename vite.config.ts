@@ -57,10 +57,8 @@ function routingGraphAssetPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const isEditorBuild = mode === 'editor'
   const isPwaDev = mode === 'pwa'
   const indexHtml = fileURLToPath(new URL('./index.html', import.meta.url))
-  const editorHtml = fileURLToPath(new URL('./editor.html', import.meta.url))
   const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 
   return {
@@ -150,7 +148,7 @@ export default defineConfig(({ mode }) => {
       // фоновые агенты. Vitest подхватывал оттуда УСТАРЕВШИЕ копии тестов:
       // 88 из 219 «пройденных» тестов приходили из чужого worktree, то есть
       // число было завышено, а зелёный статус частично относился к старому коду.
-      exclude: ['**/node_modules/**', '**/dist/**', '**/dist-editor/**', '.claude/**'],
+      exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
       coverage: {
         provider: 'v8',
         // lcov — для Codecov, text — чтобы цифра была видна прямо в логе CI.
@@ -174,9 +172,13 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: isEditorBuild ? 'dist-editor' : 'dist',
+      // Сборка ровно одна. Отдельной сборки редактора нет и быть не может:
+      // запись правок живёт в configureServer этого же конфига, а снимок
+      // раскладки — за import.meta.env.DEV. Статика с редакторским UI не
+      // умеет ни того, ни другого, то есть выкатывать её было бы обманом.
+      outDir: 'dist',
       rollupOptions: {
-        input: isEditorBuild ? editorHtml : indexHtml,
+        input: indexHtml,
         output: {
           manualChunks(id) {
             const p = id.split('\\').join('/')
@@ -189,10 +191,6 @@ export default defineConfig(({ mode }) => {
             if (p.includes('/src/metro/')) return 'metro'
 
             if (p.includes('/src/components/MetroMap')) return 'map'
-
-            if (isEditorBuild && p.includes('/src/components/HubEditorPanel')) {
-              return 'editor'
-            }
 
             return undefined
           },
