@@ -28,7 +28,6 @@ function areEditorSnapshotsShallowEqual(
   if (!a || !b) return false
   return (
     a.stationOverrides === b.stationOverrides &&
-    a.stationHubOverrides === b.stationHubOverrides &&
     a.edgeOverrides === b.edgeOverrides &&
     a.edgeTransferKinds === b.edgeTransferKinds &&
     a.manualEdges === b.manualEdges &&
@@ -51,13 +50,11 @@ export function useEditorController(): EditorController {
   const [inspectedLineId, setInspectedLineId] = useState<number | null>(null)
 
   const [stationOverrides, setStationOverrides] = useState<Record<string, StationOverride>>({})
-  const [stationHubOverrides, setStationHubOverrides] = useState<Record<string, string | null>>({})
   const [edgeOverrides, setEdgeOverrides] = useState<Record<string, EdgeOverride>>({})
   // Тип пересадки лежит отдельно от EdgeOverride: тот тип описывает граф в
   // src/metro и про data/transfers.json ничего не знает.
   const [edgeTransferKinds, setEdgeTransferKinds] = useState<Record<string, TransferKind>>({})
   const [manualEdges, setManualEdges] = useState<Record<string, FullGraphEdge>>({})
-  const [newEdgeTarget, setNewEdgeTarget] = useState('')
   const [editorToast, setEditorToast] = useState<string | null>(null)
   const editorToastTimeoutRef = useRef<number | null>(null)
 
@@ -101,7 +98,6 @@ export function useEditorController(): EditorController {
   const makeEditorSnapshot = useCallback((): EditorSnapshot => {
     return {
       stationOverrides,
-      stationHubOverrides,
       edgeOverrides,
       edgeTransferKinds,
       manualEdges,
@@ -109,7 +105,6 @@ export function useEditorController(): EditorController {
     }
   }, [
     stationOverrides,
-    stationHubOverrides,
     edgeOverrides,
     edgeTransferKinds,
     manualEdges,
@@ -151,7 +146,6 @@ export function useEditorController(): EditorController {
 
   const applyEditorSnapshot = useCallback((snapshot: EditorSnapshot) => {
     setStationOverrides(snapshot.stationOverrides)
-    setStationHubOverrides(snapshot.stationHubOverrides)
     setEdgeOverrides(snapshot.edgeOverrides)
     setEdgeTransferKinds(snapshot.edgeTransferKinds)
     setManualEdges(snapshot.manualEdges)
@@ -822,14 +816,6 @@ export function useEditorController(): EditorController {
         return next
       })
 
-      setStationHubOverrides((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
-
-
       const base = stationById.get(stationId)
       const baseX = base && typeof base.layoutX === 'number' ? base.layoutX : undefined
       const baseY = base && typeof base.layoutY === 'number' ? base.layoutY : undefined
@@ -891,7 +877,6 @@ export function useEditorController(): EditorController {
       editorLayoutOverrides: lastLayoutOverrides,
       editorLayoutApplyToken,
       onEditStationInspect: handleInspectStation,
-      stationHubOverrides,
       stationTitleOverrides: stationTitleOverridesForMap,
       editorFocusCommand,
     }),
@@ -902,7 +887,6 @@ export function useEditorController(): EditorController {
       lastLayoutOverrides,
       editorLayoutApplyToken,
       handleInspectStation,
-      stationHubOverrides,
       stationTitleOverridesForMap,
       editorFocusCommand,
     ],
@@ -917,7 +901,6 @@ export function useEditorController(): EditorController {
       inspectedEdges,
 
       stationOverrides,
-      stationHubOverrides,
       edgeOverrides,
       edgeTransferKinds,
       manualEdges,
@@ -925,7 +908,6 @@ export function useEditorController(): EditorController {
 
       stationById,
       lineByNumericId,
-      newEdgeTarget,
       findExactStationByName,
       edgeKey,
 
@@ -933,11 +915,9 @@ export function useEditorController(): EditorController {
       canUndo: canEditorUndo,
       canRedo: canEditorRedo,
 
-      setNewEdgeTarget,
       setManualEdges,
       setInspectedStationId,
 
-      showToast: showEditorToast,
       undo: handleEditorUndo,
       redo: handleEditorRedo,
       toggleEditMode,
@@ -961,20 +941,17 @@ export function useEditorController(): EditorController {
       inspectedLineId,
       inspectedEdges,
       stationOverrides,
-      stationHubOverrides,
       edgeOverrides,
       edgeTransferKinds,
       manualEdges,
       lastLayoutOverrides,
       stationById,
       lineByNumericId,
-      newEdgeTarget,
       findExactStationByName,
       edgeKey,
       collisionDebug,
       canEditorUndo,
       canEditorRedo,
-      showEditorToast,
       handleEditorUndo,
       handleEditorRedo,
       toggleEditMode,
