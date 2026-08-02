@@ -9,7 +9,7 @@ afterEach(() => {
 })
 
 describe('trackEvent', () => {
-  it('шлёт пустой beacon на /e/<событие>', () => {
+  it('шлёт beacon без тела на /e/<событие>', () => {
     const sendBeacon = vi.fn().mockReturnValue(true)
     vi.stubGlobal('navigator', { ...navigator, sendBeacon })
 
@@ -18,8 +18,9 @@ describe('trackEvent', () => {
     expect(sendBeacon).toHaveBeenCalledTimes(1)
     const [url, body] = sendBeacon.mock.calls[0]
     expect(url).toBe('/e/route_built')
-    expect(body).toBeInstanceOf(Blob)
-    expect((body as Blob).size).toBe(0)
+    // Второго аргумента нет намеренно: с ним запрос уехал бы с телом и
+    // Content-Type, а событие целиком помещается в путь.
+    expect(body).toBeUndefined()
   })
 
   /**
