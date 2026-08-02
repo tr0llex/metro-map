@@ -9,6 +9,7 @@ import {
   type RoutingGraphSource,
 } from './src/metro/routingGraphPayload.ts'
 import { editorApiPlugin } from './scripts/editor/editorApiPlugin.ts'
+import { eventsDevEndpoint } from './scripts/eventsDevEndpoint.ts'
 
 /**
  * Отдаёт воркеру маршрутизации компактный граф отдельным ассетом.
@@ -65,6 +66,9 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       routingGraphAssetPlugin(),
+      // В проде /e/<событие> обслуживает nginx. Локально его нет, и без
+      // заглушки каждый построенный маршрут давал бы 404 в консоли.
+      eventsDevEndpoint(),
       // Запись правок редактора в data/. `apply: 'serve'` внутри плагина не
       // пускает его в сборку, но и подключаем его только там, где он нужен.
       editorApiPlugin(projectRoot),
