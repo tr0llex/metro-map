@@ -1,9 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { fullGraphEdges, fullGraphLines, fullGraphTransferHubs } from '../metro/fullGraph.ts'
-import { buildLayoutFile } from './exportLayout.ts'
-// Общий util живёт вне src/editor/**: им пользуется и прод. Обратной утечки нет —
-// зависимость направлена только в одну сторону (редактор → utils).
-import { copyTextToClipboard } from '../utils/clipboard.ts'
+import { SaveBar } from './SaveBar.tsx'
 import type { EditorOverlayApi } from './editorTypes.ts'
 
 const HubEditorPanelLazy = lazy(() =>
@@ -12,22 +9,6 @@ const HubEditorPanelLazy = lazy(() =>
 
 const BASE_HUB_IDS = fullGraphTransferHubs.map((hub) => hub.id)
 
-/**
- * Сколько правок редактора НЕ относится к координатам. Такие правки экспорт не
- * выгружает: их место — в `data/lines/*.json` и `data/transfers.json`.
- */
-function countNonLayoutEdits(editor: EditorOverlayApi): number {
-  return (
-    Object.keys(editor.stationOverrides).length +
-    Object.keys(editor.manualStations).length +
-    Object.keys(editor.manualEdges).length +
-    Object.keys(editor.edgeOverrides).length +
-    Object.keys(editor.hubMinOverrides).length +
-    Object.keys(editor.hiddenStations).length +
-    Object.keys(editor.stationHubOverrides).length
-  )
-}
-
 type EditorOverlayProps = {
   editor: EditorOverlayApi
   /** true, когда режим редактирования включён (панель и инструменты видимы) */
@@ -35,61 +16,11 @@ type EditorOverlayProps = {
 }
 
 /**
- * Весь редакторский UI: панель станции, FAB-кнопки (карандаш, «+», отладка
- * коллизий, OVR) и тост. Компонент грузится динамически и только в dev/editor
- * сборке — в прод-бандл он не попадает вообще.
+ * Весь редакторский UI: панель станции, панель сохранения, FAB-кнопки и тост.
+ * Компонент грузится динамически и только в dev/editor сборке — в прод-бандл он
+ * не попадает вообще.
  */
 export function EditorOverlay({ editor, active }: EditorOverlayProps) {
-  const handleCopyOverrides = async () => {
-    try {
-      // Формы колец фиксируются ТОЛЬКО по явному согласию: сейчас солвер
-      // подбирает их по станциям, и молчаливое добавление `ringShapes` в файл
-      // переключило бы геометрию колец на ручную без единого следа в выводе.
-      const hasRingShapes = Object.keys(editor.canonicalRingShapes).length > 0
-      const includeRingShapes =
-        hasRingShapes &&
-        window.confirm(
-          'Зафиксировать формы кольцевых линий (rings) в data/layout.json?\n\n' +
-            'Сейчас солвер подбирает форму каждого кольца по станциям. Если зафиксировать, ' +
-            'форма перестанет подстраиваться под правки раскладки.\n\n' +
-            'ОК — записать формы, Отмена — оставить автоподгонку (обычный вариант).',
-        )
-
-      const layoutFile = buildLayoutFile({
-        layout: editor.lastLayoutOverrides,
-        canonicalRingShapes: editor.canonicalRingShapes,
-        includeRingShapes,
-      })
-
-      const json = JSON.stringify(layoutFile, null, 2)
-      const ok = json ? await copyTextToClipboard(json) : false
-      if (ok) {
-        // Правки, кроме координат, в файл не попадают: название станции, состав
-        // линии, время перегона и параметры узла теперь живут в data/lines/*.json
-        // и data/transfers.json. Молча скопировать один только layout значило бы
-        // потерять их без предупреждения — поэтому говорим об этом вслух.
-        const otherEdits = countNonLayoutEdits(editor)
-        if (otherEdits > 0) {
-          editor.showToast(
-            `data/layout.json скопирован. Правок не по координатам: ${otherEdits} — ` +
-              'они не выгружаются, их нужно внести в data/lines/*.json или data/transfers.json',
-          )
-        } else {
-          editor.showToast(
-            includeRingShapes
-              ? 'data/layout.json скопирован (с формами колец)'
-              : 'data/layout.json скопирован',
-          )
-        }
-      } else {
-        editor.showToast('Не удалось скопировать data/layout.json')
-      }
-    } catch {
-      editor.showToast('Не удалось скопировать data/layout.json')
-      // ignore clipboard errors
-    }
-  }
-
   return (
     <>
       {active && editor.inspectedStation && (
@@ -158,16 +89,10 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
         ✎
       </button>
 
+      {active && <SaveBar editor={editor} />}
+
       {active && (
         <div className="editor-tools-stack" aria-label="Инструменты редактора">
-          <button
-            type="button"
-            className="editor-fab editor-fab--small editor-fab--secondary"
-            onClick={editor.createManualStation}
-            aria-label="Создать новую станцию рядом с текущей"
-          >
-            +
-          </button>
           <button
             type="button"
             className={`editor-fab editor-fab--small${
@@ -181,15 +106,6 @@ export function EditorOverlay({ editor, active }: EditorOverlayProps) {
             }
           >
             ⚡
-          </button>
-          <button
-            type="button"
-            className="editor-fab editor-fab--small editor-fab--secondary"
-            onClick={handleCopyOverrides}
-            aria-label="Скопировать data/layout.json в буфер обмена"
-            title="Скопировать data/layout.json"
-          >
-            OVR
           </button>
         </div>
       )}

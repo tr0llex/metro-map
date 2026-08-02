@@ -8,6 +8,7 @@ import {
   encodeRoutingGraph,
   type RoutingGraphSource,
 } from './src/metro/routingGraphPayload'
+import { editorApiPlugin } from './scripts/editor/editorApiPlugin'
 
 /**
  * Отдаёт воркеру маршрутизации компактный граф отдельным ассетом.
@@ -60,11 +61,15 @@ export default defineConfig(({ mode }) => {
   const isPwaDev = mode === 'pwa'
   const indexHtml = fileURLToPath(new URL('./index.html', import.meta.url))
   const editorHtml = fileURLToPath(new URL('./editor.html', import.meta.url))
+  const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 
   return {
     plugins: [
       react(),
       routingGraphAssetPlugin(),
+      // Запись правок редактора в data/. `apply: 'serve'` внутри плагина не
+      // пускает его в сборку, но и подключаем его только там, где он нужен.
+      editorApiPlugin(projectRoot),
       VitePWA({
         registerType: 'prompt',
         includeAssets: [
