@@ -3,6 +3,30 @@ import type { KeyboardEvent, RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { IconClose, IconSwap } from './icons.tsx'
 
+/**
+ * Глушим системные подсказки в полях «Откуда» и «Куда».
+ *
+ * Поля не объявляли autocomplete, и браузер считал их обычным текстовым вводом:
+ * поверх наших подсказок со станциями вылезал его собственный список ранее
+ * введённых значений. Два выпадающих списка друг на друге, причём системный
+ * перекрывает нижние строки нашего и не знает ни линий, ни пересадок.
+ *
+ * autocomplete здесь не «выключение подсказок вообще», а сообщение браузеру,
+ * что подсказки уже даёт страница: рядом стоят role="combobox" и
+ * aria-autocomplete="list", и по ним браузер понимает, что список свой.
+ *
+ * Остальное — про мобильную клавиатуру. Автокоррекция правила названия станций
+ * по словарю («Щукинская» → «Щукинский»), автозаглавная спорила с посимвольным
+ * поиском, проверка орфографии подчёркивала красным половину схемы.
+ */
+const NO_SYSTEM_AUTOCOMPLETE = {
+  autoComplete: 'off',
+  autoCorrect: 'off',
+  autoCapitalize: 'none',
+  spellCheck: false,
+  enterKeyHint: 'search',
+} as const
+
 export type RouteSuggestionItem = {
   id: string
   title: string
@@ -424,6 +448,7 @@ export function RouteForm({
           placeholder="Откуда"
           value={fromStation}
           ref={fromInputRef}
+          {...NO_SYSTEM_AUTOCOMPLETE}
           onChange={(e) => onFromChange(e.target.value)}
           onKeyDown={onFromKeyDown}
           onFocus={onFromFocus}
@@ -486,6 +511,7 @@ export function RouteForm({
           placeholder="Куда"
           value={toStation}
           ref={toInputRef}
+          {...NO_SYSTEM_AUTOCOMPLETE}
           onChange={(e) => onToChange(e.target.value)}
           onKeyDown={onToKeyDown}
           onFocus={onToFocus}
