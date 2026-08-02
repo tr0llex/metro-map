@@ -1,6 +1,27 @@
 {
   "name": "metro-map",
   "private": true,
+  "description": "Offline-first route planner for the Moscow Metro: canvas diagram from a Go layout solver, on-device routing, PWA.",
+  "keywords": [
+    "moscow-metro",
+    "metro-map",
+    "transit-diagram",
+    "octolinear-layout",
+    "canvas",
+    "pwa",
+    "offline-first",
+    "route-planning",
+    "react",
+    "typescript"
+  ],
+  "homepage": "https://metro.samoy.love",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tr0llex/metro-map.git"
+  },
+  "bugs": "https://github.com/tr0llex/metro-map/issues",
+  "author": "Alexey Samoylov <alex@samoy.love>",
+  "license": "UNLICENSED",
   "version": "1.0.0-rc.1",
   "type": "module",
   "scripts": {
