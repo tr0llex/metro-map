@@ -164,6 +164,18 @@ function describeDiff(actual: string[], expected: string[], limit = 12): string 
     'и не забудьте npm run quality (normalized/quality_report.json — базовая линия CI).'
 }
 
+/**
+ * Полный прогон раскладки по реальной схеме — это перебор позиций для ~250
+ * подписей, то есть секунда чистого счёта. В CI набор идёт с `--coverage`, а
+ * инструментация v8 замедляет такой горячий числовой цикл раз в двадцать: те же
+ * ~15–25 секунд вместо секунды. Умолчание vitest в 5 секунд под это не подходит,
+ * и тесты падали по таймауту, ничего не проверив.
+ *
+ * Здесь поднят именно срок ожидания — сами сверки остались прежними: расхождение
+ * с эталоном или с прямым вызовом алгоритма по-прежнему валит тест.
+ */
+const HEAVY_LAYOUT_TIMEOUT_MS = 120_000
+
 describe('раскладка подписей: результат на реальной схеме', () => {
   const graph = JSON.parse(readFileSync(GRAPH_PATH, 'utf8')) as RawGraph
   const model = buildRenderModel(graph)
@@ -198,10 +210,10 @@ describe('раскладка подписей: результат на реал�
     if (actual.length !== reference.length || actual.some((l, i) => l !== reference[i])) {
       throw new Error(describeDiff(actual, reference))
     }
-  })
+  }, HEAVY_LAYOUT_TIMEOUT_MS)
 
   it('детерминирована: повторный прогон даёт тот же результат', () => {
     const again = computeLabelPlacements(buildRenderModel(graph), LABEL_BASE_FONT_PX)
     expect(again.map(digest)).toEqual(placements.map(digest))
-  })
+  }, HEAVY_LAYOUT_TIMEOUT_MS)
 })

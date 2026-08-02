@@ -34,7 +34,13 @@ test.describe('офлайн', () => {
       await page.reload();
 
       // Без сети приложение обязано подняться целиком, а не показать оболочку.
-      await expect(page.getByLabel('Схема метро Москвы')).toBeVisible();
+      //
+      // Схему ищем по канвасу, как и в map.spec.ts. По подписи «Схема метро
+      // Москвы» её найти нельзя: тем же именем помечен пустой <main>-распорка
+      // оверлея, и getByLabel сравнивает подстрокой — под условие попадали оба
+      // элемента сразу, что строгий режим Playwright справедливо считает ошибкой
+      // теста, а не приложения.
+      await expect(page.locator('canvas.metro-map-svg')).toBeVisible();
       await expect(page.getByLabel('Станция отправления')).toBeVisible();
       await expect
         .poll(() => mapPaintedPixels(page), { message: 'без сети схема не отрисовалась' })
