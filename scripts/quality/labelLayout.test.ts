@@ -34,18 +34,28 @@ import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-import { computeStationLabelPlacements } from '../../src/components/MetroMapLabelLayout.ts'
-import { LABEL_BASE_FONT_PX, buildRenderModel } from './render.ts'
-import { computeLabelPlacements, type LabelPlacement } from './labelLayout.ts'
-import { measureText } from './textMetrics.ts'
-import type { RawGraph } from './types.ts'
+import { LABEL_BASE_FONT_PX } from './render.ts'
+import { computeLabelPlacements } from './labelLayout.ts'
+import {
+  GOLDEN_PATH,
+  HEAVY_LAYOUT_TIMEOUT_MS,
+  ROOT,
+  describeDiff,
+  digest,
+  loadRenderModel,
+} from './labelLayoutFixture.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const ROOT = resolve(HERE, '..', '..')
-const GRAPH_PATH = resolve(ROOT, 'normalized', 'fullGraph.json')
-const GOLDEN_PATH = resolve(HERE, 'labelLayout.golden.txt')
 const LAYOUT_MODULE = resolve(ROOT, 'src', 'components', 'MetroMapLabelLayout.ts')
-const SELF = resolve(HERE, 'labelLayout.test.ts')
+// Файлы самого сторожа: они содержат отпечатки в виде строк и импортируют
+// алгоритм, но реализацией не являются. Перечислены явно, а не по маске
+// *.test.ts — маска заодно спрятала бы настоящую копию, если её кто-нибудь
+// принесёт в файл с таким именем.
+const GUARD_FILES = [
+  resolve(HERE, 'labelLayout.test.ts'),
+  resolve(HERE, 'labelLayoutRepeat.test.ts'),
+  resolve(HERE, 'labelLayoutFixture.ts'),
+]
 
 // --------------------------------------------------------------------------
 // 1. Единственность реализации
@@ -87,8 +97,7 @@ function collectSourceFiles(): string[] {
   }
   walk(resolve(ROOT, 'src'))
   walk(resolve(ROOT, 'scripts'))
-  // Сам сторож содержит отпечатки в виде строк — он не реализация.
-  return out.filter((f) => f !== SELF)
+  return out.filter((f) => !GUARD_FILES.includes(f))
 }
 
 describe('раскладка подписей: единственная реализация', () => {
@@ -124,96 +133,23 @@ describe('раскладка подписей: единственная реал
 // 2. Результат на реальных данных
 // --------------------------------------------------------------------------
 
-/** Одна подпись — одна строка эталона. Всё, что видит пользователь и метрики. */
-function digest(p: LabelPlacement): string {
-  const n = (v: number) => v.toFixed(4)
-  return [
-    p.text,
-    p.lines.join('⏎'),
-    `x=${n(p.x)}`,
-    `y=${n(p.y)}`,
-    p.alignRight ? 'align=right' : 'align=left',
-    `imp=${p.importance}`,
-    `w=${n(p.width)}`,
-    `h=${n(p.height)}`,
-    `rect=${n(p.rect.x1)},${n(p.rect.y1)},${n(p.rect.x2)},${n(p.rect.y2)}`,
-    `zone=${n(p.zoneRadius)}`,
-    `anchor=${n(p.anchorX)},${n(p.anchorY)}`,
-    `ids=${p.stationIds.join('+')}`,
-  ].join(' | ')
-}
-
-/** Конкретные различия двух наборов подписей — а не «не совпало». */
-function describeDiff(actual: string[], expected: string[], limit = 12): string {
-  const diffs: string[] = []
-  const max = Math.max(actual.length, expected.length)
-  for (let i = 0; i < max && diffs.length < limit; i += 1) {
-    if (actual[i] === expected[i]) continue
-    diffs.push(
-      `  #${i}\n    ожидалось: ${expected[i] ?? '(подписи нет)'}\n    получено:  ${actual[i] ?? '(подписи нет)'}`,
-    )
-  }
-  const total = actual.filter((line, i) => line !== expected[i]).length
-  const head =
-    `раскладка разошлась с эталоном: ${total} подписей из ${max}` +
-    (actual.length !== expected.length ? ` (было ${expected.length}, стало ${actual.length})` : '')
-  const tail = total > diffs.length ? `\n  …ещё ${total - diffs.length}` : ''
-  return `${head}\n${diffs.join('\n')}${tail}\n` +
-    '\nЕсли изменение раскладки осознанное — перегенерируйте эталон:\n' +
-    '  UPDATE_LABEL_GOLDEN=1 npx vitest run scripts/quality/labelLayout.test.ts\n' +
-    'и не забудьте npm run quality (normalized/quality_report.json — базовая линия CI).'
-}
-
-/**
- * Полный прогон раскладки по реальной схеме — это перебор позиций для ~250
- * подписей, то есть секунда чистого счёта. В CI набор идёт с `--coverage`, а
- * инструментация v8 замедляет такой горячий числовой цикл раз в двадцать: те же
- * ~15–25 секунд вместо секунды. Умолчание vitest в 5 секунд под это не подходит,
- * и тесты падали по таймауту, ничего не проверив.
- *
- * Здесь поднят именно срок ожидания — сами сверки остались прежними: расхождение
- * с эталоном или с прямым вызовом алгоритма по-прежнему валит тест.
- */
-const HEAVY_LAYOUT_TIMEOUT_MS = 120_000
-
 describe('раскладка подписей: результат на реальной схеме', () => {
-  const graph = JSON.parse(readFileSync(GRAPH_PATH, 'utf8')) as RawGraph
-  const model = buildRenderModel(graph)
+  const { model } = loadRenderModel()
   const placements = computeLabelPlacements(model, LABEL_BASE_FONT_PX)
 
-  it('совпадает с эталоном позиция в позицию', () => {
-    const actual = placements.map(digest)
-    if (process.env.UPDATE_LABEL_GOLDEN === '1') {
-      writeFileSync(GOLDEN_PATH, actual.join('\n') + '\n', 'utf8')
-      return
-    }
-    const expected = readFileSync(GOLDEN_PATH, 'utf8').trimEnd().split('\n')
-    if (actual.length !== expected.length || actual.some((l, i) => l !== expected[i])) {
-      throw new Error(describeDiff(actual, expected))
-    }
-  })
-
-  it('адаптер метрик не искажает вход общего алгоритма', () => {
-    // Тот же вызов, собранный вручную: если scripts/quality/labelLayout.ts
-    // начнёт подсовывать раскладке другой кегль, другой набор сегментов или
-    // другие центры колец — результаты разойдутся.
-    const direct = computeStationLabelPlacements(
-      (text) => measureText(text, LABEL_BASE_FONT_PX),
-      model.stations,
-      LABEL_BASE_FONT_PX,
-      model.segmentsByStationId,
-      model.segments,
-      model.ringShapes,
-    )
-    const actual = placements.map(digest)
-    const reference = direct.map(digest)
-    if (actual.length !== reference.length || actual.some((l, i) => l !== reference[i])) {
-      throw new Error(describeDiff(actual, reference))
-    }
-  }, HEAVY_LAYOUT_TIMEOUT_MS)
-
-  it('детерминирована: повторный прогон даёт тот же результат', () => {
-    const again = computeLabelPlacements(buildRenderModel(graph), LABEL_BASE_FONT_PX)
-    expect(again.map(digest)).toEqual(placements.map(digest))
-  }, HEAVY_LAYOUT_TIMEOUT_MS)
+  it(
+    'совпадает с эталоном позиция в позицию',
+    () => {
+      const actual = placements.map(digest)
+      if (process.env.UPDATE_LABEL_GOLDEN === '1') {
+        writeFileSync(GOLDEN_PATH, actual.join('\n') + '\n', 'utf8')
+        return
+      }
+      const expected = readFileSync(GOLDEN_PATH, 'utf8').trimEnd().split('\n')
+      if (actual.length !== expected.length || actual.some((l, i) => l !== expected[i])) {
+        throw new Error(describeDiff(actual, expected))
+      }
+    },
+    HEAVY_LAYOUT_TIMEOUT_MS,
+  )
 })
