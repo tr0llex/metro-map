@@ -16,6 +16,12 @@ import {
   type LabelObstacleSegment,
   type StationLabelPlacement,
 } from './MetroMapLabelLayout'
+import {
+  FIT_EDGE_GUTTER_PX,
+  MIN_SCALE,
+  computeWorldBounds,
+  fitScaleFor,
+} from './MetroMapViewportFit'
 
 interface MetroMapProps {
   selectionMode: 'from' | 'to'
@@ -83,18 +89,9 @@ interface ViewportState {
 }
 
 
-/**
- * Нижняя граница зума.
- *
- * 0.35 не давала увидеть схему целиком: ширина раскладки ~1527px, на экране
- * 390px это требует зума 0.255. Значение снижено так, чтобы «вся схема + поля»
- * была достижима даже на узком телефоне; фактический предел ещё и считается
- * динамически (см. minScaleFor) — константа задаёт лишь потолок этого предела.
- */
 /** Базовый граф по id — нужен снимку раскладки, чтобы отличить подвинутую станцию от нетронутой. */
 const fullGraphStationById = new Map(fullGraphStations.map((s) => [s.id, s]))
 
-const MIN_SCALE = 0.18
 const MAX_SCALE = 3
 const ROUTE_AUTO_FIT_MAX_SCALE = 1.8
 /**
@@ -158,38 +155,6 @@ const WHEEL_ZOOM_SNAP_LOG = 0.012
 const WHEEL_ZOOM_EPS_LOG = 0.001
 /** Пауза после остановки колеса, после которой возвращается полная отрисовка подписей, мс. */
 const WHEEL_ZOOM_IDLE_MS = 120
-
-/**
- * Запас по краям схемы под подписи станций, в мировых пикселях.
- *
- * bounding box одних только кружков — не вся нарисованная схема: подпись
- * отходит от станции до 84px (периферийная зона раскладки) и сама имеет
- * ширину. Замер реальной раскладки на текущих данных даёт вылет за пределы
- * станций 121px влево, 130px вправо и ~22px по вертикали — берём 140px
- * с небольшим запасом, иначе крайние подписи («Красногвардейская»,
- * «Мичуринский проспект») обрезаются краем экрана на стартовом виде.
- */
-const WORLD_LABEL_MARGIN = 140
-
-/**
- * Зум, при котором вся схема вместе с полями под подписи влезает в
- * прямоугольник width×height.
- *
- * Единая точка правды для стартового вьюпорта и для нижней границы зума:
- * иначе «минимальный зум» снова окажется крупнее, чем нужно, чтобы увидеть
- * схему целиком, и пользователь упрётся в предел, не досмотрев края (VQA-6).
- */
-const fitScaleFor = (
-  worldWidth: number,
-  worldHeight: number,
-  width: number,
-  height: number,
-): number => {
-  const w = worldWidth + WORLD_LABEL_MARGIN * 2
-  const h = worldHeight + WORLD_LABEL_MARGIN * 2
-  if (w <= 0 || h <= 0 || width <= 0 || height <= 0) return MIN_SCALE
-  return Math.min(width / w, height / h)
-}
 
 // Визуальные константы схемы под светлый стеклянный UI
 const BASE_LINE_WIDTH = 6.4
@@ -1326,32 +1291,10 @@ export const MetroMap = memo(function MetroMap({
     return groups
   }, [positionedStations])
 
-  const worldBounds = useMemo(() => {
-    if (positionedStations.length === 0) return null
-
-    let minX = Infinity
-    let maxX = -Infinity
-    let minY = Infinity
-    let maxY = -Infinity
-
-    for (const st of positionedStations) {
-      if (st.x < minX) minX = st.x
-      if (st.x > maxX) maxX = st.x
-      if (st.y < minY) minY = st.y
-      if (st.y > maxY) maxY = st.y
-    }
-
-    if (!Number.isFinite(minX) || !Number.isFinite(maxX) || !Number.isFinite(minY) || !Number.isFinite(maxY)) {
-      return null
-    }
-
-    const width = maxX - minX || 1
-    const height = maxY - minY || 1
-    const centerX = (minX + maxX) / 2
-    const centerY = (minY + maxY) / 2
-
-    return { minX, maxX, minY, maxY, width, height, centerX, centerY }
-  }, [positionedStations])
+  const worldBounds = useMemo(
+    () => computeWorldBounds(positionedStations),
+    [positionedStations],
+  )
 
   useEffect(() => {
     if (!editMode) return
@@ -2138,10 +2081,22 @@ export const MetroMap = memo(function MetroMap({
     // Свободная зона между шапкой и нижней шторкой/панелью. На широком экране
     // (≥1024px) вместо шторки сбоку висит панель, и резервировать треть высоты
     // под неё не нужно — раньше из-за этого схема на десктопе сжималась зря.
+    //
+    // На широком макете верх и низ над картой свободны ЦЕЛИКОМ: и шапка
+    // (.app-header), и панель маршрута (.bottom-sheet) лежат в одной левой
+    // колонке шириной ~420px и по вертикали карту не перекрывают — это же
+    // видно и по измеренным инсетам, где visibleInsets.top на десктопе равен
+    // нулю. Прежний глухой резерв 96px сверху и 56px снизу был данью
+    // телефонной раскладке: он съедал 17% высоты 900px-окна, а подгонка на
+    // десктопе упирается именно в высоту — схема оставалась маленькой
+    // картинкой в пустом поле. Оставляем только поле по краям, чтобы схема
+    // не касалась кромки экрана.
     const isWidePanelLayout = displayWidth >= 1024
-    const insetTop = Math.min(96, displayHeight * 0.12)
+    const insetTop = isWidePanelLayout
+      ? Math.max(visibleInsets?.top ?? 0, FIT_EDGE_GUTTER_PX)
+      : Math.min(96, displayHeight * 0.12)
     const insetBottom = isWidePanelLayout
-      ? Math.min(56, displayHeight * 0.07)
+      ? FIT_EDGE_GUTTER_PX
       : Math.min(210, displayHeight * 0.25)
 
     // На десктопе панель маршрута висит СЛЕВА поверх карты, а кнопки зума —
