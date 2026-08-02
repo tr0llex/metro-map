@@ -716,6 +716,15 @@ function App() {
     return 'applied'
   }
 
+  /** Цвет линии станции для точки в шапке поповера. */
+  const getPopoverLineColor = (stationId: string): string | undefined => {
+    const st = stationById.get(stationId)
+    const override = stationOverrides[stationId]
+    const lineNumericId = (override?.lineNumericId ?? st?.lineNumericId) ?? null
+    if (lineNumericId == null) return undefined
+    return lineByNumericId.get(lineNumericId)?.colorHex
+  }
+
   /**
    * Тап по станции: пока есть пустое поле — заполняем его молча (первый тап —
    * «Откуда», второй — «Куда»), это и есть быстрый путь.
@@ -725,31 +734,38 @@ function App() {
    * ткнул в карту. Теперь такой тап возвращает 'ask', и хук открывает поповер
    * с выбором поля — там же видно, какая станция какую заменит.
    */
-  const applyStationByTap = (stationId: string, stationName: string): 'handled' | 'ask' => {
+  const applyStationByTap = (
+    stationId: string,
+    stationName: string,
+    clientPoint: { x: number; y: number },
+  ): 'handled' | 'ask' => {
     const fromId = fromStationId
     const toId = toStationId
+    // Подсказка встаёт у станции и красится цветом её линии — так же, как
+    // точка в шапке поповера.
+    const at = { point: clientPoint, lineColor: getPopoverLineColor(stationId) }
 
     // Тап по уже выбранной станции — почти всегда промах: сообщаем и выходим,
     // поповер тут ничего полезного не предложит.
     if (fromId && stationId === fromId) {
-      showStationHint('info', `${stationName} уже выбрана как «Откуда»`)
+      showStationHint('info', `${stationName} уже выбрана как «Откуда»`, at)
       return 'handled'
     }
 
     if (toId && stationId === toId) {
-      showStationHint('info', `${stationName} уже выбрана как «Куда»`)
+      showStationHint('info', `${stationName} уже выбрана как «Куда»`, at)
       return 'handled'
     }
 
     if (!fromId) {
       applyStationToField('from', stationId, stationName)
-      showStationHint('from', `Откуда: ${stationName}`)
+      showStationHint('from', `Откуда: ${stationName}`, at)
       return 'handled'
     }
 
     if (!toId) {
       applyStationToField('to', stationId, stationName)
-      showStationHint('to', `Куда: ${stationName}`)
+      showStationHint('to', `Куда: ${stationName}`, at)
       return 'handled'
     }
 
@@ -762,15 +778,6 @@ function App() {
     popoverRef: stationPickPopoverRef,
   })
 
-  /** Цвет линии станции для точки в шапке поповера. */
-  const getPopoverLineColor = (stationId: string): string | undefined => {
-    const st = stationById.get(stationId)
-    const override = stationOverrides[stationId]
-    const lineNumericId = (override?.lineNumericId ?? st?.lineNumericId) ?? null
-    if (lineNumericId == null) return undefined
-    return lineByNumericId.get(lineNumericId)?.colorHex
-  }
-
   const handleStationPickPopoverPick = (mode: 'from' | 'to') => {
     const data = stationPickPopover.data
     if (!data) return
@@ -779,10 +786,6 @@ function App() {
       console.log(`[perf][popover] button=${mode} station=${data.stationId}`)
     }
 
-    // Подсказку показываем ПОСЛЕ проверки результата: раньше она всплывала
-    // безусловно и врала при конфликте станций. Сам вызов остаётся внутри
-    // startTransition — его отложенность тут сделана ради отзывчивости поповера
-    // на слабых телефонах.
     const rivalId = mode === 'from' ? toStationId : fromStationId
     const isSameStation = rivalId != null && data.stationId === rivalId
 
@@ -791,12 +794,15 @@ function App() {
       applyStationToField(mode, data.stationId, data.stationName)
     })
 
-    if (!isSameStation) {
-      showStationHint(mode, `${mode === 'from' ? 'Откуда' : 'Куда'}: ${data.stationName}`)
-    } else {
+    // Подтверждения успеха здесь нет намеренно. Человек только что сам нажал
+    // «Откуда» или «Куда» — сообщать ему о том, что он сделал, незачем, а
+    // результат виден в шапке над картой. Всплывашка остаётся только на ОТКАЗ:
+    // действие не состоялось, и без объяснения это выглядит как поломка.
+    if (isSameStation) {
       showStationHint(
         'info',
         `${data.stationName} уже выбрана как «${mode === 'from' ? 'Куда' : 'Откуда'}»`,
+        { point: data.clientPoint, lineColor: getPopoverLineColor(data.stationId) },
       )
     }
 
@@ -1018,16 +1024,11 @@ function App() {
   const trimmedFrom = fromStation.trim()
   const trimmedTo = toStation.trim()
 
-  let headerTitle: string
-  if (trimmedFrom && trimmedTo) {
-    headerTitle = `${trimmedFrom} → ${trimmedTo}`
-  } else if (trimmedFrom) {
-    headerTitle = `Откуда: ${trimmedFrom}`
-  } else if (trimmedTo) {
-    headerTitle = `Куда: ${trimmedTo}`
-  } else {
-    headerTitle = 'Откуда? → Куда?'
-  }
+  // Шапка всегда говорит на одном языке: «откуда → куда», а незаполненный конец
+  // остаётся вопросом. Прежде формулировок было три — «Откуда: X», «Куда: Y» и
+  // «X → Y», — и при заполнении второго поля надпись меняла не только значение,
+  // но и структуру: прочитать её как одно состояние маршрута было нельзя.
+  const headerTitle = `${trimmedFrom || 'Откуда?'} → ${trimmedTo || 'Куда?'}`
 
   let headerChipClassName = 'app-header-chip'
   if (routeResult) {

@@ -55,7 +55,11 @@ export function useStationPickPopover(params: {
    * Возвращает 'handled', если сам всё сделал, и 'ask', если решение о поле
    * должен принять пользователь — тогда открывается поповер.
    */
-  onStationTap: (stationId: string, stationName: string) => 'handled' | 'ask'
+  onStationTap: (
+    stationId: string,
+    stationName: string,
+    clientPoint: { x: number; y: number },
+  ) => 'handled' | 'ask'
   /** Любой выбор станции — повод убрать подсказку первого запуска. */
   onBeforeSelect: () => void
   /**
@@ -161,7 +165,8 @@ export function useStationPickPopover(params: {
     if (!isLongPress) {
       // Короткий тап сначала пробует заполнить пустое поле. 'ask' означает,
       // что оба поля заняты и выбор за пользователем — падаем в поповер.
-      if (onStationTapRef.current(id, name) !== 'ask') {
+      // Координаты тапа нужны подсказке: она встаёт у станции, а не под шапкой.
+      if (onStationTapRef.current(id, name, { x: clientPoint.x, y: clientPoint.y }) !== 'ask') {
         return
       }
     }

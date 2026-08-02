@@ -19,6 +19,24 @@
   }
 }
 
+/*
+ * Подсказка у станции. Док схлопывается в точку, а сама подсказка позиционируется
+ * по координатам тапа из JS: она отвечает на «куда попал мой тап», и искать ответ
+ * под шапкой на другом конце экрана неправильно.
+ *
+ * `inset: 0` вместо ширины и отступов: любой размер дока смещал бы подсказку,
+ * координаты которой уже посчитаны во вьюпорте.
+ */
+.theme-station-hint-dock--anchored {
+  inset: 0;
+  top: 0;
+  left: 0;
+  transform: none;
+  width: auto;
+  max-width: none;
+  display: block;
+}
+
 .theme-station-hint {
   display: inline-flex;
   align-items: center;
@@ -37,27 +55,36 @@
   animation: theme-station-hint-in 220ms var(--ease-out-soft, ease-out) both;
 }
 
+.theme-station-hint-dock--anchored .theme-station-hint {
+  position: fixed;
+  /* Названия бывают длинными, а подсказка стоит у станции — не даём ей
+     упереться в края экрана. */
+  max-width: min(20rem, calc(100vw - 2rem));
+}
+
 .theme-station-hint[data-kind='info'] {
   padding-left: var(--space-3);
   color: var(--color-text-secondary);
 }
 
-.theme-station-hint-badge {
+/*
+ * Точка цвета линии вместо прежнего кружка с латинской буквой A/B.
+ *
+ * Буква дублировала маркер на карте, но рядом с русским текстом читалась как
+ * предлог: «B Куда: Лубянка» на экране превращалось в «В Куда: Лубянка».
+ * Цвет линии здесь тот же, что в поповере выбора поля, — одна и та же станция
+ * опознаётся одинаково в обоих местах.
+ */
+.theme-station-hint-dot {
   flex: 0 0 auto;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: var(--space-1);
   border-radius: var(--radius-pill);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--color-on-accent, #fff);
-  background: var(--map-endpoint-a, var(--color-accent));
-}
-
-.theme-station-hint[data-kind='to'] .theme-station-hint-badge {
-  background: var(--map-endpoint-b, var(--color-accent));
+  background: var(--color-accent);
+  box-shadow:
+    0 0 0 2px rgba(var(--rgb-card), 0.9),
+    0 0 0 1px rgba(var(--rgb-shadow-cool), 0.2);
 }
 
 .theme-station-hint-text {
