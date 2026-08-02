@@ -284,26 +284,46 @@ function App() {
     setActiveRouteIndex(0)
   }
 
-  const buildRouteByIds = (fromId: string, toId: string) => {
+  /**
+   * @param keepPreviousResult
+   *   Не гасить показанный маршрут на время пересчёта.
+   *
+   *   Обычный путь — выбрали новую станцию — обязан очистить экран: старый
+   *   маршрут вёл в другое место, и показывать его рядом с новым названием
+   *   в шапке нельзя.
+   *
+   *   Обмен «поменять местами» — другой случай. Это тот же самый маршрут, лишь
+   *   пройденный в обратную сторону: та же линия на схеме, то же число
+   *   пересадок, почти то же время. Гасить его незачем, а последствия заметные —
+   *   детали исчезали, шторка схлопывалась, и через мгновение всё возвращалось
+   *   на место. Со стороны это мигание всего интерфейса от нажатия одной кнопки.
+   */
+  const buildRouteByIds = (fromId: string, toId: string, keepPreviousResult = false) => {
     if (import.meta.env.DEV) {
       console.log(`[perf][route] buildRouteByIds from=${fromId} to=${toId}`)
     }
     setErrorMessage(null)
     setRouteAnnouncement('')
-    clearRoutes()
-    setRouteSheetOpenState(false)
+    if (!keepPreviousResult) {
+      clearRoutes()
+      setRouteSheetOpenState(false)
+    }
     routeWorker.stopRouteLoading()
     dismissOnboardingHint()
 
     const fromStationResolved = stationById.get(fromId)
     const toStationResolved = stationById.get(toId)
 
+    // Дальше идут отказы. Здесь показанный маршрут убрать обязаны в любом
+    // режиме: рядом с сообщением об ошибке он читался бы как её результат.
     if (!fromStationResolved || !toStationResolved) {
+      clearRoutes()
       setErrorMessage('Не удалось найти одну из станций. Выбери её из списка подсказок.')
       return
     }
 
     if (fromId === toId) {
+      clearRoutes()
       setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
       return
     }
@@ -839,7 +859,10 @@ function App() {
         setErrorMessage('Начальная и конечная станции не могут совпадать. Выбери другую станцию.')
         return
       }
-      buildRouteByIds(nextFromId!, nextToId!)
+      // Маршрут держим на экране, пока считается обратный: см. комментарий
+      // у buildRouteByIds. Иначе одно нажатие «поменять местами» гасит и
+      // возвращает весь интерфейс.
+      buildRouteByIds(nextFromId!, nextToId!, true)
     } else {
       clearRoutes()
       setRouteSheetOpenState(false)
