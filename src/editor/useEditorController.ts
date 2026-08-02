@@ -790,7 +790,16 @@ export function useEditorController(): EditorController {
           next.lineNumericId = newLine
         }
 
-        if (next.title === undefined && next.lineNumericId === undefined) {
+        // Пустым оверрайд считается только когда пусты ВСЕ его поля.
+        // Раньше здесь смотрели title и lineNumericId, а lat/lon — нет:
+        // у станции, которой только что подтянули координаты из OSM, они
+        // молча пропадали, стоило вернуть линию к исходной.
+        if (
+          next.title === undefined &&
+          next.lineNumericId === undefined &&
+          next.lat === undefined &&
+          next.lon === undefined
+        ) {
           if (!(stationId in prev)) return prev
           const cloned = { ...prev }
           delete cloned[stationId]

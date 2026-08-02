@@ -498,6 +498,29 @@ describe('координаты из OSM', () => {
     })
   })
 
+  /**
+   * СТОРОЖ БАГА. Проверка «оверрайд опустел» смотрела только title и
+   * lineNumericId. Стоило вернуть линию к исходной — и запись удалялась
+   * целиком вместе с координатами, которые только что пришли из OSM.
+   */
+  it('координаты переживают возврат линии к исходной', async () => {
+    const r = renderEditor()
+    fetchMock.mockResolvedValue(okResponse([{ lat: '55.7', lon: '37.7', class: 'railway' }]))
+
+    await act(async () => {
+      await api(r).updateStationGeoFromOSM(station.id)
+    })
+
+    act(() => {
+      api(r).changeStationLine(station.id, '99')
+    })
+    act(() => {
+      api(r).changeStationLine(station.id, String(station.lineNumericId))
+    })
+
+    expect(r.result.current.stationOverrides[station.id]).toEqual({ lat: 55.7, lon: 37.7 })
+  })
+
   it('несуществующая станция отвергается до запроса', async () => {
     const r = renderEditor()
 
