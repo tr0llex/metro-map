@@ -90,7 +90,12 @@ export type ApplyResult = {
   changedFiles: string[]
 }
 
-const TRANSFER_KINDS = new Set(['near', 'far', 'mcc', 'out_of_station'])
+/**
+ * Типы пересадок, которые сервер соглашается записать. Экспортируется, чтобы
+ * список в редакторе (`src/editor/transferKinds.ts`) можно было сверить
+ * тестом: разойдутся — и сервер отвергнет патч целиком.
+ */
+export const TRANSFER_KINDS = new Set(['near', 'far', 'mcc', 'out_of_station'])
 
 const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
 

@@ -44,6 +44,7 @@ function setup(over: Partial<Parameters<typeof HubEditorPanel>[0]> = {}) {
     onChangeStationTitle: vi.fn(),
     onChangeStationLine: vi.fn(),
     onToggleEdgeTransfer: vi.fn(),
+    onChangeEdgeTransferKind: vi.fn(),
     onChangeEdgeMinutes: vi.fn(),
     onToggleEdgeDisabled: vi.fn(),
     onSetNewEdgeTarget: vi.fn(),
@@ -72,6 +73,7 @@ function setup(over: Partial<Parameters<typeof HubEditorPanel>[0]> = {}) {
       [2, lineTwo],
     ]),
     edgeOverrides: {},
+    edgeTransferKinds: {},
     newEdgeTarget: '',
     findExactStationByName: () => undefined,
     edgeKey,
@@ -204,8 +206,11 @@ describe('название станции', () => {
 })
 
 describe('тип связи', () => {
-  const withEdge = (edge: Partial<FullGraphEdge>) =>
-    setup({ inspectedEdges: [{ ...ride, ...edge }] })
+  const withEdge = (edge: Partial<FullGraphEdge>, over = {}) =>
+    setup({ inspectedEdges: [{ ...ride, ...edge }], ...over })
+
+  const kindSelect = () =>
+    screen.getByLabelText('Тип пересадки до «Б»') as HTMLSelectElement
 
   it('обычное ребро подписано «перегон»', () => {
     withEdge({})
@@ -213,20 +218,64 @@ describe('тип связи', () => {
     expect(screen.getByText('перегон')).toBeTruthy()
   })
 
-  /**
-   * Порог считается в секундах. Пока он считался в округлённых минутах,
-   * пересадка в 5:31 попадала в дальние, а 6:29 — в близкие.
-   */
-  it('5:31 — это близкая пересадка', () => {
-    withEdge({ isTransfer: true, medianTravelSeconds: 331 })
+  /** У перегона типа пересадки нет — выбирать нечего. */
+  it('у перегона выбора типа нет', () => {
+    withEdge({})
     openConnections()
-    expect(screen.getByText('пересадка (близкая)')).toBeTruthy()
+    expect(screen.queryByLabelText('Тип пересадки до «Б»')).toBeNull()
   })
 
-  it('6:29 — это дальняя пересадка', () => {
-    withEdge({ isTransfer: true, medianTravelSeconds: 389 })
+  /**
+   * СТОРОЖ БАГА. Тип показывался «близкая/дальняя» по порогу в шесть минут, а
+   * в патч всегда уходил kind из графа: пересадку нельзя было перевести ни в
+   * `far`, ни в `mcc`, ни в `out_of_station` — интерфейс о последних двух даже
+   * не знал.
+   */
+  it('у пересадки предлагаются все четыре типа из data/transfers.json', () => {
+    withEdge({ isTransfer: true })
     openConnections()
-    expect(screen.getByText('пересадка (дальняя)')).toBeTruthy()
+
+    expect([...kindSelect().options].map((o) => o.value)).toEqual([
+      'near',
+      'far',
+      'mcc',
+      'out_of_station',
+    ])
+  })
+
+  it('показывается тип из графа', () => {
+    withEdge({ isTransfer: true, transferKind: 'out_of_station' })
+    openConnections()
+    expect(kindSelect().value).toBe('out_of_station')
+  })
+
+  it('выбранный руками тип важнее графового', () => {
+    withEdge(
+      { isTransfer: true, transferKind: 'near' },
+      { edgeTransferKinds: { [edgeKey('1/a', '1/b')]: 'far' } },
+    )
+    openConnections()
+    expect(kindSelect().value).toBe('far')
+  })
+
+  it('смена типа доходит до обработчика', () => {
+    const { onChangeEdgeTransferKind } = withEdge({ isTransfer: true })
+    openConnections()
+
+    fireEvent.change(kindSelect(), { target: { value: 'mcc' } })
+
+    expect(onChangeEdgeTransferKind).toHaveBeenCalledTimes(1)
+    expect(onChangeEdgeTransferKind.mock.calls[0][1]).toBe('mcc')
+  })
+
+  /** Тип пересадки времени не касается: переключатель только переключает. */
+  it('переключатель «перегон/пересадка» двухпозиционный', () => {
+    const { onToggleEdgeTransfer } = withEdge({ isTransfer: true })
+    openConnections()
+
+    fireEvent.click(screen.getByText('пересадка'))
+
+    expect(onToggleEdgeTransfer).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -2,6 +2,7 @@ import type { EditorPatch } from '../../scripts/editor/applyEditorPatch.ts'
 import { lineStationPairs } from '../metro/lineSegments.ts'
 import type { EdgeOverride, FullGraphEdge, FullGraphLine, FullGraphStation } from '../metro/types.ts'
 import type { StationOverride } from './editorTypes.ts'
+import { DEFAULT_TRANSFER_KIND, type TransferKind } from './transferKinds.ts'
 
 export type BuildPatchInput = {
   lines: FullGraphLine[]
@@ -23,6 +24,15 @@ export type BuildPatchInput = {
    * в ход линии, другая операция; такие честно объявляются неподдержанными.
    */
   manualEdges?: Record<string, FullGraphEdge>
+  /**
+   * Тип пересадки, выбранный в панели: ключ ребра -> `near`/`far`/`mcc`/
+   * `out_of_station`.
+   *
+   * Раньше тип поменять было нельзя вовсе: панель показывала «близкая/дальняя»
+   * по порогу в шесть минут, а в патч всегда уходил kind из графа. Пересадка,
+   * заведённая как `near`, оставалась `near`, сколько бы времени ей ни ставили.
+   */
+  edgeTransferKinds?: Record<string, TransferKind>
   edgeKey: (a: string, b: string) => string
 }
 
@@ -55,6 +65,7 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
     stationOverrides,
     edgeOverrides,
     manualEdges = {},
+    edgeTransferKinds = {},
     edgeKey,
   } = input
 
@@ -131,6 +142,13 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
   const upsert: NonNullable<NonNullable<EditorPatch['transfers']>['upsert']> = []
   const remove: [string, string][] = []
 
+  /** Тип пересадки с учётом выбранного руками; в графе его может не быть. */
+  const kindOf = (key: string, baseKind?: TransferKind) =>
+    edgeTransferKinds[key] ?? baseKind ?? DEFAULT_TRANSFER_KIND
+
+  /** Ключи, по которым запись в transfers уже собрана: дублировать нельзя. */
+  const decidedKeys = new Set<string>()
+
   // --- Связи, созданные в редакторе ---
   // Ключ вида `manual:<a>|<b>`; ребро несёт станции и время.
   const manualKeys = new Set<string>()
@@ -163,9 +181,10 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
 
     upsert.push({
       stations: [edge.fromStationId, edge.toStationId],
-      kind: edge.transferKind ?? 'near',
+      kind: kindOf(key, edge.transferKind),
       seconds,
     })
+    decidedKeys.add(key)
   }
 
   for (const [key, override] of Object.entries(edgeOverrides)) {
@@ -191,12 +210,13 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
       if (override.isTransfer) {
         upsert.push({
           stations: [base.fromStationId, base.toStationId],
-          kind: base.transferKind ?? 'near',
+          kind: kindOf(key, base.transferKind),
           seconds: override.medianTravelSeconds ?? base.medianTravelSeconds,
         })
       } else {
         remove.push([base.fromStationId, base.toStationId])
       }
+      decidedKeys.add(key)
       continue
     }
 
@@ -210,9 +230,10 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
     if (base.isTransfer) {
       upsert.push({
         stations: [base.fromStationId, base.toStationId],
-        kind: base.transferKind ?? 'near',
+        kind: kindOf(key, base.transferKind),
         seconds: override.medianTravelSeconds,
       })
+      decidedKeys.add(key)
       continue
     }
 
@@ -222,6 +243,34 @@ export function buildEditorPatch(input: BuildPatchInput): BuildPatchResult {
       continue
     }
     ridesOut[directed] = override.medianTravelSeconds
+  }
+
+  // --- Смена типа пересадки без всякой другой правки ---
+  // Отдельный проход: тип живёт не в edgeOverrides, и без него правка «near ->
+  // out_of_station» не порождала бы вообще ничего — ни записи, ни жалобы.
+  for (const [key, kind] of Object.entries(edgeTransferKinds)) {
+    if (decidedKeys.has(key)) continue
+
+    const base = edgeByKey.get(key)
+    if (!base) continue
+
+    const label = `${titleOf(base.fromStationId)} — ${titleOf(base.toStationId)}`
+
+    // Тип есть только у пересадки: у перегона в data/transfers.json нет записи,
+    // которой этот тип можно было бы приписать.
+    if (!base.isTransfer && edgeOverrides[key]?.isTransfer !== true) {
+      unsupported.push(`у перегона «${label}» нет типа пересадки — сначала сделайте его пересадкой`)
+      continue
+    }
+
+    if (kind === (base.transferKind ?? DEFAULT_TRANSFER_KIND)) continue
+
+    upsert.push({
+      stations: [base.fromStationId, base.toStationId],
+      kind,
+      seconds: edgeOverrides[key]?.medianTravelSeconds ?? base.medianTravelSeconds,
+    })
+    decidedKeys.add(key)
   }
 
   if (Object.keys(ridesOut).length > 0) patch.rides = ridesOut

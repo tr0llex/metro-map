@@ -89,6 +89,7 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
         // новая пересадка без последующей правки времени исчезала бесследно,
         // а панель писала «Правок нет».
         manualEdges: editor.manualEdges,
+        edgeTransferKinds: editor.edgeTransferKinds,
         edgeKey: editor.edgeKey,
       }),
     [
@@ -96,6 +97,7 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
       editor.stationOverrides,
       editor.edgeOverrides,
       editor.manualEdges,
+      editor.edgeTransferKinds,
       editor.edgeKey,
     ],
   )
