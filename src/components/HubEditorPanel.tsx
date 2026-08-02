@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatTravelTime } from '../editor/travelTime.ts'
+import {
+  DEFAULT_TRANSFER_KIND,
+  TRANSFER_KINDS,
+  TRANSFER_KIND_TITLES,
+  isTransferKind,
+  type TransferKind,
+} from '../editor/transferKinds.ts'
 import type {
   FullGraphStation,
   FullGraphLine,
@@ -25,6 +32,8 @@ interface HubEditorPanelProps {
   stationById: Map<string, FullGraphStation>
   lineByNumericId: Map<number, FullGraphLine>
   edgeOverrides: Record<string, EdgeOverride>
+  /** Тип пересадки, выбранный руками: ключ ребра -> kind из data/transfers.json. */
+  edgeTransferKinds: Record<string, TransferKind>
   newEdgeTarget: string
   findExactStationByName: (query: string) => FullGraphStation | null | undefined
   edgeKey: (a: string, b: string) => string
@@ -36,6 +45,7 @@ interface HubEditorPanelProps {
   onChangeStationTitle: (stationId: string, newTitle: string) => void
   onChangeStationLine: (stationId: string, value: string) => void
   onToggleEdgeTransfer: (edge: FullGraphEdge) => void
+  onChangeEdgeTransferKind: (edge: FullGraphEdge, kind: TransferKind) => void
   onChangeEdgeMinutes: (edge: FullGraphEdge, minutesStr: string) => void
   onToggleEdgeDisabled: (edge: FullGraphEdge) => void
   onSetNewEdgeTarget: (value: string) => void
@@ -60,6 +70,7 @@ export function HubEditorPanel({
   stationById,
   lineByNumericId,
   edgeOverrides,
+  edgeTransferKinds,
   newEdgeTarget,
   findExactStationByName,
   edgeKey,
@@ -71,6 +82,7 @@ export function HubEditorPanel({
   onChangeStationTitle,
   onChangeStationLine,
   onToggleEdgeTransfer,
+  onChangeEdgeTransferKind,
   onChangeEdgeMinutes,
   onToggleEdgeDisabled,
   onSetNewEdgeTarget,
@@ -391,15 +403,14 @@ export function HubEditorPanel({
                   edgeOverride && edgeOverride.medianTravelSeconds !== undefined
                     ? edgeOverride.medianTravelSeconds
                     : e.medianTravelSeconds
-                // Порог считаем в секундах: округление до минут относило
-                // пересадку в 5:31 к дальним, а в 6:29 — к близким.
-                const isFarTransfer = effectiveIsTransfer && effectiveSeconds >= 6 * 60
                 const isDisabled = !!(edgeOverride && edgeOverride.disabled)
-                const connectionLabel = !effectiveIsTransfer
-                  ? 'перегон'
-                  : isFarTransfer
-                    ? 'пересадка (дальняя)'
-                    : 'пересадка (близкая)'
+                // Тип пересадки — отдельное поле, а не вывод из времени.
+                // Панель показывала «близкая/дальняя» по порогу в шесть минут,
+                // но в файл всё равно уезжал прежний kind: поменять тип было
+                // нельзя ничем, а про mcc и out_of_station интерфейс молчал.
+                const effectiveKind: TransferKind =
+                  edgeTransferKinds[key] ?? e.transferKind ?? DEFAULT_TRANSFER_KIND
+                const connectionLabel = effectiveIsTransfer ? 'пересадка' : 'перегон'
                 return (
                   <li
                     key={`${e.fromStationId}-${e.toStationId}-${index}`}
@@ -427,6 +438,26 @@ export function HubEditorPanel({
                     >
                       {connectionLabel}
                     </button>
+                    {effectiveIsTransfer && (
+                      <select
+                        className="hub-editor-connection-kind hub-editor-line-select"
+                        aria-label={`Тип пересадки до «${other?.title ?? otherId}»`}
+                        value={effectiveKind}
+                        onChange={(event) => {
+                          const value = event.target.value
+                          // Значения приходят из своего же списка; проверка
+                          // нужна типу, а не человеку: сервер отвергает патч
+                          // целиком, если kind ему незнаком.
+                          if (isTransferKind(value)) onChangeEdgeTransferKind(e, value)
+                        }}
+                      >
+                        {TRANSFER_KINDS.map((kind) => (
+                          <option key={kind} value={kind}>
+                            {TRANSFER_KIND_TITLES[kind]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <div className="hub-editor-connection-meta">
                       <input
                         type="text"

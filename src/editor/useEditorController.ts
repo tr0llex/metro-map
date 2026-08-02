@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { parseTravelTime } from './travelTime.ts'
+import { DEFAULT_TRANSFER_KIND, type TransferKind } from './transferKinds.ts'
 import {
   fullGraphEdges,
   fullGraphLines,
@@ -29,6 +30,7 @@ function areEditorSnapshotsShallowEqual(
     a.stationOverrides === b.stationOverrides &&
     a.stationHubOverrides === b.stationHubOverrides &&
     a.edgeOverrides === b.edgeOverrides &&
+    a.edgeTransferKinds === b.edgeTransferKinds &&
     a.manualEdges === b.manualEdges &&
     a.lastLayoutOverrides === b.lastLayoutOverrides
   )
@@ -51,6 +53,9 @@ export function useEditorController(): EditorController {
   const [stationOverrides, setStationOverrides] = useState<Record<string, StationOverride>>({})
   const [stationHubOverrides, setStationHubOverrides] = useState<Record<string, string | null>>({})
   const [edgeOverrides, setEdgeOverrides] = useState<Record<string, EdgeOverride>>({})
+  // Тип пересадки лежит отдельно от EdgeOverride: тот тип описывает граф в
+  // src/metro и про data/transfers.json ничего не знает.
+  const [edgeTransferKinds, setEdgeTransferKinds] = useState<Record<string, TransferKind>>({})
   const [manualEdges, setManualEdges] = useState<Record<string, FullGraphEdge>>({})
   const [newEdgeTarget, setNewEdgeTarget] = useState('')
   const [editorToast, setEditorToast] = useState<string | null>(null)
@@ -98,6 +103,7 @@ export function useEditorController(): EditorController {
       stationOverrides,
       stationHubOverrides,
       edgeOverrides,
+      edgeTransferKinds,
       manualEdges,
       lastLayoutOverrides,
     }
@@ -105,6 +111,7 @@ export function useEditorController(): EditorController {
     stationOverrides,
     stationHubOverrides,
     edgeOverrides,
+    edgeTransferKinds,
     manualEdges,
     lastLayoutOverrides,
   ])
@@ -146,6 +153,7 @@ export function useEditorController(): EditorController {
     setStationOverrides(snapshot.stationOverrides)
     setStationHubOverrides(snapshot.stationHubOverrides)
     setEdgeOverrides(snapshot.edgeOverrides)
+    setEdgeTransferKinds(snapshot.edgeTransferKinds)
     setManualEdges(snapshot.manualEdges)
     pendingLayoutOverridesRef.current = null
     setLastLayoutOverrides(snapshot.lastLayoutOverrides)
@@ -437,58 +445,32 @@ export function useEditorController(): EditorController {
 
   // --- обработчики ----------------------------------------------------------
 
+  /**
+   * Перегон <-> пересадка, и ничего больше.
+   *
+   * Прежде это была карусель из трёх положений: перегон -> «близкая» ->
+   * «дальняя» -> перегон, — и каждый щелчок ПЕРЕПИСЫВАЛ время, потому что
+   * «близкая» и «дальняя» ничем, кроме времени, не различались: тип пересадки
+   * в патч всегда уходил базовый. Теперь тип выбирается явно
+   * (`changeEdgeTransferKind`), а время трогает только тот, кто его правит.
+   */
   const handleToggleEdgeTransfer = useCallback(
     (edge: FullGraphEdge) => {
-      setEdgeOverrides((prev: Record<string, EdgeOverride>) => {
-        const key = edgeKey(edge.fromStationId, edge.toStationId)
-        const baseIsTransfer = !!edge.isTransfer
-        const baseSeconds = edge.medianTravelSeconds
-        const current = prev[key]
+      const key = edgeKey(edge.fromStationId, edge.toStationId)
+      const baseIsTransfer = !!edge.isTransfer
 
+      setEdgeOverrides((prev: Record<string, EdgeOverride>) => {
+        const current = prev[key]
         const effectiveIsTransfer =
           current && current.isTransfer !== undefined ? current.isTransfer : baseIsTransfer
-        const effectiveSeconds =
-          current && current.medianTravelSeconds !== undefined
-            ? current.medianTravelSeconds
-            : baseSeconds
-        const effectiveMinutes = Math.round(effectiveSeconds / 60)
 
-        const LONG_TRANSFER_MINUTES = 6
-
-        let nextIsTransfer: boolean
-        let nextSeconds: number | undefined = effectiveSeconds
-
-        if (!effectiveIsTransfer) {
-          // перегон -> пересадка (близкая)
-          nextIsTransfer = true
-          let minutes = effectiveMinutes
-          if (!Number.isFinite(minutes) || minutes <= 0) minutes = 3
-          if (minutes >= LONG_TRANSFER_MINUTES) minutes = LONG_TRANSFER_MINUTES - 1
-          nextSeconds = minutes * 60
-        } else if (effectiveMinutes < LONG_TRANSFER_MINUTES) {
-          // пересадка (близкая) -> пересадка (дальняя)
-          nextIsTransfer = true
-          const minSeconds = LONG_TRANSFER_MINUTES * 60
-          nextSeconds =
-            Number.isFinite(effectiveSeconds) && effectiveSeconds > 0
-              ? Math.max(effectiveSeconds, minSeconds)
-              : minSeconds
-        } else {
-          // пересадка (дальняя) -> перегон
-          nextIsTransfer = false
-        }
-
-        const nextOverride: EdgeOverride = {
-          ...(current ?? {}),
-          isTransfer: nextIsTransfer,
-          medianTravelSeconds: nextSeconds,
-        }
+        const nextOverride: EdgeOverride = { ...(current ?? {}), isTransfer: !effectiveIsTransfer }
 
         const isSameAsBase =
           (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-          (nextOverride.isTransfer === undefined || nextOverride.isTransfer === baseIsTransfer) &&
+          nextOverride.isTransfer === baseIsTransfer &&
           (nextOverride.medianTravelSeconds === undefined ||
-            nextOverride.medianTravelSeconds === baseSeconds)
+            nextOverride.medianTravelSeconds === edge.medianTravelSeconds)
 
         if (isSameAsBase) {
           if (!(key in prev)) return prev
@@ -498,6 +480,25 @@ export function useEditorController(): EditorController {
         }
 
         return { ...prev, [key]: nextOverride }
+      })
+    },
+    [edgeKey],
+  )
+
+  const handleChangeEdgeTransferKind = useCallback(
+    (edge: FullGraphEdge, kind: TransferKind) => {
+      const key = edgeKey(edge.fromStationId, edge.toStationId)
+      const baseKind = edge.transferKind ?? DEFAULT_TRANSFER_KIND
+
+      setEdgeTransferKinds((prev) => {
+        if (kind === baseKind) {
+          if (!(key in prev)) return prev
+          const cloned = { ...prev }
+          delete cloned[key]
+          return cloned
+        }
+        if (prev[key] === kind) return prev
+        return { ...prev, [key]: kind }
       })
     },
     [edgeKey],
@@ -859,6 +860,13 @@ export function useEditorController(): EditorController {
         return next
       })
 
+      setEdgeTransferKinds((prev) => {
+        if (!(key in prev)) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+
       setManualEdges((prev) => {
         if (!(manualKey in prev)) return prev
         const next = { ...prev }
@@ -911,6 +919,7 @@ export function useEditorController(): EditorController {
       stationOverrides,
       stationHubOverrides,
       edgeOverrides,
+      edgeTransferKinds,
       manualEdges,
       lastLayoutOverrides,
 
@@ -939,6 +948,7 @@ export function useEditorController(): EditorController {
       changeStationLine: handleChangeStationLine,
       changeEdgeMinutes: handleChangeEdgeMinutes,
       toggleEdgeTransfer: handleToggleEdgeTransfer,
+      changeEdgeTransferKind: handleChangeEdgeTransferKind,
       toggleEdgeDisabled: handleToggleEdgeDisabled,
       focusStation: handleFocusStation,
       updateStationGeoFromOSM: handleUpdateStationGeoFromOSM,
@@ -953,6 +963,7 @@ export function useEditorController(): EditorController {
       stationOverrides,
       stationHubOverrides,
       edgeOverrides,
+      edgeTransferKinds,
       manualEdges,
       lastLayoutOverrides,
       stationById,
@@ -973,6 +984,7 @@ export function useEditorController(): EditorController {
       handleChangeStationLine,
       handleChangeEdgeMinutes,
       handleToggleEdgeTransfer,
+      handleChangeEdgeTransferKind,
       handleToggleEdgeDisabled,
       handleFocusStation,
       handleUpdateStationGeoFromOSM,

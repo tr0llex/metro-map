@@ -190,6 +190,77 @@ describe('перегоны и пересадки', () => {
   })
 })
 
+/**
+ * Ради этого раздела заводился отдельный выбор типа: панель показывала
+ * «близкая/дальняя» по порогу в шесть минут, а в `transfers.upsert` всегда
+ * уходил kind из графа. Пересадка, заведённая как `near`, оставалась `near`
+ * навсегда, а `mcc` и `out_of_station` были недостижимы вовсе.
+ */
+describe('тип пересадки', () => {
+  const transfer = fullGraphEdges.find((e) => e.isTransfer)!
+  const ride = fullGraphEdges.find((e) => !e.isTransfer)!
+  const transferKey = edgeKey(transfer.fromStationId, transfer.toStationId)
+
+  it('смена одного лишь типа — уже правка', () => {
+    const result = build({ edgeTransferKinds: { [transferKey]: 'out_of_station' } })
+
+    expect(result.counts.transfers).toBe(1)
+    expect(result.patch.transfers?.upsert?.[0]).toMatchObject({
+      kind: 'out_of_station',
+      seconds: transfer.medianTravelSeconds,
+    })
+    expect(hasSavableChanges(result)).toBe(true)
+  })
+
+  it('тип, совпадающий с графом, правкой не считается', () => {
+    const result = build({
+      edgeTransferKinds: { [transferKey]: transfer.transferKind ?? 'near' },
+    })
+    expect(hasSavableChanges(result)).toBe(false)
+  })
+
+  it('тип и время меняются одной записью, а не двумя', () => {
+    const result = build({
+      edgeOverrides: { [transferKey]: { medianTravelSeconds: 333 } },
+      edgeTransferKinds: { [transferKey]: 'far' },
+    })
+
+    expect(result.patch.transfers?.upsert).toEqual([
+      { stations: [transfer.fromStationId, transfer.toStationId], kind: 'far', seconds: 333 },
+    ])
+  })
+
+  it('новая пересадка из перегона получает выбранный тип', () => {
+    const key = edgeKey(ride.fromStationId, ride.toStationId)
+    const result = build({
+      edgeOverrides: { [key]: { isTransfer: true } },
+      edgeTransferKinds: { [key]: 'mcc' },
+    })
+
+    expect(result.patch.transfers?.upsert?.[0].kind).toBe('mcc')
+  })
+
+  /** У перегона записи в transfers.json нет, приписать тип некуда. */
+  it('тип у перегона не сохраняется и назван вслух', () => {
+    const key = edgeKey(ride.fromStationId, ride.toStationId)
+    const result = build({ edgeTransferKinds: { [key]: 'far' } })
+
+    expect(result.patch.transfers).toBeUndefined()
+    expect(result.unsupported.join()).toContain('нет типа пересадки')
+  })
+
+  /** Удаление важнее типа: записи, которой приписывать kind, больше нет. */
+  it('у выключенной пересадки тип не порождает второй записи', () => {
+    const result = build({
+      edgeOverrides: { [transferKey]: { isTransfer: false } },
+      edgeTransferKinds: { [transferKey]: 'far' },
+    })
+
+    expect(result.patch.transfers?.remove).toHaveLength(1)
+    expect(result.patch.transfers?.upsert).toBeUndefined()
+  })
+})
+
 describe('круг «редактор -> data/layout.json»', () => {
   /**
    * Без единой правки координаты в патче обязаны совпасть с файлом на диске.
@@ -285,6 +356,18 @@ describe('связь, созданная в редакторе', () => {
     expect(result.patch.transfers).toBeUndefined()
     expect(result.unsupported).toHaveLength(1)
     expect(result.unsupported[0]).toContain('одной линии')
+  })
+
+  it('получает выбранный тип, а не только «близкая»', () => {
+    const { a, b } = crossLine()
+    const result = build({
+      manualEdges: manualEdge(a.id, b.id, 180),
+      edgeTransferKinds: { [edgeKey(a.id, b.id)]: 'out_of_station' },
+    })
+
+    expect(result.patch.transfers?.upsert).toEqual([
+      { stations: [a.id, b.id], kind: 'out_of_station', seconds: 180 },
+    ])
   })
 
   /** Иначе одна и та же пересадка уехала бы в файл дважды. */

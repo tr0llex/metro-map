@@ -257,6 +257,103 @@ describe('время перегона', () => {
   })
 })
 
+describe('тип пересадки', () => {
+  const transfer = fullGraphEdges.find((e) => e.isTransfer)!
+
+  /**
+   * СТОРОЖ БАГА. Тип пересадки поменять было нельзя: интерфейс выводил
+   * «близкая/дальняя» из времени, а в патч уходил kind из графа. Теперь выбор
+   * явный и живёт отдельным состоянием — EdgeOverride из src/metro про
+   * data/transfers.json ничего не знает.
+   */
+  it('выбранный тип запоминается по ключу ребра', () => {
+    const r = renderEditor()
+    const key = api(r).edgeKey(transfer.fromStationId, transfer.toStationId)
+
+    act(() => {
+      api(r).changeEdgeTransferKind(transfer, 'out_of_station')
+    })
+
+    expect(api(r).edgeTransferKinds[key]).toBe('out_of_station')
+    expect(api(r).canUndo).toBe(true)
+  })
+
+  it('возврат к типу из графа убирает правку', () => {
+    const r = renderEditor()
+    const key = api(r).edgeKey(transfer.fromStationId, transfer.toStationId)
+    const baseKind = transfer.transferKind ?? 'near'
+
+    act(() => {
+      api(r).changeEdgeTransferKind(transfer, 'mcc')
+    })
+    act(() => {
+      api(r).changeEdgeTransferKind(transfer, baseKind)
+    })
+
+    expect(api(r).edgeTransferKinds[key]).toBeUndefined()
+  })
+
+  it('сброс правок ребра снимает и тип', () => {
+    const r = renderEditor()
+    const key = api(r).edgeKey(transfer.fromStationId, transfer.toStationId)
+
+    act(() => {
+      api(r).changeEdgeTransferKind(transfer, 'far')
+    })
+    act(() => {
+      api(r).resetEdgeEdits(transfer)
+    })
+
+    expect(api(r).edgeTransferKinds[key]).toBeUndefined()
+  })
+
+  it('undo откатывает тип вместе с остальным', () => {
+    const r = renderEditor()
+    const key = api(r).edgeKey(transfer.fromStationId, transfer.toStationId)
+
+    act(() => {
+      api(r).changeEdgeTransferKind(transfer, 'far')
+    })
+    act(() => {
+      api(r).undo()
+    })
+
+    expect(api(r).edgeTransferKinds[key]).toBeUndefined()
+    expect(api(r).canRedo).toBe(true)
+  })
+
+  /**
+   * СТОРОЖ БАГА. Переключатель был каруселью из трёх положений, и шаг
+   * «близкая -> дальняя» ПЕРЕПИСЫВАЛ время до шести минут — иначе эти два
+   * состояния ничем не отличались. Правка времени и правка типа — разные
+   * действия, и первое не должно случаться само.
+   */
+  it('переключение «перегон/пересадка» не трогает время', () => {
+    const r = renderEditor()
+    const key = api(r).edgeKey(oddRide.fromStationId, oddRide.toStationId)
+
+    act(() => {
+      api(r).toggleEdgeTransfer(oddRide)
+    })
+
+    expect(r.result.current.edgeOverrides[key]).toEqual({ isTransfer: true })
+  })
+
+  it('обратное переключение возвращает ребро к исходному виду', () => {
+    const r = renderEditor()
+    const key = api(r).edgeKey(oddRide.fromStationId, oddRide.toStationId)
+
+    act(() => {
+      api(r).toggleEdgeTransfer(oddRide)
+    })
+    act(() => {
+      api(r).toggleEdgeTransfer(oddRide)
+    })
+
+    expect(r.result.current.edgeOverrides[key]).toBeUndefined()
+  })
+})
+
 describe('координаты из OSM', () => {
   const okResponse = (items: unknown[]) => ({
     ok: true,

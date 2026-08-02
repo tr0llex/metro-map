@@ -1,3 +1,4 @@
+import type { TransferKind } from './transferKinds.ts'
 import type {
   EdgeOverride,
   LayoutRingShape,
@@ -35,6 +36,8 @@ export type EditorSnapshot = {
   stationOverrides: Record<string, StationOverride>
   stationHubOverrides: Record<string, string | null>
   edgeOverrides: Record<string, EdgeOverride>
+  /** Тип пересадки, выбранный руками: ключ ребра -> kind из data/transfers.json. */
+  edgeTransferKinds: Record<string, TransferKind>
   manualEdges: Record<string, FullGraphEdge>
   lastLayoutOverrides: Record<string, { x: number; y: number }>
 }
@@ -85,6 +88,7 @@ export interface EditorOverlayApi {
   stationOverrides: Record<string, StationOverride>
   stationHubOverrides: Record<string, string | null>
   edgeOverrides: Record<string, EdgeOverride>
+  edgeTransferKinds: Record<string, TransferKind>
   manualEdges: Record<string, FullGraphEdge>
   lastLayoutOverrides: Record<string, { x: number; y: number }>
   /**
@@ -120,6 +124,7 @@ export interface EditorOverlayApi {
   changeStationLine: (stationId: string, lineIdStr: string) => void
   changeEdgeMinutes: (edge: FullGraphEdge, minutesStr: string) => void
   toggleEdgeTransfer: (edge: FullGraphEdge) => void
+  changeEdgeTransferKind: (edge: FullGraphEdge, kind: TransferKind) => void
   toggleEdgeDisabled: (edge: FullGraphEdge) => void
   focusStation: (stationId: string) => void
   updateStationGeoFromOSM: (stationId: string) => Promise<void>
