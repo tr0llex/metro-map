@@ -33,7 +33,15 @@ jobs:
         run: npm run check:css
 
       - name: Test
-        run: npx vitest run
+        run: npx vitest run --coverage
+
+      - name: Отправить покрытие в Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          flags: unit
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
       - name: Build
         run: npm run build

@@ -139,6 +139,14 @@ export default defineConfig(({ mode }) => {
       // 88 из 219 «пройденных» тестов приходили из чужого worktree, то есть
       // число было завышено, а зелёный статус частично относился к старому коду.
       exclude: ['**/node_modules/**', '**/dist/**', '**/dist-editor/**', '.claude/**'],
+      coverage: {
+        provider: 'v8',
+        // lcov — для Codecov, text — чтобы цифра была видна прямо в логе CI.
+        reporter: ['text', 'lcov'],
+        include: ['src/**/*.{ts,tsx}'],
+        // Точки входа и типы: в них нечего покрывать, а знаменатель они портят.
+        exclude: ['src/**/*.d.ts', 'src/main.tsx', 'src/vite-env.d.ts', 'src/**/__tests__/**'],
+      },
     },
     build: {
       outDir: isEditorBuild ? 'dist-editor' : 'dist',

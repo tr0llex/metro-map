@@ -1,5 +1,9 @@
 # Метро Москвы
 
+[![CI](https://github.com/tr0llex/MetroMap/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/MetroMap/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tr0llex/MetroMap/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/MetroMap)
+
+
 Офлайн-PWA для построения маршрутов по московскому метро.
 Схема рисуется на Canvas по предрасчитанным координатам, маршрут считается на клиенте —
 приложение полностью работает без сети.
