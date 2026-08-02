@@ -436,7 +436,7 @@
   animation: app-header-drop-in var(--motion-medium) var(--ease-out-soft) 110ms both;
 }
 
-@media (min-width: 430px) and (max-width: 1023px) {
+@media (min-width: 430px) and (max-width: 1023px) and (min-height: 501px) {
   .app-header {
     top: 0;
     padding: calc(env(safe-area-inset-top, 0) + var(--space-2)) var(--space-3) var(--space-2);
@@ -835,7 +835,7 @@
   overflow-x: hidden;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px), (max-height: 500px) {
   .bottom-route-details {
     /* На десктопе панель с маршрутом занимает почти весь доступный рост
        и сама становится скроллируемой, чтобы информация не обрезалась. */
@@ -1655,7 +1655,7 @@
   pointer-events: auto;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px), (max-height: 500px) {
   .hub-editor-panel {
     left: 1.25rem;
     width: min(420px, 38vw);
@@ -2204,7 +2204,7 @@
    НЕ трогаем: его offsetHeight измеряет JS (recomputeSheetMaxOffsetPx) для
    высоты шторки, поэтому подложка и затухание нарисованы псевдоэлементами.
    ========================================================================== */
-@media (max-width: 1023.98px) {
+@media (max-width: 1023.98px) and (min-height: 501px) {
   .bottom-sheet-min {
     position: sticky;
     /* Совпадает с padding-top у .bottom-sheet-inner — блок остаётся ровно
@@ -2266,7 +2266,7 @@
   }
 }
 
-@media (max-width: 1023.98px) {
+@media (max-width: 1023.98px) and (min-height: 501px) {
   .bottom-sheet--with-route .smart-suggestions-inline {
     display: none;
   }
@@ -2847,7 +2847,7 @@
   background: var(--color-primary-surface-hover);
 }
 
-@media (max-width: 1023.98px) {
+@media (max-width: 1023.98px) and (min-height: 501px) {
   .app-root {
     max-width: 100%;
   }
@@ -2893,7 +2893,7 @@
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px), (max-height: 500px) {
   .app-root {
     max-width: 100%;
   }
@@ -3080,7 +3080,7 @@
   }
 }
 
-@media (max-width: 430px) {
+@media (max-width: 430px) and (min-height: 501px) {
   .app-splash {
     backdrop-filter: blur(6px) saturate(125%);
     -webkit-backdrop-filter: blur(6px) saturate(125%);
@@ -3541,4 +3541,56 @@
 .editor-save-unsupported-title {
   font-weight: 600;
   color: var(--color-text-heading);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Низкий экран: телефон в альбомной ориентации.
+
+   Боковую панель он получает из общего правила выше (см. SIDE_PANEL_QUERY в
+   useIsDesktop.ts). Но десктопные отступы там не по средствам: при высоте
+   375px шапка сверху 1.5rem, панель от 5.1rem до 1.75rem снизу — на саму
+   панель остаётся 266px, и список станций в ней читается в четыре строки.
+
+   Здесь всё вертикальное ужимается, а горизонтальное — нет: ширины 812px
+   в избытке, дефицитна высота. Идёт ПОСЛЕ десктопного блока: при равном весе
+   побеждает то, что ниже в файле.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-height: 500px) {
+  .app-header {
+    top: var(--space-2);
+    left: var(--space-3);
+    width: 320px;
+    max-width: 320px;
+  }
+
+  .bottom-sheet {
+    /* Шапка сверху, панель сразу под ней: 0.5rem + высота шапки + 0.5rem. */
+    top: 3.6rem;
+    bottom: var(--space-2);
+    left: var(--space-3);
+    width: clamp(300px, 40vw, 360px);
+    max-height: calc(100vh - 3.6rem - var(--space-2));
+  }
+
+  .bottom-sheet-inner {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3) var(--space-3);
+    /* Панель ниже своего содержимого — прокрутку берёт на себя она сама.
+       На десктопе это делает внутренний блок деталей, но там хватает высоты
+       и без прокрутки внешнего контейнера. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Ручки нет: панель прибита к краю и никуда не ездит. На десктопе она уже
+     скрыта разметкой (условие !isDesktop), здесь — страховка на случай, если
+     разметка отрисовалась до того, как флаг раскладки уточнился в эффекте. */
+  .bottom-sheet-handle {
+    display: none;
+  }
+
+  .theme-toggle-dock {
+    top: var(--space-2);
+    padding-right: var(--space-3);
+  }
 }
