@@ -15,6 +15,11 @@ on:
         type: boolean
         default: false
 
+# Минимальные права для GITHUB_TOKEN. Выкатка ходит на сервер по SSH
+# секретами, токен ей нужен только для checkout.
+permissions:
+  contents: read
+
 jobs:
   deploy:
     uses: tr0llex/deploy-kit/.github/workflows/static-site.yml@main
