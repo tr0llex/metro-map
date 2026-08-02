@@ -20,6 +20,6 @@ test('на проде регистрируется service worker', async ({ pag
   await page.goto('/');
   const script = await waitForServiceWorker(page);
   expect(script, 'на проде service worker не взял страницу под контроль').toMatch(
-    /kitty-metro-sw\.js$/,
+    /metro-map-sw\.js$/,
   );
 });

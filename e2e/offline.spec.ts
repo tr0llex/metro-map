@@ -3,6 +3,11 @@ import { mapPaintedPixels, waitForServiceWorker } from './helpers';
 
 // Офлайн — не приятное дополнение, а обещание в названии проекта. Проверить его
 // можно только фактически: зарегистрировать воркер, выдернуть сеть и зайти ещё раз.
+
+// Имя файла воркера задаётся в vite.config.ts (VitePWA → filename). Держим его
+// одной константой: раньше здесь стояло имя из чужого проекта, и тест падал не
+// на офлайне, а на самой первой проверке.
+const SW_FILE = /metro-map-sw\.js/;
 test.describe('офлайн', () => {
   test('service worker регистрируется и повторный заход без сети отдаёт приложение', async ({
     page,
@@ -12,7 +17,7 @@ test.describe('офлайн', () => {
     await page.goto('/');
 
     const script = await waitForServiceWorker(page);
-    expect(script, 'service worker не активировался').toMatch(/kitty-metro-sw\.js$/);
+    expect(script, 'service worker не активировался').toMatch(SW_FILE);
 
     // Дожидаемся, пока precache доедет: без этого «офлайн работает» означало бы
     // лишь «успели закэшировать первые файлы».
@@ -53,7 +58,7 @@ test.describe('офлайн', () => {
     // В офлайне запрос уходит в сеть только тогда, когда ответа нет в кэше, —
     // то есть каждый провал здесь и есть дырка в офлайне. Единственное
     // исключение: браузер сам ходит проверять обновление скрипта воркера.
-    const unserved = problems.network.filter((entry) => !/kitty-metro-sw\.js/.test(entry));
+    const unserved = problems.network.filter((entry) => !SW_FILE.test(entry));
     expect(unserved, 'без сети эти запросы не нашлись в кэше').toEqual([]);
     problems.network.length = 0;
   });
