@@ -1,9 +1,19 @@
 name: CI
 
 on:
+  # ТОЛЬКО pull_request. Раньше здесь был ещё push во все ветки, кроме main, и
+  # каждый джоб выполнялся ДВАЖДЫ: один раз на пуш ветки, второй — на тот же
+  # коммит в PR. Это не удвоенная надёжность, а удвоенное время и деньги: в
+  # metro-map сквозные тесты идут минутами, и половина этих минут уходила в
+  # прогон, результат которого никто не читает.
+  #
+  # Гейт — мерж, а мерж идёт через PR, поэтому проверять нужно ровно то, что
+  # мержится: pull_request считает проверки на результате слияния с main, а не
+  # на голой ветке. Ветка без PR остаётся непроверенной сознательно — её и не
+  # во что мержить.
   pull_request:
-  push:
-    branches-ignore: [main]
+  # Для ветки без PR: запустить руками, если понадобилось.
+  workflow_dispatch:
 
 # Минимальные права для GITHUB_TOKEN: CI только читает код. Без этого блока
 # действуют настройки репозитория, и любой шаг (включая сторонние actions)
@@ -22,17 +32,15 @@ jobs:
     name: Коммиты без упоминаний ИИ
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Проверить сообщения
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            RANGE="origin/${{ github.base_ref }}..HEAD"
-          else
-            RANGE="origin/main..HEAD"
-          fi
+          # Событие всегда pull_request (см. блок on:), поэтому диапазон один:
+          # то, что ветка добавляет к своей базе.
+          RANGE="origin/${{ github.base_ref }}..HEAD"
           echo "проверяю $RANGE"
 
           BAD=$(git log "$RANGE" --format='%H %B' \
@@ -51,9 +59,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -80,7 +88,7 @@ jobs:
         # Приколот к SHA, а не к тегу: тег мутабелен, и у Codecov уже был
         # прецедент компрометации релиза. Обновление — осознанная однострочная
         # правка с новым SHA рядом с комментарием версии.
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: ./coverage/lcov.info
           flags: unit
@@ -103,9 +111,9 @@ jobs:
     # Между ними остаётся дыра: схема не отрисовалась, маршрут не построился,
     # service worker не встал — приложение при этом честно отдаёт 200.
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -119,7 +127,7 @@ jobs:
         id: pw
         run: echo "v=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         id: pw-cache
         with:
           path: ~/.cache/ms-playwright
@@ -140,7 +148,7 @@ jobs:
       - name: End-to-end tests
         run: npm run e2e
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -169,9 +177,9 @@ jobs:
     # Пороги FAIL/WARN при этом остаются как есть и продолжают печататься в
     # отчёте — они описывают цель, а не текущее состояние.
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
