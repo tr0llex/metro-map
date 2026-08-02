@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
 
+# Минимальные права для GITHUB_TOKEN: CI только читает код. Без этого блока
+# действуют настройки репозитория, и любой шаг (включая сторонние actions)
+# получает тот токен, который там выставлен.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Typecheck, lint, test, build
@@ -36,7 +42,10 @@ jobs:
         run: npx vitest run --coverage
 
       - name: Отправить покрытие в Codecov
-        uses: codecov/codecov-action@v5
+        # Приколот к SHA, а не к тегу: тег мутабелен, и у Codecov уже был
+        # прецедент компрометации релиза. Обновление — осознанная однострочная
+        # правка с новым SHA рядом с комментарием версии.
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         with:
           files: ./coverage/lcov.info
           flags: unit
