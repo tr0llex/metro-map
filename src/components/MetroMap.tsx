@@ -139,6 +139,13 @@ const WHEEL_ZOOM_MAX_LOG_PER_EVENT = Math.log(1.35)
 /** Пинч на тачпаде приходит как wheel + ctrlKey и требует большего усиления. */
 const WHEEL_ZOOM_PINCH_GAIN = 2.5
 /** Постоянная времени подхода к цели, мс. */
+/**
+ * Постоянная времени доводки камеры: за столько миллисекунд отставание от цели
+ * сокращается примерно в e раз. 150 мс — заметно плавно, но не вязко: полный
+ * переезд укладывается в ~0.4 с.
+ */
+const VIEWPORT_EASE_TAU_MS = 150
+
 const WHEEL_ZOOM_SMOOTH_MS = 70
 /**
  * Инерция самой скорости зума, мс. Сглаживает разницу между «есть щелчок» и
@@ -537,6 +544,100 @@ export const MetroMap = memo(function MetroMap({
   const reducedMotionRef = useRef(false)
   /** Значения вьюпорта, записанные жестами напрямую в ref (см. синхронизацию ниже). */
   const viewportSelfWritesRef = useRef<WeakSet<ViewportState>>(new WeakSet())
+  /** Куда едет камера. null — доводка не идёт. */
+  const viewportTargetRef = useRef<ViewportState | null>(null)
+  const viewportEaseRafRef = useRef<number | null>(null)
+  const viewportEaseLastTsRef = useRef<number | null>(null)
+
+  /**
+   * Доводка камеры до цели.
+   *
+   * Раньше автоподгонка под маршрут звала setViewport НА КАЖДОМ КАДРЕ цикла
+   * длиной до 520 мс: пока разъезжается нижняя шторка, отступы плывут, цель
+   * пересчитывается, и карта не ехала к ней, а телепортировалась в новую точку
+   * каждый кадр. Это и было «дёрганое перемещение» после выбора станции.
+   *
+   * Здесь цель можно менять сколько угодно часто: текущее положение
+   * экспоненциально подтягивается к ней, и движущаяся цель просто догоняется.
+   * Анимация фиксированной длительности тут не годится — она перезапускалась бы
+   * при каждой смене цели, давая рывок на каждом перезапуске.
+   *
+   * Масштаб сглаживается в ЛОГАРИФМЕ: в линейном приближение от 0.3 к 0.6
+   * ощущается вдвое быстрее, чем от 0.6 к 1.2, хотя зрительно это один и тот же
+   * шаг. Тот же приём уже применён к зуму колесом.
+   */
+  const stopViewportEase = useCallback(() => {
+    if (viewportEaseRafRef.current != null) {
+      cancelAnimationFrame(viewportEaseRafRef.current)
+      viewportEaseRafRef.current = null
+    }
+    viewportTargetRef.current = null
+    viewportEaseLastTsRef.current = null
+  }, [])
+
+  const easeViewportTo = useCallback(
+    (target: ViewportState) => {
+      // Мгновенно: без анимации по системной настройке и до первого кадра,
+      // когда ехать неоткуда.
+      if (reducedMotionRef.current) {
+        stopViewportEase()
+        viewportRef.current = target
+        viewportSelfWritesRef.current.add(target)
+        setViewport(target)
+        return
+      }
+
+      viewportTargetRef.current = target
+      if (viewportEaseRafRef.current != null) return
+
+      const step = (ts: number) => {
+        const goal = viewportTargetRef.current
+        if (!goal) {
+          viewportEaseRafRef.current = null
+          return
+        }
+
+        const last = viewportEaseLastTsRef.current
+        viewportEaseLastTsRef.current = ts
+        // Первый кадр задаёт только точку отсчёта времени.
+        const dt = last == null ? 0 : Math.min(64, ts - last)
+
+        const cur = viewportRef.current
+        // tau — за сколько миллисекунд отставание сокращается в e раз.
+        const k = dt > 0 ? 1 - Math.exp(-dt / VIEWPORT_EASE_TAU_MS) : 0
+
+        const logScale =
+          Math.log(cur.scale) + (Math.log(goal.scale) - Math.log(cur.scale)) * k
+        const next: ViewportState = {
+          scale: Math.exp(logScale),
+          offsetX: cur.offsetX + (goal.offsetX - cur.offsetX) * k,
+          offsetY: cur.offsetY + (goal.offsetY - cur.offsetY) * k,
+        }
+
+        const closeEnough =
+          Math.abs(next.offsetX - goal.offsetX) < 0.5 &&
+          Math.abs(next.offsetY - goal.offsetY) < 0.5 &&
+          Math.abs(next.scale / goal.scale - 1) < 0.001
+
+        const applied = closeEnough ? goal : next
+        viewportRef.current = applied
+        viewportSelfWritesRef.current.add(applied)
+        setViewport(applied)
+
+        if (closeEnough) {
+          viewportEaseRafRef.current = null
+          viewportTargetRef.current = null
+          viewportEaseLastTsRef.current = null
+          return
+        }
+        viewportEaseRafRef.current = requestAnimationFrame(step)
+      }
+
+      viewportEaseLastTsRef.current = null
+      viewportEaseRafRef.current = requestAnimationFrame(step)
+    },
+    [stopViewportEase],
+  )
   const [isPanning, setIsPanning] = useState(false)
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   const [hasDragged, setHasDragged] = useState(false)
@@ -1620,11 +1721,9 @@ export const MetroMap = memo(function MetroMap({
       const offsetX = visibleCenterX - screenCenterX - centerWorldX * targetScale
       const offsetY = visibleCenterY - screenCenterY - centerWorldY * targetScale
 
-      setViewport({
-        scale: targetScale,
-        offsetX,
-        offsetY,
-      })
+      // Цель, а не прыжок: пока разъезжается шторка, она пересчитывается каждый
+      // кадр, и камера её плавно догоняет (см. easeViewportTo).
+      easeViewportTo({ scale: targetScale, offsetX, offsetY })
 
       lastRouteFitRef.current = { routeKey, bottomInset: insetBottom, insetKey }
       return insetKey
@@ -1683,6 +1782,7 @@ export const MetroMap = memo(function MetroMap({
     getBottomInsetPx,
     editMode,
     routeSheetOpen,
+    easeViewportTo,
   ])
 
   useEffect(() => {
@@ -1729,17 +1829,12 @@ export const MetroMap = memo(function MetroMap({
     const visibleCenterX = insetLeft + visibleWidth / 2
     const visibleCenterY = insetTop + visibleHeight / 2
 
-    setViewport((prev) => {
-      const scale = Math.min(MAX_SCALE, Math.max(minScaleAllowed, prev.scale || 1))
-      const centerWorldX = targetStation.x
-      const centerWorldY = targetStation.y
-      const offsetX = visibleCenterX - screenCenterX - centerWorldX * scale
-      const offsetY = visibleCenterY - screenCenterY - centerWorldY * scale
-      return {
-        scale,
-        offsetX,
-        offsetY,
-      }
+    const prev = viewportRef.current
+    const scale = Math.min(MAX_SCALE, Math.max(minScaleAllowed, prev.scale || 1))
+    easeViewportTo({
+      scale,
+      offsetX: visibleCenterX - screenCenterX - targetStation.x * scale,
+      offsetY: visibleCenterY - screenCenterY - targetStation.y * scale,
     })
   }, [
     selectionMode,
@@ -1758,6 +1853,7 @@ export const MetroMap = memo(function MetroMap({
     routeSheetOpen,
     clampViewport,
     editMode,
+    easeViewportTo,
   ])
 
   const zoomBy = (factor: number) => {
@@ -3358,6 +3454,9 @@ export const MetroMap = memo(function MetroMap({
     (event: WheelEvent) => {
       if (interactionsLocked && !editMode) return
       if (onMapInteraction) onMapInteraction()
+      // Жест забирает управление у доводки камеры немедленно: иначе она
+      // продолжит тянуть к своей цели и будет спорить с рукой.
+      stopViewportEase()
       event.preventDefault()
 
       const canvas = canvasRef.current
@@ -3526,6 +3625,7 @@ export const MetroMap = memo(function MetroMap({
       interactionsLocked,
       minScaleAllowed,
       onMapInteraction,
+      stopViewportEase,
     ]
   )
 
@@ -3650,6 +3750,7 @@ export const MetroMap = memo(function MetroMap({
     }
 
     // Если не редактируем или не попали по станции — обычный pan
+    stopViewportEase()
     setIsPanning(true)
     lastPointRef.current = { x: event.clientX, y: event.clientY }
     panLastSampleTimeRef.current = null
@@ -3861,12 +3962,14 @@ export const MetroMap = memo(function MetroMap({
       }
 
       const p = getTouchPoint(event)
+      stopViewportEase()
       setIsPanning(true)
       lastPointRef.current = p
       setHasDragged(false)
       pinchStartDistanceRef.current = null
     } else if (event.touches.length === 2) {
       const distance = getTouchDistance(event.touches)
+      stopViewportEase()
       pinchStartDistanceRef.current = distance
       pinchStartScaleRef.current = viewportRef.current.scale
       pinchLastDistanceRef.current = distance
@@ -4120,7 +4223,8 @@ export const MetroMap = memo(function MetroMap({
     if (event.touches.length > 0) {
       if (!editMode && event.touches.length === 1) {
         const remaining = event.touches[0]
-        setIsPanning(true)
+        stopViewportEase()
+      setIsPanning(true)
         lastPointRef.current = { x: remaining.clientX, y: remaining.clientY }
         panLastSampleTimeRef.current = null
         panVelocityRef.current = { vx: 0, vy: 0 }
@@ -4327,8 +4431,8 @@ export const MetroMap = memo(function MetroMap({
 
     if (dx === 0 && dy === 0) return
 
-    setViewport((prev) =>
-      clampViewport({ ...prev, offsetX: prev.offsetX + dx, offsetY: prev.offsetY + dy }),
+    easeViewportTo(
+      clampViewport({ ...vp, offsetX: vp.offsetX + dx, offsetY: vp.offsetY + dy }),
     )
   }
 
