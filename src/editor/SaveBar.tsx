@@ -16,6 +16,34 @@ type SaveState =
   | { kind: 'done'; response: EditorSaveResponse }
   | { kind: 'failed'; message: string }
 
+/**
+ * Есть ли на том конце сервер, умеющий писать в `data/`.
+ *
+ * `npm run preview:editor` поднимает статику готовой сборки. Эндпоинт живёт в
+ * `configureServer` vite-плагина, которого у `vite preview` нет вовсе, — и
+ * кнопка «Сохранить» там не делает НИЧЕГО, молча. Раскладку такая сборка тоже
+ * не снимает (снимок стоит за `import.meta.env.DEV`), так что чинить одну
+ * кнопку бессмысленно: честнее сказать вслух, что сохранять некуда.
+ */
+type Availability = 'checking' | 'available' | 'missing'
+
+const NO_ENDPOINT_HINT = 'сохранение доступно только в npm run dev:editor'
+
+/**
+ * Пробный запрос: dev-плагин отвечает на не-POST кодом 405 и телом JSON.
+ * Никакой другой сервер так не отвечает — статика отдаёт 404 или index.html,
+ * поэтому проверка не путает «редактор с сервером» и «редактор без сервера».
+ */
+async function probeSaveEndpoint(): Promise<Availability> {
+  try {
+    const res = await fetch(SAVE_ENDPOINT, { method: 'GET' })
+    const isJson = (res.headers.get('content-type') ?? '').includes('application/json')
+    return res.status === 405 && isJson ? 'available' : 'missing'
+  } catch {
+    return 'missing'
+  }
+}
+
 const plural = (n: number, one: string, few: string, many: string) => {
   const m100 = Math.abs(n) % 100
   if (m100 >= 11 && m100 <= 14) return many
@@ -35,6 +63,17 @@ const plural = (n: number, one: string, few: string, many: string) => {
  */
 export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
   const [state, setState] = useState<SaveState>({ kind: 'idle' })
+  const [availability, setAvailability] = useState<Availability>('checking')
+
+  useEffect(() => {
+    let cancelled = false
+    void probeSaveEndpoint().then((result) => {
+      if (!cancelled) setAvailability(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const built = useMemo(
     () =>
@@ -65,6 +104,10 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
 
   const save = useCallback(async () => {
     if (!dirty) return
+    if (availability === 'missing') {
+      setState({ kind: 'failed', message: NO_ENDPOINT_HINT })
+      return
+    }
     setState({ kind: 'saving' })
     try {
       const res = await fetch(SAVE_ENDPOINT, {
@@ -84,7 +127,7 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
         message: error instanceof Error ? error.message : String(error),
       })
     }
-  }, [built, dirty])
+  }, [built, dirty, availability])
 
   // Всегда актуальная ссылка на save: нужна для отложенного вызова после blur,
   // где замыкание обработчика держит уже устаревший патч.
@@ -136,6 +179,8 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
   if (transfers > 0)
     parts.push(`${transfers} ${plural(transfers, 'пересадка', 'пересадки', 'пересадок')}`)
 
+  const noEndpoint = availability === 'missing'
+
   return (
     <div className="editor-save" role="region" aria-label="Сохранение правок схемы">
       <div className="editor-save-row">
@@ -143,8 +188,14 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
           type="button"
           className="editor-save-button"
           onClick={() => void save()}
-          disabled={!dirty || state.kind === 'saving'}
-          title={dirty ? 'Записать правки в data/ и пересобрать граф (Ctrl+S)' : 'Правок нет'}
+          disabled={!dirty || noEndpoint || state.kind === 'saving'}
+          title={
+            noEndpoint
+              ? NO_ENDPOINT_HINT
+              : dirty
+                ? 'Записать правки в data/ и пересобрать граф (Ctrl+S)'
+                : 'Правок нет'
+          }
         >
           {state.kind === 'saving' ? 'Сохраняю…' : 'Сохранить в data/'}
         </button>
@@ -153,6 +204,17 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
           {dirty ? parts.join(' · ') : 'Правок нет'}
         </span>
       </div>
+
+      {/* Кнопка, которая молча ничего не делает, хуже отсутствующей кнопки:
+          в preview-сборке правки некуда девать, и об этом надо сказать прямо. */}
+      {noEndpoint && (
+        <div className="editor-save-error" role="status">
+          Здесь сохранять некуда: {NO_ENDPOINT_HINT}.
+          <div className="editor-save-hint">
+            Эндпоинт записи живёт в плагине сервера разработки, у статики его нет.
+          </div>
+        </div>
+      )}
 
       {state.kind === 'done' && (
         <div className="editor-save-result" role="status">
