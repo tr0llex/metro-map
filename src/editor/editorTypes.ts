@@ -106,7 +106,7 @@ export interface EditorOverlayApi {
   /**
    * Формы колец, посчитанные картой. `grid` и `stationParams` из
    * `CanonicalLayoutPayload` сюда не попадают: солвер их не читает
-   * (см. комментарий к `buildLayoutFile`), поэтому редактор их не хранит.
+   * (см. комментарий к `buildEditorPatch`), поэтому редактор их не хранит.
    */
   canonicalRingShapes: Record<string, LayoutRingShape>
 

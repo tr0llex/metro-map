@@ -3438,3 +3438,105 @@
   display: inline-flex;
   align-items: center;
 }
+
+/* ==========================================================================
+   Панель сохранения редактора
+
+   Заменила кнопку «скопировать в буфер». Стоит внизу по центру, а не сбоку:
+   это главное действие режима, и его результат (что записано, что пересобрано)
+   надо читать текстом, а не угадывать по тосту.
+   ========================================================================== */
+
+.editor-save {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  z-index: 6;
+  width: min(560px, calc(100vw - 2rem));
+  max-height: 46vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(var(--rgb-border-hair), 0.9);
+  background: rgba(var(--rgb-card), 0.96);
+  backdrop-filter: blur(var(--blur-glass-soft));
+  -webkit-backdrop-filter: blur(var(--blur-glass-soft));
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  pointer-events: auto;
+}
+
+.editor-save-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.editor-save-button {
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.editor-save-button:disabled {
+  background: rgba(var(--rgb-border-hair), 0.55);
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.editor-save-status {
+  flex: 1 1 auto;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+.editor-save-result,
+.editor-save-error,
+.editor-save-unsupported {
+  border-top: 1px solid rgba(var(--rgb-border-hair), 0.7);
+  padding-top: var(--space-2);
+  line-height: 1.4;
+}
+
+.editor-save-ok {
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
+.editor-save-solver {
+  color: var(--color-text-muted);
+}
+
+.editor-save-solver-failed,
+.editor-save-error {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.editor-save-hint {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.editor-save-changes,
+.editor-save-unsupported ul {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.editor-save-unsupported-title {
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
