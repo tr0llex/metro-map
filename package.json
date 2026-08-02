@@ -34,6 +34,8 @@
     "preview": "vite preview",
     "preview:editor": "vite preview --outDir dist-editor --port 4174",
     "test": "vitest",
+    "e2e": "playwright test",
+    "e2e:prod": "playwright test --config=playwright.prod.config.ts",
     "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/metro-icon-maskable.svg",
     "build:data": "cd go-layout-solver && go run . -data ../data -out ../normalized/fullGraph.json",
     "quality": "tsx scripts/quality/analyze.ts",
@@ -48,6 +50,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.62.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.5",

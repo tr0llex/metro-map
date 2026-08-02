@@ -57,6 +57,11 @@ drawing that unit tests cannot see. [`tools/visual-qa/`](tools/visual-qa/) runs 
 Chromium against a static server inside the container — no host access at all — and fails
 on more than 0.1% changed pixels. A missing screenshot counts as a failure.
 
+**End-to-end tests that fail on silence.** Every Playwright test in [`e2e/`](e2e/) also
+asserts that the browser console stayed clean and no request failed. An app serving 200
+with a dead routing worker looks alive by status code alone; here it is red. Offline is
+covered for real — the second visit runs with the network cut off.
+
 **CI checks drift, not thresholds.** The quality analyser is deterministic and its report
 is committed; the job compares against that report rather than against absolute numbers.
 A signal that is always red stops being a signal.
@@ -95,7 +100,12 @@ npm run dev:editor   # schematic editor
 npm run build        # tsc -b && vite build -> dist/
 npm run lint
 npx vitest run
+npm run e2e          # end-to-end tests against a local production build
 ```
+
+`npm run e2e` builds the project and starts `preview` itself — the production build
+specifically, because a service worker and its precache do not exist in dev mode. The
+browser is installed once with `npx playwright install chromium`.
 
 Rebuilding the data needs Go:
 
