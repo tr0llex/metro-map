@@ -134,7 +134,7 @@ data, then solved and adjusted here. The official scheme's graphic design is its
 work — this project does not reproduce it, it draws its own diagram under the same
 well-known conventions.
 
-No licence is granted for reuse. The code is public to be read.
+The code is under the [MIT licence](LICENSE).
 
 ## Part of samoy.love
 
