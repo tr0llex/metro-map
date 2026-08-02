@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatTravelTime } from '../editor/travelTime.ts'
 import type {
   FullGraphStation,
   FullGraphLine,
@@ -172,6 +173,16 @@ export function HubEditorPanel({
                   className="hub-editor-station-title-input"
                   value={stationTitleDraft}
                   onChange={(event) => setStationTitleDraft(event.target.value)}
+                  // Enter фиксирует, Escape отменяет. Прежде название
+                  // засчитывалось только при уходе фокуса: Ctrl+S прямо из
+                  // поля сохранял старое имя, а набранное пропадало.
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') event.currentTarget.blur()
+                    if (event.key === 'Escape') {
+                      setStationTitleDraft(stationTitleOverride ?? inspectedStation.title)
+                      event.currentTarget.blur()
+                    }
+                  }}
                   onBlur={(event) => onChangeStationTitle(inspectedStation.id, event.target.value)}
                 />
               </div>
@@ -390,8 +401,9 @@ export function HubEditorPanel({
                   edgeOverride && edgeOverride.medianTravelSeconds !== undefined
                     ? edgeOverride.medianTravelSeconds
                     : e.medianTravelSeconds
-                const effectiveMinutes = Math.round(effectiveSeconds / 60)
-                const isFarTransfer = effectiveIsTransfer && effectiveMinutes >= 6
+                // Порог считаем в секундах: округление до минут относило
+                // пересадку в 5:31 к дальним, а в 6:29 — к близким.
+                const isFarTransfer = effectiveIsTransfer && effectiveSeconds >= 6 * 60
                 const isDisabled = !!(edgeOverride && edgeOverride.disabled)
                 const connectionLabel = !effectiveIsTransfer
                   ? 'перегон'
@@ -427,14 +439,33 @@ export function HubEditorPanel({
                     </button>
                     <div className="hub-editor-connection-meta">
                       <input
-                        type="number"
-                        min={1}
-                        step={1}
+                        type="text"
+                        inputMode="numeric"
                         className="hub-editor-connection-minutes"
-                        value={edgeMinutesDraftByKey[key] ?? String(effectiveMinutes)}
+                        // Формат «м:сс», но голые секунды тоже принимаются —
+                        // см. travelTime.ts. Поле было целочисленным в минутах
+                        // и портило 97% значений при простом щелчке мимо.
+                        title="Время в формате м:сс — можно ввести и просто секунды"
+                        aria-label={`Время до «${other?.title ?? otherId}», формат м:сс`}
+                        value={edgeMinutesDraftByKey[key] ?? formatTravelTime(effectiveSeconds)}
                         onChange={(event) =>
                           setEdgeMinutesDraftByKey((prev) => ({ ...prev, [key]: event.target.value }))
                         }
+                        // Enter фиксирует значение, не дожидаясь ухода фокуса.
+                        // Прежде правка засчитывалась только по blur, и Ctrl+S
+                        // прямо из поля сохранял старое значение.
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') event.currentTarget.blur()
+                          if (event.key === 'Escape') {
+                            setEdgeMinutesDraftByKey((prev) => {
+                              if (!(key in prev)) return prev
+                              const next = { ...prev }
+                              delete next[key]
+                              return next
+                            })
+                            event.currentTarget.blur()
+                          }
+                        }}
                         onBlur={(event) => {
                           onChangeEdgeMinutes(e, event.target.value)
                           setEdgeMinutesDraftByKey((prev) => {
@@ -445,7 +476,6 @@ export function HubEditorPanel({
                           })
                         }}
                       />
-                      <span className="hub-editor-connection-minutes-label">мин</span>
                     </div>
                     {(isManual || edgeOverride) && (
                       <button
