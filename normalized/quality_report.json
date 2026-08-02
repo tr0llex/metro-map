@@ -3,11 +3,11 @@
   "source": "normalized/fullGraph.json",
   "summary": {
     "total": 25,
-    "pass": 20,
-    "warn": 5,
+    "pass": 21,
+    "warn": 4,
     "fail": 0,
     "verdict": "WARN",
-    "score": 90
+    "score": 92
   },
   "metrics": [
     {
@@ -458,20 +458,13 @@
       "category": "geometry",
       "name": "Острые изломы линий",
       "unit": "шт",
-      "value": 1,
+      "value": 0,
       "target": 0,
       "fail": 12,
       "direction": "lower",
       "description": "Станции, в которых линия поворачивает острее 90°: маршрут «складывается», и глазом невозможно проследить, куда линия идёт дальше.",
-      "offenders": [
-        {
-          "id": "10/trubnaya",
-          "label": "Трубная",
-          "value": 4.44,
-          "detail": "угол 86° на линии «Люблинско-Дмитровская» — линия складывается сама на себя"
-        }
-      ],
-      "verdict": "WARN"
+      "offenders": [],
+      "verdict": "PASS"
     },
     {
       "id": "geometry.lineCrossings",
@@ -783,8 +776,8 @@
         {
           "id": "1/chistye-prudy",
           "label": "Тургеневская",
-          "value": 41.77,
-          "detail": "86px от станции при допустимых 44px"
+          "value": 44,
+          "detail": "88px от станции при допустимых 44px"
         },
         {
           "id": "1/biblioteka-im-lenina",
