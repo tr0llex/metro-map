@@ -1,10 +1,11 @@
 import { useCallback } from 'react'
 
 /**
- * Горизонтальная прокрутка перетаскиванием («хватай и тяни»).
+ * Горизонтальная прокрутка ленты мышью: перетаскиванием («хватай и тяни») и
+ * колесом.
  *
- * Лента вариантов маршрута прокручивалась только колесом и пальцем: мышью её
- * было не сдвинуть, а на десктопе скроллбар тонкий и наплывающий. Хук вешает
+ * Лента вариантов маршрута прокручивалась только пальцем: мышью её было не
+ * сдвинуть, а на десктопе скроллбар тонкий и наплывающий. Хук вешает
  * обработчики на сам контейнер и превращает зажатую мышь в прокрутку.
  *
  * Главная сложность — не сломать обычный клик по карточке. Решение:
@@ -18,8 +19,30 @@ import { useCallback } from 'react'
  *     клик не мог утечь в другое взаимодействие.
  *
  * Тач и перо не трогаем: там прокрутка нативная и уже работает.
+ *
+ * Колесо. Вертикальное колесо над лентой браузер горизонтальной прокруткой не
+ * считает — для этого надо держать Shift, о чём знают немногие. Наведя курсор
+ * на ленту, человек крутит колесо и ожидает, что поедет она; вместо этого
+ * ехала страница под ней. Хук переводит вертикальный шаг в горизонтальный.
  */
 const DRAG_THRESHOLD_PX = 5
+
+/**
+ * Сколько пикселей в одном «шаге» колеса, когда браузер меряет его строками
+ * (deltaMode === DOM_DELTA_LINE, так делает Firefox для обычной мыши).
+ */
+const WHEEL_LINE_HEIGHT_PX = 16
+
+/**
+ * Какую долю оставшегося пути лента проходит за кадр. Прокрутка идёт не рывком
+ * на весь шаг колеса, а догоняющей анимацией: цель копится отдельно от текущего
+ * положения, поэтому несколько быстрых щелчков складываются в одно движение, а
+ * не перебивают друг друга.
+ */
+const WHEEL_EASING = 0.22
+
+/** Ближе этого к цели дотягиваем сразу: остаток уже неразличим. */
+const WHEEL_SNAP_PX = 0.5
 
 // Ref-колбэк, а не ref-объект: лента маршрутов монтируется и размонтируется
 // вместе с вариантами, и обработчики надо снимать в этот же момент. React 19
@@ -41,6 +64,9 @@ export function useDragScroll<T extends HTMLElement = HTMLDivElement>(): (
     let isDragging = false
     let suppressNextClick = false
     let prevUserSelect = ''
+    /** Куда лента едет по колесу. null — анимации нет. */
+    let wheelTargetLeft: number | null = null
+    let wheelRafId: number | null = null
 
     const finishPointer = () => {
       window.removeEventListener('pointermove', onPointerMove)
@@ -97,6 +123,10 @@ export function useDragScroll<T extends HTMLElement = HTMLDivElement>(): (
       // чтобы он не погасил ни в чём не повинный следующий клик.
       suppressNextClick = false
 
+      // Схватились за ленту рукой — догоняющая анимация колеса больше не нужна:
+      // иначе она продолжала бы тянуть ленту из-под курсора.
+      stopWheelAnimation()
+
       activePointerId = event.pointerId
       startX = event.clientX
       startScrollLeft = el.scrollLeft
@@ -114,12 +144,84 @@ export function useDragScroll<T extends HTMLElement = HTMLDivElement>(): (
       event.stopPropagation()
     }
 
+    const stopWheelAnimation = () => {
+      if (wheelRafId != null) {
+        window.cancelAnimationFrame(wheelRafId)
+        wheelRafId = null
+      }
+      wheelTargetLeft = null
+    }
+
+    function stepWheelAnimation() {
+      wheelRafId = null
+      if (wheelTargetLeft == null) return
+
+      const distance = wheelTargetLeft - el.scrollLeft
+      if (Math.abs(distance) <= WHEEL_SNAP_PX) {
+        el.scrollLeft = wheelTargetLeft
+        wheelTargetLeft = null
+        return
+      }
+
+      el.scrollLeft += distance * WHEEL_EASING
+      wheelRafId = window.requestAnimationFrame(stepWheelAnimation)
+    }
+
+    const prefersReducedMotion = () =>
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    const onWheel = (event: WheelEvent) => {
+      // Горизонтальный жест (в том числе Shift + колесо, который браузер сам
+      // кладёт в deltaX) отдаём браузеру: он уже делает ровно то, что нужно.
+      if (event.deltaX !== 0) return
+      if (event.deltaY === 0) return
+
+      const maxScrollLeft = el.scrollWidth - el.clientWidth
+      if (maxScrollLeft <= 0) return
+
+      const step =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? event.deltaY * WHEEL_LINE_HEIGHT_PX
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? event.deltaY * el.clientWidth
+            : event.deltaY
+
+      // Считаем от НЕДОКРУЧЕННОЙ цели, а не от текущего положения: пока лента
+      // догоняет, следующий щелчок колеса должен добавиться к пути, а не
+      // отмерить свой шаг заново от середины анимации — иначе быстрая
+      // прокрутка проезжает заметно меньше, чем накрутили.
+      const from = wheelTargetLeft ?? el.scrollLeft
+      const next = Math.max(0, Math.min(maxScrollLeft, from + step))
+      // Лента упёрлась в край — событие не наше, пусть прокручивается страница.
+      // Иначе колесо над лентой намертво запирало бы прокрутку всего экрана.
+      if (next === from) return
+
+      event.preventDefault()
+
+      if (prefersReducedMotion()) {
+        stopWheelAnimation()
+        el.scrollLeft = next
+        return
+      }
+
+      wheelTargetLeft = next
+      if (wheelRafId == null) {
+        wheelRafId = window.requestAnimationFrame(stepWheelAnimation)
+      }
+    }
+
     el.addEventListener('pointerdown', onPointerDown)
     el.addEventListener('click', onClickCapture, true)
+    // passive: false — иначе preventDefault() не работает и страница уедет
+    // вместе с лентой.
+    el.addEventListener('wheel', onWheel, { passive: false })
 
     return () => {
       el.removeEventListener('pointerdown', onPointerDown)
       el.removeEventListener('click', onClickCapture, true)
+      el.removeEventListener('wheel', onWheel)
+      stopWheelAnimation()
       finishPointer()
     }
   }, [])
