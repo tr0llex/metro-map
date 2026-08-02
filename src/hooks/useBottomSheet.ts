@@ -15,6 +15,21 @@ import type { TouchEvent } from 'react'
  *
  * На десктопе шторка — обычная боковая панель: вся физика выключена.
  */
+/**
+ * Сколько нужно протащить шторку, чтобы она осталась там, куда её тянут, а не
+ * вернулась обратно. Величина в пикселях, а не в доле хода: для пальца это
+ * дистанция, и она не должна зависеть от того, насколько длинный маршрут
+ * построен и как высоко шторка может подняться.
+ */
+const SHEET_COMMIT_PX = 64
+
+/**
+ * ...но не больше четверти хода. У короткой шторки (маршрут в две станции)
+ * 64px — это почти весь её путь, и порог в пикселях означал бы «доведи до
+ * конца или не берись».
+ */
+const SHEET_COMMIT_MAX_FRACTION = 0.25
+
 type BottomSheetOptions = {
   isDesktop: boolean
   /** Экран ошибки: тянуть шторку нечего, жест игнорируем. */
@@ -540,6 +555,7 @@ export function useBottomSheet(options: BottomSheetOptions): BottomSheetState {
     const axis = sheetGestureAxisRef.current
     const startY = sheetTouchStartYRef.current
     const lastY = sheetTouchLastYRef.current
+    const startProgress = sheetDragStartProgressRef.current
     sheetTouchStartYRef.current = null
     sheetTouchLastYRef.current = null
     sheetTouchStartXRef.current = null
@@ -586,12 +602,41 @@ export function useBottomSheet(options: BottomSheetOptions): BottomSheetState {
     sheetDragVelocityRef.current = 0
 
     const velocityThreshold = 1.2
+
+    // Куда шторка поедет после отпускания.
+    //
+    // Решает пройденный путь, а не абсолютное положение. Раньше стояло
+    // `releasedProgress >= 0.5`, и это делало перетаскивание почти
+    // неработающим: ход шторки — 575px на экране в 915px, то есть чтобы
+    // раскрыть её пальцем, надо было провести большим пальцем 288px, треть
+    // экрана. Спокойное осмысленное движение на 80–260px шторка честно
+    // отыгрывала за пальцем и возвращала обратно. Со стороны это выглядело
+    // как «пальцем не поднимается, только нажатием» — жест вроде бы есть,
+    // а результата нет.
+    //
+    // Теперь достаточно сдвинуть шторку от того места, где её взяли, на
+    // SHEET_COMMIT_PX: намерение «тяну вверх» однозначно уже на этой
+    // дистанции. Порог симметричен, поэтому и закрывается шторка так же
+    // коротким движением вниз.
+    const dragRange = sheetMaxOffsetPxRef.current
+    const commitProgress =
+      dragRange > 0
+        ? Math.min(SHEET_COMMIT_MAX_FRACTION, SHEET_COMMIT_PX / dragRange)
+        : SHEET_COMMIT_MAX_FRACTION
+    const grabbedAt = startProgress ?? (isRouteSheetOpen ? 1 : 0)
+    const travelled = releasedProgress - grabbedAt
+
     const targetOpen =
       dragVelocity > velocityThreshold
         ? true
         : dragVelocity < -velocityThreshold
           ? false
-          : releasedProgress >= 0.5
+          : travelled > commitProgress
+            ? true
+            : travelled < -commitProgress
+              ? false
+              : // Путь короче порога — оставляем там, откуда взяли.
+                grabbedAt >= 0.5
 
     setIsRouteSheetOpen(targetOpen)
     if (!targetOpen) {
