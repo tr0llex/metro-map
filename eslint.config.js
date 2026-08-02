@@ -39,4 +39,16 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  // Сквозные тесты — не React-код. Фикстура Playwright принимает колбэк с
+  // параметром `use`, и правило hooks видит в его вызове React-хук вне
+  // компонента: здесь оно не шумит, а запрещает штатный API библиотеки.
+  {
+    files: ['e2e/**/*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+    },
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
 ])
