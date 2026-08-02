@@ -1,7 +1,7 @@
 # Метро Москвы
 
-[![CI](https://github.com/tr0llex/MetroMap/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/MetroMap/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/tr0llex/MetroMap/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/MetroMap)
+[![CI](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tr0llex/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/metro-map)
 
 
 Офлайн-PWA для построения маршрутов по московскому метро.
@@ -155,8 +155,8 @@ interface FullGraphTransferHub { id: string; stationIds: string[]; minTransferSe
   подписей, pan/zoom мышью и тачем, выбор станции по клику, drag & drop в режиме редактора.
 - **`components/`** — остальной UI: форма маршрута, шторка деталей, шапка, сплэш,
   баннер обновления PWA, карточка установки, панель редактора хабов.
-- **`public/sw.js`** — клинер старых регистраций `/sw.js`; не удалять до срока,
-  указанного в `docs/DEPLOY.md`.
+- **`public/sw.js`** — клинер старых регистраций `/sw.js`. Удалять нельзя
+  до 2027-02-01, почему — [`docs/service-worker.md`](docs/service-worker.md).
 
 ---
 
@@ -177,8 +177,9 @@ npm run quality:check   # режим CI: ненулевой код выхода 
 здесь цифра протухает после первой же пересборки данных — единственный источник правды
 это `npm run quality`.
 
-Открытые направления работы по схеме перечислены в [`ROADMAP.md`](ROADMAP.md) —
-там же указано, какой метрикой мерить каждое из них.
+Открытые направления работы по схеме — в
+[issues](https://github.com/tr0llex/metro-map/issues); у каждой задачи указано,
+какой метрикой её мерить.
 
 ---
 
@@ -253,8 +254,18 @@ npx tsc -b && npm run lint && npx vitest run && npm run build && npm run check:b
 
 ## 8. Деплой
 
-См. [`docs/DEPLOY.md`](docs/DEPLOY.md): сборка, nginx, правила кэширования
-для своего nginx (хешированные ассеты, service worker, манифест, SPA-фоллбэк).
+Выкатка — общим пайплайном [deploy-kit](https://github.com/tr0llex/deploy-kit):
+пуш в `main` собирает бандл, раскладывает его рядом с текущим релизом и атомарно
+переключает симлинк, сверяя версию после переключения.
+
+```bash
+dk deploy metro       # локально, тем же путём, что и CI
+dk rollback metro
+```
+
+Описание цели — `.deploy-kit/prod.env`. Конфигурация nginx с правилами
+кэширования (хешированные ассеты, service worker, манифест, SPA-фоллбэк) —
+в [deploy-kit/nginx](https://github.com/tr0llex/deploy-kit/tree/main/nginx).
 
 ---
 
@@ -269,4 +280,5 @@ npx tsc -b && npm run lint && npx vitest run && npm run build && npm run check:b
 
 ## 10. Планы
 
-Единственный актуальный роадмап — [`ROADMAP.md`](ROADMAP.md).
+Задачи живут в [issues](https://github.com/tr0llex/metro-map/issues) —
+подписи, геометрия схемы, производительность отрисовки, редактор.
