@@ -1,26 +1,5 @@
 export type LineId = string;
 
-export interface Line {
-  id: LineId;
-  name: string;
-  colorHex: string;
-}
-
-export interface Station {
-  id: string;
-  name: string;
-  lineId: LineId;
-}
-
-export interface Connection {
-  fromStationId: string;
-  toStationId: string;
-  /** Время в минутах между станциями или при пересадке */
-  travelMinutes: number;
-  /** true, если это пересадка между линиями */
-  isTransfer?: boolean;
-}
-
 export interface RouteStep {
   fromStationId: string;
   toStationId: string;
@@ -73,8 +52,6 @@ export interface FullGraphStation {
   isTransfer?: boolean;
   /** ID пересадочного хаба, объединяющий несколько станций в один комплекс */
   hubId?: string;
-  /** Исходный stop_id из GTFS, если есть привязка */
-  stopId?: string;
 }
 
 export interface FullGraphEdge {
@@ -85,12 +62,6 @@ export interface FullGraphEdge {
   lineNumericId?: number;
   /** Медианное время в секундах по данным расписания/наблюдений */
   medianTravelSeconds: number;
-  /** Среднее время в секундах (для аналитики/отладки) */
-  meanTravelSeconds?: number;
-  /** Стандартное отклонение времени в секундах (для оценок надёжности) */
-  stdTravelSeconds?: number;
-  /** Количество использованных наблюдений/рейсов */
-  samples?: number;
   /** true, если ребро соответствует пересадке (а не проезду по линии) */
   isTransfer?: boolean;
   transferKind?: TransferKind;
@@ -102,11 +73,13 @@ export interface EdgeOverride {
   disabled?: boolean;
 }
 
-export type TransferTimeSource =
-  | 'gtfs_transfers'
-  | 'schedule_estimate'
-  | 'distance_estimate'
-  | 'manual_override';
+/**
+ * Откуда взято время пересадки. Значение ровно одно: узлы выводятся из
+ * data/transfers.json. Прежние варианты (gtfs_transfers, schedule_estimate,
+ * distance_estimate, manual_override) описывали пайплайн, которого больше нет,
+ * и в данных не встречались — тип обещал разнообразие, которого не было.
+ */
+export type TransferTimeSource = 'data';
 
 export type TransferKind =
   | 'near'
@@ -137,19 +110,6 @@ export interface FullGraphTransferHub {
 export type FullGraphRingShape =
   | { kind: 'circle'; cx: number; cy: number; r: number }
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number };
-
-export interface FullGraphExport {
-  lines: FullGraphLine[];
-  stations: FullGraphStation[];
-  edges: FullGraphEdge[];
-  transferHubs: FullGraphTransferHub[];
-  /**
-   * Формы кольцевых линий: ключ — числовой ID линии строкой ("5", "95", "97").
-   * Поле необязательное: для данных, собранных до появления проекции в солвере,
-   * рантайм откатывается на подгонку формы по станциям.
-   */
-  ringShapes?: Record<string, FullGraphRingShape>;
-}
 
 /**
  * Форма кольцевой линии в `data/layout.json`.

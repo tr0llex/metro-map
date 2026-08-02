@@ -472,26 +472,12 @@
     width: 1.9rem;
     height: 1.9rem;
   }
-
-  .app-header-title {
-    font-size: calc(var(--font-size-lg) * 1.08);
-  }
-
-  .app-header-subtitle {
-    font-size: calc(var(--font-size-sm) * 1.05);
-  }
-
   .app-header-chip {
     padding: var(--space-2) var(--space-4);
   }
 
   .app-header-chip-title {
     font-size: calc(var(--font-size-sm) * 1.07);
-  }
-
-  .app-header-icon-button {
-    width: 2.2rem;
-    height: 2.2rem;
   }
 }
 
@@ -505,8 +491,7 @@
   z-index: -1;
 }
 
-.app-header-left,
-.app-header-right {
+.app-header-left {
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -515,11 +500,6 @@
 .app-header-left {
   margin-right: var(--space-1);
 }
-
-.app-header-right {
-  margin-left: var(--space-1);
-}
-
 .app-header-logo {
   position: relative;
   display: flex;
@@ -541,59 +521,6 @@
   width: 1.6rem;
   height: 1.6rem;
 }
-
-.app-header-logo-initials {
-  position: absolute;
-  right: -0.1rem;
-  bottom: -0.15rem;
-  font-size: var(--font-size-2xs);
-  font-weight: 800;
-}
-
-.app-header-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.app-header-title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-header-subtitle {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.app-header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.app-header-action {
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-xs);
-  /* Второстепенное действие в шапке было залито ярко-розовым градиентом и
-     спорило с основным. Контурная кнопка: вес держит рамка, а не заливка. */
-  background: transparent;
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  cursor: pointer;
-}
-
-.app-header-action:hover {
-  background: var(--color-accent-subtle);
-  color: var(--color-text-primary);
-}
-
 .app-header-chip {
   flex: 1;
   min-width: 0;
@@ -657,33 +584,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.app-header-chip-meta {
-  display: block;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-}
-
-.app-header-icon-button {
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-slate), 0.5);
-  background: rgba(var(--rgb-card), 0.9);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-md);
-  line-height: 1;
-  color: var(--color-text-primary);
-  box-shadow: var(--shadow-raised);
-}
-
-.app-header-icon-button:hover {
-  background: var(--color-accent-subtle);
-}
-
 .app-main {
   flex: 1;
   padding: 3.5rem 1rem 5.25rem;
@@ -926,13 +826,6 @@
   padding: var(--space-3);
   pointer-events: auto;
 }
-
-.placeholder-text {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
 .error-text {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -1191,23 +1084,6 @@
 .line-pill-half {
   flex: 1;
 }
-
-.step-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-pill);
-  margin-top: var(--space-1);
-  background-color: rgba(var(--rgb-border-slate), 0.75);
-}
-
-/* Пересадка — единственное место в списке шагов, где акцент несёт смысл,
-   поэтому он достаётся именно ей. Прежний --color-warning (#f97316) стоял в
-   3.5 ΔE00 от Калужско-Рижской линии, то есть на схеме читался бы как её
-   цвет, и вдобавок давал 2.8:1 к белой карточке при норме 3:1 для графики. */
-.step-dot--transfer {
-  background-color: var(--color-accent);
-}
-
 .step-body {
   flex: 1;
 }
@@ -1216,12 +1092,6 @@
   font-size: var(--font-size-sm);
   font-weight: 600;
 }
-
-.step-subtitle {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-transfer);
-}
-
 .step-meta {
   margin-top: var(--space-05);
   font-size: var(--font-size-sm);
@@ -1286,43 +1156,12 @@
   justify-content: flex-start;
   gap: var(--space-1);
 }
-
-.smart-suggestions-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2) var(--space-05);
-  border: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-}
-
-.smart-suggestions-toggle-label {
-  color: var(--color-text-muted);
-}
-
-.smart-suggestions-toggle-count {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
 .smart-suggestions-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
 }
-
-.smart-suggestions-title-main {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-}
-
 .smart-suggestions-close {
   border: none;
   border-radius: var(--radius-pill);
@@ -1726,11 +1565,6 @@
   box-shadow: var(--shadow-raised);
   filter: brightness(0.96);
 }
-
-.metro-station-node {
-  cursor: pointer;
-}
-
 .editor-fab {
   position: fixed;
   right: 1rem;
@@ -2528,11 +2362,6 @@
   box-shadow: 0 0 0 1px rgba(var(--rgb-shadow-ink), 0.08);
   pointer-events: none;
 }
-
-.bottom-input--active {
-  border-color: var(--color-accent);
-}
-
 .bottom-input::placeholder {
   color: var(--color-text-placeholder);
 }
@@ -2542,11 +2371,6 @@
   outline-offset: 1px;
   border-color: var(--color-accent-outline);
 }
-
-.bottom-input--active {
-  border-color: var(--color-accent);
-}
-
 .bottom-input-clear {
   position: absolute;
   right: 0.22rem;
@@ -2583,13 +2407,6 @@
   align-items: stretch;
   gap: var(--space-05);
 }
-
-.route-choices-controls {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
 .bottom-route-summary-scroll {
   /* Контейнер строки чипов маршрутов: создаём небольшой вертикальный зазор,
      скролл только по оси X, скроллбар прячем. */
@@ -2649,15 +2466,6 @@
   align-items: baseline;
   gap: var(--space-2);
 }
-
-.bottom-route-chip-feature {
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--color-text-secondary);
-}
-
 .bottom-route-chip-sub {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
@@ -2784,27 +2592,6 @@
 .route-choice-chip {
   padding-inline: var(--space-4);
 }
-
-.route-scroll-arrow {
-  flex-shrink: 0;
-  width: 1.9rem;
-  height: 1.9rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--rgb-border-hair), 0.8);
-  background-color: rgba(var(--rgb-card), 0.96);
-  color: var(--color-text-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: none;
-}
-
-.route-scroll-arrow:active {
-  transform: translateY(1px);
-  box-shadow: none;
-}
-
 .bottom-sheet-handle {
   align-self: center;
   width: 56px;
@@ -3568,7 +3355,6 @@
    Тач-таргеты: видимый размер оставляем прежним, площадь нажатия расширяем
    невидимым псевдоэлементом до >= 44x44 px (рекомендация iOS/Material).
    ========================================================================== */
-
 /* ВНИМАНИЕ: `.bottom-input-clear` сюда добавлять нельзя — он позиционируется
    абсолютно внутри поля ввода (`position: absolute; right: …; top: 50%`), и
    `position: relative` выбрасывал оба крестика из полей в обычный поток,
@@ -3579,7 +3365,6 @@
 .onboarding-hint-close,
 .route-favorite-button,
 .route-share-button,
-.route-scroll-arrow,
 .bottom-sheet-handle {
   position: relative;
 }
@@ -3590,7 +3375,6 @@
 .onboarding-hint-close::after,
 .route-favorite-button::after,
 .route-share-button::after,
-.route-scroll-arrow::after,
 .bottom-sheet-handle::after {
   content: '';
   position: absolute;

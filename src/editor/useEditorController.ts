@@ -501,7 +501,7 @@ export function useEditorController(): EditorController {
       id: hubId,
       stationIds,
       minTransferSeconds,
-      source: (meta?.source ?? 'manual_override') as (typeof fullGraphTransferHubs)[number]['source'],
+      source: (meta?.source ?? 'data') as (typeof fullGraphTransferHubs)[number]['source'],
     }
   }, [inspectedStation, stationHubOverrides, hubMinOverrides, allStations])
 

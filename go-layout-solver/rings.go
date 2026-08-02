@@ -329,16 +329,6 @@ func fitBestRingShape(pts []ringPoint) (ringShape, bool) {
 // Раскладка станций по кольцу
 // ---------------------------------------------------------------------------
 
-func wrapPi(a float64) float64 {
-	for a > math.Pi {
-		a -= 2 * math.Pi
-	}
-	for a <= -math.Pi {
-		a += 2 * math.Pi
-	}
-	return a
-}
-
 // ringTrack — станции одной кольцевой линии, упорядоченные по углу на форме.
 //
 // Важно: порядок здесь угловой, а не порядок stationIds в линии. Разводить
