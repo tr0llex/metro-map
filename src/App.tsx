@@ -61,6 +61,7 @@ import {
   hasAnyDeepLinkParam,
   readDeepLinkStationIds,
 } from './utils/deepLink.ts'
+import { trackEvent } from './utils/events.ts'
 import type { SavedRoute } from './features/route/savedRoutes.ts'
 import { getRouteVariantLabel } from './features/route/routeLabels.ts'
 import { useEditorController } from './editor/useEditorController.ts'
@@ -164,6 +165,10 @@ function App() {
       // Маршрут построен — предложение установить приложение стало осмысленным.
       // Флаг сработает на СЛЕДУЮЩЕМ запуске, чтобы не накрыть свежий результат.
       markInstallGuideEarned()
+
+      // Единственное место, где видно, что приложением пользуются: маршрут
+      // считается здесь, на клиенте, и до сервера не доходит ничего.
+      trackEvent('route_built')
 
       // A11Y: раньше живая область говорила только «Строим маршрут…», а сам
       // результат не объявлялся вообще — незрячий пользователь после Enter
@@ -805,6 +810,10 @@ function App() {
     if (import.meta.env.DEV) {
       console.log(`[perf][popover] button=${mode} station=${data.stationId}`)
     }
+
+    // Выбор станции прямо на схеме — второй способ задать маршрут, помимо
+    // ввода названия. Который из двух в ходу, из журнала не видно.
+    trackEvent('station_pick')
 
     const rivalId = mode === 'from' ? toStationId : fromStationId
     const isSameStation = rivalId != null && data.stationId === rivalId
