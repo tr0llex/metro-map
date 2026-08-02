@@ -71,7 +71,7 @@ ssh ubuntu@<host> 'sudo /opt/deploy-kit/rollback.sh --app metro --root /var/www/
 (`filename` и `manifestFilename` у `VitePWA`) — если их поменять, поправьте и конфиг сервера.
 
 Полный рабочий конфиг — [`deploy/nginx/metro.conf`](../deploy/nginx/metro.conf).
-Он намеренно самодостаточен: `scripts/deploy.sh` выкладывает ровно один файл,
+Он намеренно самодостаточен: выкатка ставит ровно один файл,
 поэтому include-сниппетов в нём нет.
 
 ### Ловушка №1: `add_header` не наследуется
@@ -110,7 +110,7 @@ nginx отдаёт манифест как `application/octet-stream`. Пока 
 
 ### Проверка фактом
 
-`scripts/deploy.sh` в конце дёргает `curl` по бою и проверяет, что на главной и на SW
+Выкатка в конце дёргает `curl` по бою и проверяет, что на главной и на SW
 есть `X-Frame-Options` и CSP, а хешированный ассет из `/assets/` отдаётся с `immutable`
 и `nosniff`. Это единственный способ не наступить на ловушку №1 второй раз: по чтению
 конфига она не видна.
