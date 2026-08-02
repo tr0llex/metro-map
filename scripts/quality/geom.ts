@@ -69,13 +69,6 @@ export function segIntersectsRect(s: Seg, r: Rect): boolean {
   return false
 }
 
-/** Расстояние от центра прямоугольника-подписи до окружности (0, если пересекаются). */
-export function circleRectDistance(cx: number, cy: number, r: number, rect: Rect): number {
-  const nx = Math.max(rect.x1, Math.min(cx, rect.x2))
-  const ny = Math.max(rect.y1, Math.min(cy, rect.y2))
-  return Math.max(0, Math.hypot(cx - nx, cy - ny) - r)
-}
-
 /** Отклонение направления отрезка от ближайшего угла, кратного 45°, в градусах (0..22.5). */
 export function octilinearDeviationDeg(s: Seg): number {
   const ang = Math.atan2(s.by - s.ay, s.bx - s.ax)

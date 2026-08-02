@@ -20,7 +20,6 @@ export function pluralRu(count: number, forms: PluralForms): string {
 
 export const STATION_FORMS: PluralForms = ['станция', 'станции', 'станций']
 export const TRANSFER_FORMS: PluralForms = ['пересадка', 'пересадки', 'пересадок']
-export const MINUTE_FORMS: PluralForms = ['минута', 'минуты', 'минут']
 export const VARIANT_FORMS: PluralForms = ['вариант', 'варианта', 'вариантов']
 
 /** «1 станция», «2 станции», «11 станций». */
@@ -41,10 +40,6 @@ export function formatTransfersCount(count: number): string {
 export function formatTransfersForAria(count: number): string {
   if (!Number.isFinite(count) || count <= 0) return 'без пересадок'
   return `${count} ${pluralRu(count, TRANSFER_FORMS)}`
-}
-
-export function formatMinutesCount(count: number): string {
-  return `${count} ${pluralRu(count, MINUTE_FORMS)}`
 }
 
 export function formatVariantsCount(count: number): string {

@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'dev-dist', 'dist-editor']),
+  // coverage — сгенерированный отчёт покрытия: там чужой минифицированный js
+  // (prettify.js, sorter.js), и линтер ругался на него как на наш код.
+  globalIgnores(['dist', 'dev-dist', 'dist-editor', 'coverage']),
   // .mjs не линтился вообще — включая scripts/check-prod-bundle.mjs, который
   // сторожит, что редактор не утёк в прод-бандл.
   {
