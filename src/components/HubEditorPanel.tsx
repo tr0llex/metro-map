@@ -34,7 +34,6 @@ interface HubEditorPanelProps {
   edgeOverrides: Record<string, EdgeOverride>
   /** Тип пересадки, выбранный руками: ключ ребра -> kind из data/transfers.json. */
   edgeTransferKinds: Record<string, TransferKind>
-  newEdgeTarget: string
   findExactStationByName: (query: string) => FullGraphStation | null | undefined
   edgeKey: (a: string, b: string) => string
   onClose: () => void
@@ -48,7 +47,6 @@ interface HubEditorPanelProps {
   onChangeEdgeTransferKind: (edge: FullGraphEdge, kind: TransferKind) => void
   onChangeEdgeMinutes: (edge: FullGraphEdge, minutesStr: string) => void
   onToggleEdgeDisabled: (edge: FullGraphEdge) => void
-  onSetNewEdgeTarget: (value: string) => void
   onSetManualEdges: (
     updater: (prev: Record<string, FullGraphEdge>) => Record<string, FullGraphEdge>,
   ) => void
@@ -71,7 +69,6 @@ export function HubEditorPanel({
   lineByNumericId,
   edgeOverrides,
   edgeTransferKinds,
-  newEdgeTarget,
   findExactStationByName,
   edgeKey,
   onClose,
@@ -85,7 +82,6 @@ export function HubEditorPanel({
   onChangeEdgeTransferKind,
   onChangeEdgeMinutes,
   onToggleEdgeDisabled,
-  onSetNewEdgeTarget,
   onSetManualEdges,
   onSetInspectedStationId,
   onFocusStation,
@@ -93,9 +89,13 @@ export function HubEditorPanel({
   onUpdateStationGeoFromOSM,
   onResetEdgeEdits,
 }: HubEditorPanelProps) {
-  const [activeTab, setActiveTab] = useState<'station' | 'line' | 'connections' | 'hub' | 'manual'>(
-    'station',
-  )
+  const [activeTab, setActiveTab] = useState<'station' | 'connections'>('station')
+  /**
+   * Что набрано в поле «добавить связь». Состояние жило в контроллере
+   * редактора и торчало наружу двумя полями его публичного контракта, хотя
+   * читал и писал его только этот компонент — и только пока панель открыта.
+   */
+  const [newEdgeTarget, setNewEdgeTarget] = useState('')
   const focusStation = (stationId: string) => {
     onSetInspectedStationId(stationId)
     onFocusStation(stationId)
@@ -472,7 +472,7 @@ export function HubEditorPanel({
                 }`}
                 placeholder="ID или название станции"
                 value={newEdgeTarget}
-                onChange={(event) => onSetNewEdgeTarget(event.target.value)}
+                onChange={(event) => setNewEdgeTarget(event.target.value)}
               />
               <button
                 type="button"
@@ -512,7 +512,7 @@ export function HubEditorPanel({
                   })
                   if (hasBase) {
                     setEdgeAddError('Ребро между этими станциями уже есть в основной схеме')
-                    onSetNewEdgeTarget('')
+                    setNewEdgeTarget('')
                     return
                   }
 
@@ -520,7 +520,7 @@ export function HubEditorPanel({
 
                   if (manualEdges[manualKey]) {
                     setEdgeAddError('Ручное ребро между этими станциями уже создано')
-                    onSetNewEdgeTarget('')
+                    setNewEdgeTarget('')
                     return
                   }
 
@@ -541,7 +541,7 @@ export function HubEditorPanel({
                   })
 
                   setEdgeAddError(null)
-                  onSetNewEdgeTarget('')
+                  setNewEdgeTarget('')
                 }}
               >
                 Добавить

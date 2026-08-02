@@ -35,7 +35,6 @@ const MAP_PROPS: EditorMapProps = {
   editorLayoutOverrides: EMPTY_RECORD,
   editorLayoutApplyToken: 0,
   onEditStationInspect: noop,
-  stationHubOverrides: EMPTY_RECORD,
   stationTitleOverrides: EMPTY_RECORD,
   editorFocusCommand: null,
 }

@@ -1,8 +1,6 @@
 import type { TransferKind } from './transferKinds.ts'
 import type {
   EdgeOverride,
-  LayoutRingShape,
-  StationLayoutParams,
   FullGraphEdge,
   FullGraphLine,
   FullGraphStation,
@@ -34,7 +32,6 @@ export type StationOverride = {
  */
 export type EditorSnapshot = {
   stationOverrides: Record<string, StationOverride>
-  stationHubOverrides: Record<string, string | null>
   edgeOverrides: Record<string, EdgeOverride>
   /** Тип пересадки, выбранный руками: ключ ребра -> kind из data/transfers.json. */
   edgeTransferKinds: Record<string, TransferKind>
@@ -47,15 +44,7 @@ export type EditorHistoryState = {
   index: number // -1, если истории ещё нет
 }
 
-export type HubRotateCommand = { hubId: string; direction: 'cw' | 'ccw'; token: number }
-export type HubMirrorCommand = { hubId: string; token: number }
 export type EditorFocusCommand = { stationId: string; token: number }
-
-export type CanonicalLayoutPayload = {
-  grid: { stepPx: number }
-  ringShapes: Record<string, LayoutRingShape>
-  stationParams: Record<string, StationLayoutParams>
-}
 
 /**
  * Ровно тот набор пропсов MetroMap, который порождает редактор.
@@ -69,7 +58,6 @@ export interface EditorMapProps {
   editorLayoutOverrides: Record<string, { x: number; y: number }>
   editorLayoutApplyToken: number
   onEditStationInspect: (stationId: string) => void
-  stationHubOverrides: Record<string, string | null>
   stationTitleOverrides: Record<string, string>
   editorFocusCommand: EditorFocusCommand | null
 }
@@ -86,20 +74,13 @@ export interface EditorOverlayApi {
   inspectedEdges: FullGraphEdge[]
 
   stationOverrides: Record<string, StationOverride>
-  stationHubOverrides: Record<string, string | null>
   edgeOverrides: Record<string, EdgeOverride>
   edgeTransferKinds: Record<string, TransferKind>
   manualEdges: Record<string, FullGraphEdge>
   lastLayoutOverrides: Record<string, { x: number; y: number }>
-  /**
-   * Формы колец, посчитанные картой. `grid` и `stationParams` из
-   * `CanonicalLayoutPayload` сюда не попадают: солвер их не читает
-   * (см. комментарий к `buildEditorPatch`), поэтому редактор их не хранит.
-   */
 
   stationById: Map<string, FullGraphStation>
   lineByNumericId: Map<number, FullGraphLine>
-  newEdgeTarget: string
   findExactStationByName: (name: string) => FullGraphStation | undefined
   edgeKey: (a: string, b: string) => string
 
@@ -107,13 +88,11 @@ export interface EditorOverlayApi {
   canUndo: boolean
   canRedo: boolean
 
-  setNewEdgeTarget: (value: string) => void
   setManualEdges: (
     updater: (prev: Record<string, FullGraphEdge>) => Record<string, FullGraphEdge>,
   ) => void
   setInspectedStationId: (id: string | null) => void
 
-  showToast: (message: string) => void
   undo: () => void
   redo: () => void
   toggleEditMode: () => void
