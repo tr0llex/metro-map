@@ -5,6 +5,7 @@
 [![CI](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/tr0llex/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/metro-map)
 [![прод](https://img.shields.io/website?url=https%3A%2F%2Fmetro.samoy.love&up_message=online&up_color=2ea043&down_message=offline&label=metro.samoy.love)](https://metro.samoy.love)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Офлайн-PWA для построения маршрутов по московскому метро — для тех, кому схема
 нужна под землёй, где сети нет:
