@@ -40,9 +40,10 @@ export function trackEvent(event: SiteEvent): void {
 
   try {
     if (typeof navigator.sendBeacon === 'function') {
-      // Пустой Blob, а не строка: строка уехала бы с Content-Type
-      // text/plain;charset=UTF-8 и телом. Тела здесь нет и не нужно.
-      navigator.sendBeacon(url, new Blob([], { type: 'text/plain' }))
+      // Без второго аргумента: sendBeacon шлёт POST без тела и без
+      // Content-Type. Строка или Blob добавили бы и то, и другое, а событие
+      // целиком помещается в путь.
+      navigator.sendBeacon(url)
       return
     }
 
