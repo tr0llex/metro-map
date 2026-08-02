@@ -183,6 +183,43 @@ describe('поле времени связи', () => {
   })
 })
 
+/**
+ * Время перегона правят чаще всего остального вместе взятого, а поле лежало за
+ * вкладкой «Связи»: лишний щелчок на каждую станцию. Теперь тот же список
+ * виден сразу, а вкладка остаётся для всего прочего.
+ */
+describe('времена связей на первой же вкладке', () => {
+  it('поле времени доступно без перехода на вкладку «Связи»', () => {
+    setup()
+    expect(timeInput().value).toBe('2:53')
+  })
+
+  it('правка отсюда доходит до обработчика', () => {
+    const { onChangeEdgeMinutes } = setup()
+
+    fireEvent.change(timeInput(), { target: { value: '3:20' } })
+    fireEvent.keyDown(timeInput(), { key: 'Enter' })
+
+    expect(onChangeEdgeMinutes.mock.calls[0][1]).toBe('3:20')
+  })
+
+  /** Список один и тот же, поэтому расходиться ему нечем. */
+  it('на вкладке «Связи» тот же список никуда не делся', () => {
+    setup()
+    openConnections()
+    expect(timeInput().value).toBe('2:53')
+  })
+
+  /** Заводят связи редко: форма добавления осталась там, где была. */
+  it('форма добавления связи живёт только на вкладке «Связи»', () => {
+    setup()
+    expect(screen.queryByRole('button', { name: 'Добавить' })).toBeNull()
+
+    openConnections()
+    expect(screen.getByRole('button', { name: 'Добавить' })).toBeTruthy()
+  })
+})
+
 describe('название станции', () => {
   it('Enter фиксирует набранное', () => {
     const { onChangeStationTitle } = setup()
