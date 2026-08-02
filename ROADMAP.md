@@ -266,4 +266,4 @@ _Метрика:_ `closePairsCount`, `veryClosePairsCount`, `perfectOctilinearSe
       `localStorage`). Юридического риска нет, но переименование требует миграции
       ключей хранилища и правки `deploy/nginx/metro.conf` — отдельной задачей.
 - [ ] На заставке публикуется личный e-mail автора — подтвердить осознанно
-      перед публичным релизом (`docs/VISUAL_QA_REPORT.md`, VQA-12).
+      перед публичным релизом (`docs/archive/VISUAL_QA_REPORT.md`, VQA-12).
