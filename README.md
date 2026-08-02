@@ -189,14 +189,14 @@ npm run quality:check   # режим CI: ненулевой код выхода 
 data/                схема метро: линии, пересадки, раскладка (источник истины)
 go-layout-solver/   Go-решатель: строит граф и геометрию колец
 normalized/         производные данные: fullGraph.json, quality_report.json
-scripts/            deploy.sh (деплой на свой сервер),
-                    check-prod-bundle.mjs (сторож: редактор не должен попасть в прод)
+scripts/            check-prod-bundle.mjs (сторож: редактор не должен попасть в прод),
+                    check-css-tokens.mjs (сторож необъявленных CSS-переменных)
+scripts/editor/     запись правок редактора в data/ (только dev-сервер)
 scripts/quality/    анализатор качества схемы
 src/                приложение (React + Canvas) и модуль метро
 public/             иконки, favicon, легаси sw.js
 tools/visual-qa/    стенд визуальной приёмки (Docker + Chromium)
-deploy/nginx/       боевой конфиг nginx под версионным контролем
-docs/               DEPLOY.md, QUALITY.md, VISUAL_QA.md, LICENSING.md; archive/ — датированные отчёты
+docs/               QUALITY.md, VISUAL_QA.md, service-worker.md, metro-reference/ — эталоны сверки
 docs/visual-qa/     зафиксированные скриншоты приёмки
 .github/workflows/  CI и ручной деплой
 ```
@@ -269,12 +269,12 @@ dk rollback metro
 
 ---
 
-## 9. Лицензия и бренд
+## 9. Бренд
 
-Файла `LICENSE` пока нет. Бренд-блокер снят: имя и айдентика Hello Kitty удалены
-(коммит `a94c660`), изображений персонажа в репозитории не осталось. Оставшийся
-вопрос — **происхождение данных метро** в `data/`.
-Подробности — в [`docs/LICENSING.md`](docs/LICENSING.md).
+Имя и айдентика Hello Kitty удалены (коммит `a94c660`), изображений персонажа
+в репозитории не осталось. Технические идентификаторы `kitty-metro` (имя пакета,
+префикс ассетов, `kitty-metro-sw.js`, ключи `localStorage`) остались: их
+переименование требует миграции ключей хранилища и делается отдельно.
 
 ---
 
