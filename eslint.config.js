@@ -8,7 +8,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   // coverage — сгенерированный отчёт покрытия: там чужой минифицированный js
   // (prettify.js, sorter.js), и линтер ругался на него как на наш код.
-  globalIgnores(['dist', 'dev-dist', 'dist-editor', 'coverage']),
+  globalIgnores(['dist', 'dev-dist', 'coverage']),
   // .mjs не линтился вообще — включая scripts/check-prod-bundle.mjs, который
   // сторожит, что редактор не утёк в прод-бандл.
   {
