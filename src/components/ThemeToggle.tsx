@@ -1,25 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
-import type { ReactElement } from 'react'
 import './ThemeToggle.css'
 import {
-  THEME_PREFERENCE_LABELS,
   applyThemePreference,
   readStoredThemePreference,
+  resolveTheme,
   subscribeSystemTheme,
   writeThemePreference,
 } from '../utils/theme.ts'
-import type { ThemePreference } from '../utils/theme.ts'
-
-const OPTIONS: ThemePreference[] = ['system', 'light', 'dark']
-
-function IconSystem() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <rect x="1.5" y="2.5" width="13" height="9" rx="1.6" />
-      <path d="M5.5 13.5h5" />
-    </svg>
-  )
-}
+import type { ResolvedTheme, ThemePreference } from '../utils/theme.ts'
 
 function IconLight() {
   return (
@@ -38,65 +26,70 @@ function IconDark() {
   )
 }
 
-const ICONS: Record<ThemePreference, () => ReactElement> = {
-  system: IconSystem,
-  light: IconLight,
-  dark: IconDark,
-}
-
 /**
- * Переключатель темы: «как в системе / светлая / тёмная».
+ * Переключатель темы: одна кнопка «светлая ⇄ тёмная».
  *
  * Состояние живёт в localStorage и применяется атрибутом data-theme на <html>
  * (см. src/utils/theme.ts). Ранняя установка, чтобы не было вспышки светлой
  * темы, продублирована инлайн-скриптом в index.html — этот компонент лишь
  * поддерживает атрибут в актуальном состоянии и рисует контрол.
+ *
+ * ПОЧЕМУ НЕ ТРИ СЕГМЕНТА. Раньше здесь стоял ряд «как в системе / светлая /
+ * тёмная» — плашка на треть верхней кромки ради настройки, к которой обращаются
+ * один раз за всё время. При этом «как в системе» — не выбор, а отсутствие
+ * выбора: он не делает ничего сверх того, что и так происходит по умолчанию.
+ *
+ * Режим «как в системе» остался, но ушёл из интерфейса: пока кнопку не трогали,
+ * тема берётся у системы и следует за ней. Первое нажатие фиксирует явную тему —
+ * с этого момента человек сказал, чего хочет, и угадывать больше нечего.
+ * Возврата в «как в системе» из интерфейса нет: он стоил бы двух лишних кнопок
+ * на экране ради состояния, равного первому запуску.
+ *
+ * На кнопке иконка ЦЕЛИ, а не текущей темы: нажатие обещает солнце и даёт
+ * солнце. Иконка текущего состояния сообщала бы то, что и так видно по всему
+ * экрану.
  */
 export function ThemeToggle() {
   const [preference, setPreference] = useState<ThemePreference>(() => readStoredThemePreference())
+  const [resolved, setResolved] = useState<ResolvedTheme>(() => resolveTheme(readStoredThemePreference()))
 
   // Layout-эффект, а не обычный: атрибут должен быть на месте до отрисовки кадра.
   useLayoutEffect(() => {
-    applyThemePreference(preference)
+    setResolved(applyThemePreference(preference))
   }, [preference])
 
   // В режиме «как в системе» следим за сменой системной темы: сам атрибут
-  // не меняется, но цвет статус-бара (meta theme-color) нужно пересчитать.
+  // не меняется, но цвет статус-бара и иконка кнопки — да, ведь кнопка
+  // показывает тему, противоположную текущей.
   useEffect(() => {
     if (preference !== 'system') return
     return subscribeSystemTheme(() => {
-      applyThemePreference('system')
+      setResolved(applyThemePreference('system'))
     })
   }, [preference])
 
-  const handleSelect = useCallback((next: ThemePreference) => {
+  const next: ResolvedTheme = resolved === 'dark' ? 'light' : 'dark'
+
+  const handleToggle = useCallback(() => {
     setPreference(next)
     writeThemePreference(next)
-    applyThemePreference(next)
-  }, [])
+    setResolved(applyThemePreference(next))
+  }, [next])
+
+  const Icon = next === 'dark' ? IconDark : IconLight
 
   return (
     <div className="theme-toggle-dock">
-      <div className="theme-toggle" role="group" aria-label="Тема оформления">
-        {OPTIONS.map((option) => {
-          const Icon = ICONS[option]
-          const isActive = option === preference
-          return (
-            <button
-              key={option}
-              type="button"
-              className="theme-toggle-option"
-              data-theme-option={option}
-              aria-label={`Тема: ${THEME_PREFERENCE_LABELS[option].toLowerCase()}`}
-              aria-pressed={isActive}
-              title={THEME_PREFERENCE_LABELS[option]}
-              onClick={() => handleSelect(option)}
-            >
-              <Icon />
-            </button>
-          )
-        })}
-      </div>
+      <button
+        type="button"
+        className="theme-toggle"
+        data-theme-next={next}
+        aria-label={next === 'dark' ? 'Включить тёмную тему' : 'Включить светлую тему'}
+        title={next === 'dark' ? 'Тёмная тема' : 'Светлая тема'}
+        onClick={handleToggle}
+      >
+        <Icon />
+      </button>
     </div>
   )
 }

@@ -15,7 +15,7 @@
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark'
-type ResolvedTheme = 'light' | 'dark'
+export type ResolvedTheme = 'light' | 'dark'
 
 const THEME_STORAGE_KEY = 'metro-map-theme'
 
@@ -61,7 +61,7 @@ function getSystemTheme(): ResolvedTheme {
   }
 }
 
-function resolveTheme(preference: ThemePreference): ResolvedTheme {
+export function resolveTheme(preference: ThemePreference): ResolvedTheme {
   return preference === 'system' ? getSystemTheme() : preference
 }
 
