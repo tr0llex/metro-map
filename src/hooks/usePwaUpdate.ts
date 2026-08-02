@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
 /** Признак того, что ожидающее обновление уже применялось в этой вкладке — защита от петли перезагрузок. */
-const SW_COLD_START_APPLIED_KEY = 'kitty-metro-sw-cold-start-applied'
+const SW_COLD_START_APPLIED_KEY = 'metro-map-sw-cold-start-applied'
 
-const UPDATE_DISMISSED_KEY = 'kitty-metro-update-dismissed'
+const UPDATE_DISMISSED_KEY = 'metro-map-update-dismissed'
 
 /** Не чаще одной проверки обновления в три секунды: фокус/pageshow/visibility приходят пачкой. */
 const SW_UPDATE_CHECK_THROTTLE_MS = 3000
@@ -23,6 +23,16 @@ type PwaUpdateState = {
  * Всё, что связано с SW, живёт здесь целиком — включая dev-режим (где SW нужно
  * наоборот снести) и разовую чистку легаси-регистрации `/sw.js`.
  */
+/**
+ * Имя актуального service worker. Всё остальное, что зарегистрировано на этом
+ * origin, — наследие прежних версий и подлежит снятию.
+ *
+ * Список прежних имён не держим намеренно: он устаревал бы при каждом
+ * переименовании, а забытая в нём строка означает чужой воркер, живущий у
+ * пользователя вечно.
+ */
+const CURRENT_SW_FILE = '/metro-map-sw.js'
+
 export function usePwaUpdate(): PwaUpdateState {
   // Dev: service worker только мешает — он отдаёт закэшированные модули поверх
   // свежих. Один раз за сессию сносим регистрации и кэши.
@@ -31,9 +41,9 @@ export function usePwaUpdate(): PwaUpdateState {
     if (!import.meta.env.DEV) return
     if (!('serviceWorker' in navigator)) return
 
-    const alreadyCleaned = window.sessionStorage.getItem('kitty-metro-dev-sw-cleaned') === '1'
+    const alreadyCleaned = window.sessionStorage.getItem('metro-map-dev-sw-cleaned') === '1'
     if (alreadyCleaned) return
-    window.sessionStorage.setItem('kitty-metro-dev-sw-cleaned', '1')
+    window.sessionStorage.setItem('metro-map-dev-sw-cleaned', '1')
 
     void (async () => {
       try {
@@ -145,8 +155,13 @@ export function usePwaUpdate(): PwaUpdateState {
     }
   }, [checkForSwUpdate])
 
-  // Разовая чистка легаси-регистрации `/sw.js` (до перехода на vite-plugin-pwa):
-  // она перехватывала запросы и отдавала свою старую версию приложения.
+  // Разовая чистка УСТАРЕВШИХ регистраций service worker.
+  //
+  // Браузер держит регистрацию по имени файла, и новый воркер с другим именем
+  // старую не вытесняет: та продолжает перехватывать запросы и отдавать свою
+  // версию приложения. За историю проекта имя менялось дважды (`/sw.js` до
+  // перехода на vite-plugin-pwa и ещё раз при переименовании), поэтому снимаем
+  // всё, что не совпадает с текущим именем.
   useEffect(() => {
     if (typeof window === 'undefined') {
       return
@@ -168,7 +183,7 @@ export function usePwaUpdate(): PwaUpdateState {
         if (!sw?.scriptURL) return false
         try {
           const url = new URL(sw.scriptURL)
-          return url.pathname.endsWith('/sw.js')
+          return !url.pathname.endsWith(CURRENT_SW_FILE)
         } catch {
           return false
         }

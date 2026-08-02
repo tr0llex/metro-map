@@ -39,7 +39,7 @@ async function main() {
   try {
     for (const name of ['mobile', 'desktop']) {
       const context = await browser.newContext(PROFILES[name])
-      await context.addInitScript(`try{localStorage.setItem('kitty-metro-install-guide-seen','1');localStorage.setItem('kitty-metro-onboarding-hint-seen','1')}catch(e){}`)
+      await context.addInitScript(`try{localStorage.setItem('metro-map-install-guide-seen','1');localStorage.setItem('metro-map-onboarding-hint-seen','1')}catch(e){}`)
       const page = await context.newPage()
       await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' })
       await page.waitForSelector('.bottom-sheet', { timeout: 20000 })

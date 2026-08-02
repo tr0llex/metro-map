@@ -59,7 +59,7 @@ async function main() {
       locale: 'ru-RU',
     })
     await context.addInitScript(
-      `try{localStorage.setItem('kitty-metro-install-guide-seen','1');localStorage.setItem('kitty-metro-onboarding-hint-seen','1')}catch(e){}`,
+      `try{localStorage.setItem('metro-map-install-guide-seen','1');localStorage.setItem('metro-map-onboarding-hint-seen','1')}catch(e){}`,
     )
     const page = await context.newPage()
     const cdp = await context.newCDPSession(page)

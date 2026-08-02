@@ -31,7 +31,7 @@ function routingGraphAssetPlugin(): Plugin {
   }
 
   return {
-    name: 'kitty-metro:routing-graph-asset',
+    name: 'metro-map:routing-graph-asset',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const path = req.url?.split('?')[0]
@@ -81,8 +81,8 @@ export default defineConfig(({ mode }) => {
           'pwa-512x512.png',
           'maskable-icon-512x512.png',
         ],
-        filename: 'kitty-metro-sw.js',
-        manifestFilename: 'kitty-metro-manifest.webmanifest',
+        filename: 'metro-map-sw.js',
+        manifestFilename: 'metro-map-manifest.webmanifest',
         devOptions: {
           enabled: isPwaDev,
           type: 'module',
@@ -128,7 +128,7 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           // json обязателен: граф маршрутизации лежит отдельным ассетом
-          // assets/kitty-metro-routing-graph.json, и без него офлайн-режим
+          // assets/metro-map-routing-graph.json, и без него офлайн-режим
           // не сможет построить ни одного маршрута.
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,json}'],
           cleanupOutdatedCaches: true,
@@ -189,9 +189,9 @@ export default defineConfig(({ mode }) => {
 
             return undefined
           },
-          entryFileNames: 'assets/kitty-metro-[name]-[hash].js',
-          chunkFileNames: 'assets/kitty-metro-[name]-[hash].js',
-          assetFileNames: 'assets/kitty-metro-[name]-[hash][extname]',
+          entryFileNames: 'assets/metro-map-[name]-[hash].js',
+          chunkFileNames: 'assets/metro-map-[name]-[hash].js',
+          assetFileNames: 'assets/metro-map-[name]-[hash][extname]',
         },
       },
     },

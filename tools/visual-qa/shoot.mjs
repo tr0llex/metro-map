@@ -166,8 +166,8 @@ async function shoot(page, profile, name, options = {}) {
 
 const SEEN_KEYS_INIT = `
 try {
-  localStorage.setItem('kitty-metro-install-guide-seen', '1');
-  localStorage.setItem('kitty-metro-onboarding-hint-seen', '1');
+  localStorage.setItem('metro-map-install-guide-seen', '1');
+  localStorage.setItem('metro-map-onboarding-hint-seen', '1');
 } catch (e) {}
 `
 

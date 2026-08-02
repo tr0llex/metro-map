@@ -10,7 +10,7 @@ import {
   type ErrorLogEntry,
 } from './errorLog.ts'
 
-const STORAGE_KEY = 'kitty-metro-error-log-v1'
+const STORAGE_KEY = 'metro-map-error-log-v1'
 const MAX_ENTRIES = 20
 const DEDUPE_WINDOW_MS = 4000
 

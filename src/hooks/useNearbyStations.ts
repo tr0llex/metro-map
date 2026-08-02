@@ -15,7 +15,7 @@ type StationCoordOverrides = Record<string, { lat?: number; lon?: number } | und
  * пробуем определить станции рядом сразу — но только если разрешение реально
  * действует (спрашиваем Permissions API, а не браузерный диалог).
  */
-const NEARBY_ALLOWED_KEY = 'kitty-metro-nearby-allowed'
+const NEARBY_ALLOWED_KEY = 'metro-map-nearby-allowed'
 
 /** Сколько ближайших станций показываем. */
 const NEARBY_LIMIT = 6

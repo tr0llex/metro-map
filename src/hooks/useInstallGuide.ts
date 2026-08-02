@@ -6,9 +6,9 @@ type NavigatorWithStandalone = Navigator & { standalone?: boolean }
  * Человек уже строил маршрут хотя бы раз. Карточка установки читает этот флаг
  * на старте: до первого маршрута предлагать установку нечего (см. UX-9).
  */
-const INSTALL_GUIDE_EARNED_KEY = 'kitty-metro-install-guide-earned'
+const INSTALL_GUIDE_EARNED_KEY = 'metro-map-install-guide-earned'
 
-const INSTALL_GUIDE_SEEN_KEY = 'kitty-metro-install-guide-seen'
+const INSTALL_GUIDE_SEEN_KEY = 'metro-map-install-guide-seen'
 
 /** Пауза после появления основного UI: карточка не должна выпрыгивать вместе с картой. */
 const INSTALL_GUIDE_DELAY_MS = 900

@@ -11,8 +11,8 @@ export type SavedRoute = {
   lastUsedAt: number
 }
 
-export const FAVORITES_STORAGE_KEY = 'kitty-metro-favorites-v1'
-export const RECENTS_STORAGE_KEY = 'kitty-metro-recents-v1'
+export const FAVORITES_STORAGE_KEY = 'metro-map-favorites-v1'
+export const RECENTS_STORAGE_KEY = 'metro-map-recents-v1'
 
 /** Сколько недавних маршрутов держим. */
 export const RECENTS_LIMIT = 5
