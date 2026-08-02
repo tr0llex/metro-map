@@ -53,7 +53,7 @@ body {
   -webkit-backdrop-filter: blur(var(--blur-glass-soft));
 }
 
-@media (max-width: 1023.98px) {
+@media (max-width: 1023.98px) and (min-height: 501px) {
   :root.perf-interaction .app-header,
   :root.perf-interaction .bottom-sheet,
   :root.perf-interaction .bottom-sheet-inner {
@@ -62,7 +62,7 @@ body {
   }
 }
 
-@media (max-width: 1023.98px) {
+@media (max-width: 1023.98px) and (min-height: 501px) {
   .app-header {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
@@ -256,7 +256,7 @@ body {
   border-top-right-radius: var(--radius-lg);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px), (max-height: 500px) {
   .bottom-sheet {
     border-radius: var(--radius-lg);
     background: transparent;
@@ -267,7 +267,7 @@ body {
   }
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1023px) and (min-height: 501px) {
   .bottom-sheet {
     border-bottom-left-radius: unset;
     border-bottom-right-radius: unset;
