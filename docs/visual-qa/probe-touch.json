@@ -1,14 +1,14 @@
 {
   "before": {
     "sheetScrollTop": 0,
-    "firstStepTop": 484,
-    "lastStepBottom": 1622,
+    "firstStepTop": 436,
+    "lastStepBottom": 1689,
     "viewportH": 844
   },
   "afterSwipeUp": {
-    "sheetScrollTop": 830,
-    "firstStepTop": -346,
-    "lastStepBottom": 792,
+    "sheetScrollTop": 896,
+    "firstStepTop": -460,
+    "lastStepBottom": 793,
     "viewportH": 844
   }
 }

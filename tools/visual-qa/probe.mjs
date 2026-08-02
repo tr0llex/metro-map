@@ -160,7 +160,7 @@ async function main() {
     // --- B. Дальний переход (out-of-station) в маршруте
     for (const profile of ['mobile', 'desktop']) {
       const { context, page } = await open(browser, profile)
-      await buildRoute(page, 'Октябрьское поле', 'Панфиловская')
+      await buildRoute(page, 'Октябрьское Поле', 'Панфиловская')
       await page.screenshot({ path: path.join(OUT_DIR, `${profile}-15-long-transfer.png`) })
 
       // зум в область маршрута: курсор в видимой части карты (верхняя треть)

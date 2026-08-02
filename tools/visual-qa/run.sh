@@ -72,6 +72,17 @@ if [ "${QA_PUBLISH:-0}" = "1" ]; then
   mkdir -p "$REPO_ROOT/docs/visual-qa"
   cp -f "$OUT_DIR"/*.png "$OUT_DIR"/*.json "$REPO_ROOT/docs/visual-qa/"
   echo "    скопировано; проверьте git status и закоммитьте осознанно"
+else
+  # Сравнение с эталоном. Ради него стенд и нужен: MetroMap.tsx юнит-тестами
+  # не проверить, а попиксельная сверка ловит ровно то, что видит человек.
+  # При публикации не запускаем: там эталон и обновляется.
+  echo "==> сравнение с эталоном docs/visual-qa"
+  ( cd "$REPO_ROOT" && node tools/visual-qa/compare.mjs "$OUT_DIR" ) || QA_DIFF=1
 fi
 
 echo "==> Готово. Скриншоты и report.json: $OUT_DIR"
+
+if [ "${QA_DIFF:-0}" = "1" ]; then
+  echo "==> ЕСТЬ РАСХОЖДЕНИЯ С ЭТАЛОНОМ (см. выше)"
+  exit 1
+fi
