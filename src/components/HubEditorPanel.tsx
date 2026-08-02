@@ -131,6 +131,165 @@ export function HubEditorPanel({
   const [geoUpdateStatus, setGeoUpdateStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [geoUpdateError, setGeoUpdateError] = useState<string | null>(null)
 
+  /**
+   * Список связей строится один раз и показывается на обеих вкладках.
+   *
+   * Время перегона — самая частая правка в редакторе, а лежало оно только на
+   * вкладке «Связи»: до поля приходилось идти через лишний щелчок по вкладке,
+   * и так на каждую станцию. Вкладка остаётся — там же заводят новые связи и
+   * удаляют лишние, — но сам список теперь виден сразу.
+   */
+  const connectionsList = (
+    <ul className="hub-editor-list hub-editor-list--compact">
+      {inspectedEdges.length === 0 && (
+        <li className="hub-editor-list-item hub-editor-list-item--muted">
+          Нет явных рёбер для этой станции
+        </li>
+      )}
+      {inspectedEdges.map((e, index) => {
+        const otherId =
+          e.fromStationId === inspectedStation.id ? e.toStationId : e.fromStationId
+        const other = stationById.get(otherId)
+        const line =
+          e.lineNumericId != null ? lineByNumericId.get(e.lineNumericId) : undefined
+        const key = edgeKey(e.fromStationId, e.toStationId)
+        const edgeOverride = edgeOverrides[key]
+        const manualKey = `manual:${key}`
+        const isManual = !!manualEdges[manualKey]
+        const effectiveIsTransfer =
+          edgeOverride && edgeOverride.isTransfer !== undefined
+            ? edgeOverride.isTransfer
+            : !!e.isTransfer
+        const effectiveSeconds =
+          edgeOverride && edgeOverride.medianTravelSeconds !== undefined
+            ? edgeOverride.medianTravelSeconds
+            : e.medianTravelSeconds
+        const isDisabled = !!(edgeOverride && edgeOverride.disabled)
+        // Тип пересадки — отдельное поле, а не вывод из времени.
+        // Панель показывала «близкая/дальняя» по порогу в шесть минут,
+        // но в файл всё равно уезжал прежний kind: поменять тип было
+        // нельзя ничем, а про mcc и out_of_station интерфейс молчал.
+        const effectiveKind: TransferKind =
+          edgeTransferKinds[key] ?? e.transferKind ?? DEFAULT_TRANSFER_KIND
+        const connectionLabel = effectiveIsTransfer ? 'пересадка' : 'перегон'
+        return (
+          <li
+            key={`${e.fromStationId}-${e.toStationId}-${index}`}
+            className={`hub-editor-list-item${
+              isDisabled ? ' hub-editor-list-item--edge-disabled' : ''
+            }`}
+          >
+            <span
+              className="hub-editor-line-dot"
+              style={line ? { backgroundColor: line.colorHex } : undefined}
+            />
+            <button
+              type="button"
+              className="hub-editor-connection-main hub-editor-connection-main--link"
+              onClick={() => focusStation(otherId)}
+            >
+              {stationOverrides[otherId]?.title ?? other?.title ?? otherId}
+            </button>
+            <button
+              type="button"
+              className={`hub-editor-connection-toggle${
+                effectiveIsTransfer ? ' hub-editor-connection-toggle--transfer' : ''
+              }`}
+              onClick={() => onToggleEdgeTransfer(e)}
+            >
+              {connectionLabel}
+            </button>
+            {effectiveIsTransfer && (
+              <select
+                className="hub-editor-connection-kind hub-editor-line-select"
+                aria-label={`Тип пересадки до «${other?.title ?? otherId}»`}
+                value={effectiveKind}
+                onChange={(event) => {
+                  const value = event.target.value
+                  // Значения приходят из своего же списка; проверка
+                  // нужна типу, а не человеку: сервер отвергает патч
+                  // целиком, если kind ему незнаком.
+                  if (isTransferKind(value)) onChangeEdgeTransferKind(e, value)
+                }}
+              >
+                {TRANSFER_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {TRANSFER_KIND_TITLES[kind]}
+                  </option>
+                ))}
+              </select>
+            )}
+            <div className="hub-editor-connection-meta">
+              <input
+                type="text"
+                inputMode="numeric"
+                className="hub-editor-connection-minutes"
+                // Формат «м:сс», но голые секунды тоже принимаются —
+                // см. travelTime.ts. Поле было целочисленным в минутах
+                // и портило 97% значений при простом щелчке мимо.
+                title="Время в формате м:сс — можно ввести и просто секунды"
+                aria-label={`Время до «${other?.title ?? otherId}», формат м:сс`}
+                value={edgeMinutesDraftByKey[key] ?? formatTravelTime(effectiveSeconds)}
+                onChange={(event) =>
+                  setEdgeMinutesDraftByKey((prev) => ({ ...prev, [key]: event.target.value }))
+                }
+                // Enter фиксирует значение, не дожидаясь ухода фокуса.
+                // Прежде правка засчитывалась только по blur, и Ctrl+S
+                // прямо из поля сохранял старое значение.
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') event.currentTarget.blur()
+                  if (event.key === 'Escape') {
+                    escapedEdgeKeyRef.current = key
+                    setEdgeMinutesDraftByKey((prev) => {
+                      if (!(key in prev)) return prev
+                      const next = { ...prev }
+                      delete next[key]
+                      return next
+                    })
+                    event.currentTarget.blur()
+                  }
+                }}
+                onBlur={(event) => {
+                  if (escapedEdgeKeyRef.current === key) {
+                    escapedEdgeKeyRef.current = null
+                    return
+                  }
+                  onChangeEdgeMinutes(e, event.target.value)
+                  setEdgeMinutesDraftByKey((prev) => {
+                    if (!(key in prev)) return prev
+                    const next = { ...prev }
+                    delete next[key]
+                    return next
+                  })
+                }}
+              />
+            </div>
+            {(isManual || edgeOverride) && (
+              <button
+                type="button"
+                className="hub-editor-bulk-button"
+                onClick={() => onResetEdgeEdits(e)}
+                title="Сбросить изменения ребра"
+                aria-label="Сбросить изменения ребра"
+              >
+                Сброс
+              </button>
+            )}
+            <button
+              type="button"
+              className={`hub-editor-edge-delete${
+                isDisabled ? ' hub-editor-edge-delete--restore' : ''
+              }`}
+              onClick={() => onToggleEdgeDisabled(e)}
+            >
+              {isDisabled ? 'Вернуть' : 'Удалить'}
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
   return (
     <aside className="hub-editor-panel">
       <header className="hub-editor-header">
@@ -280,6 +439,18 @@ export function HubEditorPanel({
               )}
             </section>
 
+            {/* Времена перегонов правят чаще всего остального вместе взятого,
+                а лежали они за вкладкой «Связи» — лишний щелчок на каждую
+                станцию. Здесь тот же самый список, без формы добавления связи:
+                заводить новые связи ходят редко, а править время — постоянно. */}
+            <section className="hub-editor-section">
+              <div className="hub-editor-section-title">Времена связей</div>
+              <div className="hub-editor-section-subtitle">
+                Формат м:сс. Новые связи — на вкладке «Связи».
+              </div>
+              {connectionsList}
+            </section>
+
             {/* Здесь было «Скрыть станцию». Кнопка не просто не сохранялась —
                 она ломала сохранение целиком: скрытая станция выпадала из
                 снапшота раскладки, сервер требует координаты у всех и отвечал
@@ -379,154 +550,7 @@ export function HubEditorPanel({
             {edgeAddError && (
               <div className="hub-editor-error-text">{edgeAddError}</div>
             )}
-            <ul className="hub-editor-list hub-editor-list--compact">
-              {inspectedEdges.length === 0 && (
-                <li className="hub-editor-list-item hub-editor-list-item--muted">
-                  Нет явных рёбер для этой станции
-                </li>
-              )}
-              {inspectedEdges.map((e, index) => {
-                const otherId =
-                  e.fromStationId === inspectedStation.id ? e.toStationId : e.fromStationId
-                const other = stationById.get(otherId)
-                const line =
-                  e.lineNumericId != null ? lineByNumericId.get(e.lineNumericId) : undefined
-                const key = edgeKey(e.fromStationId, e.toStationId)
-                const edgeOverride = edgeOverrides[key]
-                const manualKey = `manual:${key}`
-                const isManual = !!manualEdges[manualKey]
-                const effectiveIsTransfer =
-                  edgeOverride && edgeOverride.isTransfer !== undefined
-                    ? edgeOverride.isTransfer
-                    : !!e.isTransfer
-                const effectiveSeconds =
-                  edgeOverride && edgeOverride.medianTravelSeconds !== undefined
-                    ? edgeOverride.medianTravelSeconds
-                    : e.medianTravelSeconds
-                const isDisabled = !!(edgeOverride && edgeOverride.disabled)
-                // Тип пересадки — отдельное поле, а не вывод из времени.
-                // Панель показывала «близкая/дальняя» по порогу в шесть минут,
-                // но в файл всё равно уезжал прежний kind: поменять тип было
-                // нельзя ничем, а про mcc и out_of_station интерфейс молчал.
-                const effectiveKind: TransferKind =
-                  edgeTransferKinds[key] ?? e.transferKind ?? DEFAULT_TRANSFER_KIND
-                const connectionLabel = effectiveIsTransfer ? 'пересадка' : 'перегон'
-                return (
-                  <li
-                    key={`${e.fromStationId}-${e.toStationId}-${index}`}
-                    className={`hub-editor-list-item${
-                      isDisabled ? ' hub-editor-list-item--edge-disabled' : ''
-                    }`}
-                  >
-                    <span
-                      className="hub-editor-line-dot"
-                      style={line ? { backgroundColor: line.colorHex } : undefined}
-                    />
-                    <button
-                      type="button"
-                      className="hub-editor-connection-main hub-editor-connection-main--link"
-                      onClick={() => focusStation(otherId)}
-                    >
-                      {stationOverrides[otherId]?.title ?? other?.title ?? otherId}
-                    </button>
-                    <button
-                      type="button"
-                      className={`hub-editor-connection-toggle${
-                        effectiveIsTransfer ? ' hub-editor-connection-toggle--transfer' : ''
-                      }`}
-                      onClick={() => onToggleEdgeTransfer(e)}
-                    >
-                      {connectionLabel}
-                    </button>
-                    {effectiveIsTransfer && (
-                      <select
-                        className="hub-editor-connection-kind hub-editor-line-select"
-                        aria-label={`Тип пересадки до «${other?.title ?? otherId}»`}
-                        value={effectiveKind}
-                        onChange={(event) => {
-                          const value = event.target.value
-                          // Значения приходят из своего же списка; проверка
-                          // нужна типу, а не человеку: сервер отвергает патч
-                          // целиком, если kind ему незнаком.
-                          if (isTransferKind(value)) onChangeEdgeTransferKind(e, value)
-                        }}
-                      >
-                        {TRANSFER_KINDS.map((kind) => (
-                          <option key={kind} value={kind}>
-                            {TRANSFER_KIND_TITLES[kind]}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    <div className="hub-editor-connection-meta">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className="hub-editor-connection-minutes"
-                        // Формат «м:сс», но голые секунды тоже принимаются —
-                        // см. travelTime.ts. Поле было целочисленным в минутах
-                        // и портило 97% значений при простом щелчке мимо.
-                        title="Время в формате м:сс — можно ввести и просто секунды"
-                        aria-label={`Время до «${other?.title ?? otherId}», формат м:сс`}
-                        value={edgeMinutesDraftByKey[key] ?? formatTravelTime(effectiveSeconds)}
-                        onChange={(event) =>
-                          setEdgeMinutesDraftByKey((prev) => ({ ...prev, [key]: event.target.value }))
-                        }
-                        // Enter фиксирует значение, не дожидаясь ухода фокуса.
-                        // Прежде правка засчитывалась только по blur, и Ctrl+S
-                        // прямо из поля сохранял старое значение.
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') event.currentTarget.blur()
-                          if (event.key === 'Escape') {
-                            escapedEdgeKeyRef.current = key
-                            setEdgeMinutesDraftByKey((prev) => {
-                              if (!(key in prev)) return prev
-                              const next = { ...prev }
-                              delete next[key]
-                              return next
-                            })
-                            event.currentTarget.blur()
-                          }
-                        }}
-                        onBlur={(event) => {
-                          if (escapedEdgeKeyRef.current === key) {
-                            escapedEdgeKeyRef.current = null
-                            return
-                          }
-                          onChangeEdgeMinutes(e, event.target.value)
-                          setEdgeMinutesDraftByKey((prev) => {
-                            if (!(key in prev)) return prev
-                            const next = { ...prev }
-                            delete next[key]
-                            return next
-                          })
-                        }}
-                      />
-                    </div>
-                    {(isManual || edgeOverride) && (
-                      <button
-                        type="button"
-                        className="hub-editor-bulk-button"
-                        onClick={() => onResetEdgeEdits(e)}
-                        title="Сбросить изменения ребра"
-                        aria-label="Сбросить изменения ребра"
-                      >
-                        Сброс
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={`hub-editor-edge-delete${
-                        isDisabled ? ' hub-editor-edge-delete--restore' : ''
-                      }`}
-                      onClick={() => onToggleEdgeDisabled(e)}
-                    >
-                      {isDisabled ? 'Вернуть' : 'Удалить'}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+            {connectionsList}
           </section>
         )}
 
