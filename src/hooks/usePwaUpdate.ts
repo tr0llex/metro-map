@@ -76,7 +76,17 @@ export function usePwaUpdate(): PwaUpdateState {
 
     const reg = swRegistrationRef.current
     if (!reg) return
-    void reg.update()
+
+    // update() отклоняется, если регистрация к этому моменту мертва: воркер
+    // стал redundant или регистрацию сняли (в том числе чисткой легаси ниже, из
+    // другой вкладки или самим Safari при вытеснении). Это не ошибка приложения
+    // — проверять больше нечего, поэтому забываем ссылку и молчим. Без catch
+    // отказ всплывал бы как unhandledrejection и попадал в журнал ошибок.
+    void reg.update().catch(() => {
+      if (swRegistrationRef.current === reg) {
+        swRegistrationRef.current = undefined
+      }
+    })
   }, [])
 
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
