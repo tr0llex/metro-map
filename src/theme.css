@@ -258,7 +258,11 @@ body {
 
 @media (min-width: 1024px), (max-height: 500px) {
   .bottom-sheet {
-    border-radius: var(--radius-lg);
+    /* Верхние углы распрямлены — см. комментарий у того же правила в App.css:
+       .bottom-sheet прозрачна и это скругление ничего не рисует, но `contain:
+       paint` режет по нему содержимое, откусывая верхние углы карточки на
+       стыке с шапкой. */
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     background: transparent;
     border: none;
     box-shadow: none;
