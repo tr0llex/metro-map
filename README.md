@@ -1,6 +1,6 @@
-English · [Русский](docs/README.ru.md)
-
 # Moscow Metro
+
+English · [Русский](README.ru.md)
 
 **[metro.samoy.love](https://metro.samoy.love)** — an offline-first route planner for the
 Moscow Metro. The diagram is drawn on canvas from pre-solved coordinates and routes are
