@@ -6,7 +6,7 @@ import {
   fullGraphRingShapes,
 } from '../metro/fullGraph'
 import { lineStationPairs } from '../metro/lineSegments'
-import type { FullGraphStation, PositionedStation } from '../metro/types'
+import type { PositionedStation } from '../metro/types'
 import {
   LABEL_NODE_RADIUS_HUB,
   LABEL_NODE_RADIUS_STATION,
@@ -46,36 +46,17 @@ interface MetroMapProps {
   collisionDebug?: boolean
   /** Колбэк для передачи наружу текущих оверрайдов координат станций */
   onLayoutChange?: (overrides: Record<string, { x: number; y: number }>) => void
-
-  /** Канонические данные редактора для пайплайна (grid/ringShapes/theta), опционально */
-  onCanonicalLayoutChange?: (payload: {
-    grid: { stepPx: number }
-    ringShapes: Record<string, CanonicalRingShape>
-    stationParams: Record<string, CanonicalStationParams>
-  }) => void
   editorLayoutOverrides?: Record<string, { x: number; y: number }>
   editorLayoutApplyToken?: number
   /** Колбэк при взаимодействии с картой (pan/zoom), например, чтобы сворачивать UI-шторки */
   onMapInteraction?: () => void
   /** Клик по станции в режиме редактирования для открытия окна редактирования хаба */
   onEditStationInspect?: (stationId: string) => void
-  /** Оверрайды hubId для станций из редактора (App), stationId -> hubId | null */
-  stationHubOverrides?: Record<string, string | null>
-  /** Набор ID станций, которые следует скрыть с карты (soft delete в редакторе) */
-  hiddenStationIds?: Set<string>
   /** Отступы невидимой области поверх карты (header, bottom-sheet, редактор), в px */
   visibleInsets?: { top: number; right: number; bottom: number; left: number }
   getBottomInsetPx?: () => number
   /** Переопределения названий станций по id (editor overrides) */
   stationTitleOverrides?: Record<string, string>
-  /** Дополнительные станции, созданные вручную в редакторе (manualStations из App) */
-  extraStations?: FullGraphStation[]
-  /** Флаг блокировки взаимодействий карты (pan/zoom), когда внешний UI в режиме выбора маршрута */
-  interactionsLocked?: boolean
-  hubRotateCommand?: { hubId: string; direction: 'cw' | 'ccw'; token: number } | null
-  hubMirrorCommand?: { hubId: string; token: number } | null
-  /** Изменение набора выделенных станций в режиме редактора (для bulk-операций в UI) */
-  onEditSelectionChange?: (selectedIds: string[]) => void
   onInitialViewportReady?: () => void
   /** Открыта ли мобильная шторка с деталями маршрута (для учёта её высоты при автофите). */
   routeSheetOpen?: boolean
@@ -224,8 +205,6 @@ const STATION_FILL_COLOR = '#ffffff'
 const HUB_PIE_BASE_ALPHA = 0.96
 const HUB_DIM_ALPHA_WHEN_ROUTE = 0.35
 
-const HUB_ROTATE_STEP_RAD = (Math.PI / 180) * 15
-
 const EDITOR_GRID_STEP_PX = 8
 
 const ROUTE_PULSE_DURATION_MS = 1500
@@ -277,16 +256,6 @@ const LABEL_MIN_RENDER_DOWNSCALE = 0.32
 type RingShape =
   | { kind: 'circle'; cx: number; cy: number; r: number }
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
-
-// Формат совпадает с контрактом `ringShapes` в fullGraph.json: ровно circle/ellipse.
-// Раньше эллипс экспортировался как `superellipse` с зашитым n=2 — это то же самое
-// по геометрии, но другое по имени, и солверу приходилось считать его псевдонимом.
-// Экспортируем честное имя, чтобы редактор и рантайм говорили на одном языке.
-type CanonicalRingShape =
-  | { kind: 'circle'; cx: number; cy: number; r: number }
-  | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
-
-type CanonicalStationParams = { gridPos?: { gx: number; gy: number }; theta?: number }
 
 const getRingShapeForLine = (
   lineId: number,
@@ -404,20 +373,6 @@ const LABEL_RING_SAMPLES = 360
 /** Параллельный сдвиг линий, делящих один перегон (общий коридор). */
 const CORRIDOR_OFFSET_WORLD = 3
 
-const thetaForRingShape = (shape: RingShape, x: number, y: number) => {
-  if (shape.kind === 'circle') {
-    return Math.atan2(y - shape.cy, x - shape.cx)
-  }
-  return Math.atan2((y - shape.cy) / shape.ry, (x - shape.cx) / shape.rx)
-}
-
-const canonicalRingShapeFromRingShape = (shape: RingShape): CanonicalRingShape => {
-  if (shape.kind === 'circle') {
-    return { kind: 'circle', cx: shape.cx, cy: shape.cy, r: shape.r }
-  }
-  return { kind: 'ellipse', cx: shape.cx, cy: shape.cy, rx: shape.rx, ry: shape.ry }
-}
-
 // Внутренний флаг по умолчанию: отладочный режим коллизий подписей.
 // Управляется извне через prop collisionDebug, это значение используется как дефолт.
 const LABEL_COLLISION_DEBUG_DEFAULT = false
@@ -440,21 +395,13 @@ export const MetroMap = memo(function MetroMap({
   editMode = false,
   collisionDebug,
   onLayoutChange,
-  onCanonicalLayoutChange,
   editorLayoutOverrides,
   editorLayoutApplyToken,
   onMapInteraction,
   onEditStationInspect,
-  stationHubOverrides,
-  hiddenStationIds,
   visibleInsets,
   getBottomInsetPx,
   stationTitleOverrides,
-  extraStations,
-  interactionsLocked,
-  hubRotateCommand,
-  hubMirrorCommand,
-  onEditSelectionChange,
   onInitialViewportReady,
   editorFocusCommand,
   routeSheetOpen = false,
@@ -656,8 +603,6 @@ export const MetroMap = memo(function MetroMap({
   const [hasInitialViewport, setHasInitialViewport] = useState(false)
   const initialViewportReportedRef = useRef(false)
 
-  const lastHubRotateTokenRef = useRef<number | null>(null)
-  const lastHubMirrorTokenRef = useRef<number | null>(null)
   const lastEditorFocusTokenRef = useRef<number | null>(null)
 
   const routePulseRef = useRef<{ startedAt: number } | null>(null)
@@ -972,7 +917,6 @@ export const MetroMap = memo(function MetroMap({
     {},
   )
 
-  const lastCanonicalSnapshotRef = useRef<string | null>(null)
   const lastEditorLayoutApplyTokenRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -990,7 +934,6 @@ export const MetroMap = memo(function MetroMap({
   const dragRingShapesByLineIdRef = useRef<Map<number, RingShape>>(new Map())
 
   const positionedStations = useMemo(() => {
-    const hidden = hiddenStationIds
     const usedStationIds = new Set<string>()
     for (const line of fullGraphLines) {
       for (const sid of line.stationIds) usedStationIds.add(sid)
@@ -1006,49 +949,19 @@ export const MetroMap = memo(function MetroMap({
       if (s.lineNumericId == null) continue
       if (!usedStationIds.has(s.id)) continue
       if (typeof s.layoutX !== 'number' || typeof s.layoutY !== 'number') continue
-      if (hidden && hidden.has(s.id)) continue
 
       const color = lineColorById.get(s.lineNumericId) ?? '#000000'
-      const override = stationHubOverrides?.[s.id]
-      let hubId = s.hubId
-      if (override === null) hubId = undefined
-      else if (override !== undefined) hubId = override
       const titleOverride = stationTitleOverrides?.[s.id]
       const title = titleOverride && titleOverride.trim().length > 0 ? titleOverride : s.title
       base.push({
         id: s.id,
         title,
         lineId: s.lineNumericId,
-        hubId,
+        hubId: s.hubId,
         x: s.layoutX,
         y: s.layoutY,
         lineColor: color,
       })
-    }
-
-    if (extraStations && extraStations.length > 0) {
-      for (const s of extraStations) {
-        if (s.lineNumericId == null) continue
-        if (typeof s.layoutX !== 'number' || typeof s.layoutY !== 'number') continue
-        if (hidden && hidden.has(s.id)) continue
-
-        const color = lineColorById.get(s.lineNumericId) ?? '#000000'
-        const override = stationHubOverrides?.[s.id]
-        let hubId = s.hubId
-        if (override === null) hubId = undefined
-        else if (override !== undefined) hubId = override
-        const titleOverride = stationTitleOverrides?.[s.id]
-        const title = titleOverride && titleOverride.trim().length > 0 ? titleOverride : s.title
-        base.push({
-          id: s.id,
-          title,
-          lineId: s.lineNumericId,
-          hubId,
-          x: s.layoutX,
-          y: s.layoutY,
-          lineColor: color,
-        })
-      }
     }
 
     // Применяем оверрайды из редактора, если они есть
@@ -1067,7 +980,7 @@ export const MetroMap = memo(function MetroMap({
     // это ровно то, что видит пользователь. Проекцию делает оффлайн-солвер,
     // иначе хабы, снапнутые в одну точку, разъезжаются на экране.
     return withOverrides
-  }, [stationOverrides, stationHubOverrides, hiddenStationIds, stationTitleOverrides, extraStations])
+  }, [stationOverrides, stationTitleOverrides])
 
   const positionedById = useMemo(() => {
     const map = new Map<string, PositionedStation>()
@@ -1164,13 +1077,6 @@ export const MetroMap = memo(function MetroMap({
   const selectedStationIdSet = useMemo(() => {
     return new Set(selectedStationIds)
   }, [selectedStationIds])
-
-  useEffect(() => {
-    if (!onEditSelectionChange) return
-    // Вне режима редактирования считаем, что выбор пустой,
-    // чтобы не тянуть "хвост" старого выделения в UI редактора.
-    onEditSelectionChange(editMode ? selectedStationIds : [])
-  }, [selectedStationIds, editMode, onEditSelectionChange])
 
   const routeStationIdSet = useMemo(() => {
     if (!routeStationIds || routeStationIds.length === 0) return new Set<string>()
@@ -1296,73 +1202,6 @@ export const MetroMap = memo(function MetroMap({
     [positionedStations],
   )
 
-  useEffect(() => {
-    if (!editMode) return
-    if (!hubRotateCommand) return
-
-    const { hubId, direction, token } = hubRotateCommand
-    if (token == null) return
-    if (lastHubRotateTokenRef.current === token) return
-    lastHubRotateTokenRef.current = token
-
-    const group = positionedStations.filter((st) => st.hubId === hubId)
-    if (group.length === 0) return
-
-    let cx = 0
-    let cy = 0
-    for (const st of group) {
-      cx += st.x
-      cy += st.y
-    }
-    cx /= group.length
-    cy /= group.length
-
-    const angle = direction === 'cw' ? -HUB_ROTATE_STEP_RAD : HUB_ROTATE_STEP_RAD
-    const cosA = Math.cos(angle)
-    const sinA = Math.sin(angle)
-
-    setStationOverrides((prev) => {
-      const next = { ...prev }
-      for (const st of group) {
-        const dx = st.x - cx
-        const dy = st.y - cy
-        const rx = cx + dx * cosA - dy * sinA
-        const ry = cy + dx * sinA + dy * cosA
-        next[st.id] = { x: rx, y: ry }
-      }
-      return next
-    })
-  }, [hubRotateCommand, positionedStations, editMode])
-
-  useEffect(() => {
-    if (!editMode) return
-    if (!hubMirrorCommand) return
-
-    const { hubId, token } = hubMirrorCommand
-    if (token == null) return
-    if (lastHubMirrorTokenRef.current === token) return
-    lastHubMirrorTokenRef.current = token
-
-    const group = positionedStations.filter((st) => st.hubId === hubId)
-    if (group.length === 0) return
-
-    let cx = 0
-    for (const st of group) {
-      cx += st.x
-    }
-    cx /= group.length
-
-    setStationOverrides((prev) => {
-      const next = { ...prev }
-      for (const st of group) {
-        const dx = st.x - cx
-        const rx = cx - dx
-        next[st.id] = { x: rx, y: st.y }
-      }
-      return next
-    })
-  }, [hubMirrorCommand, positionedStations, editMode])
-
   const lastLayoutSnapshotRef = useRef<Record<string, { x: number; y: number }>>({})
 
   // Включение режима редактора обязано заново отправить снимок раскладки.
@@ -1381,10 +1220,9 @@ export const MetroMap = memo(function MetroMap({
   useEffect(() => {
     if (!onLayoutChange) return
     // T-10: в продакшене реального потребителя снапшотов нет —
-    // `useNoopEditorController` отдаёт `onLayoutChange`/`onCanonicalLayoutChange`
-    // как `noop`, а не как `undefined`, поэтому проверка выше не спасала, и
-    // каждый пересчёт раскладки строил снапшот всех станций, считал
-    // stationParams и делал JSON.stringify payload'а — результат выбрасывался.
+    // `useNoopEditorController` отдаёт `onLayoutChange` как `noop`, а не как
+    // `undefined`, поэтому проверка выше не спасала, и каждый пересчёт
+    // раскладки строил снапшот всех станций — результат выбрасывался.
     // Сам редактор в прод-бандл не попадает (tree-shaking в App.tsx), так что
     // считать это имеет смысл только в dev-сборке.
     if (!import.meta.env.DEV) return
@@ -1435,48 +1273,7 @@ export const MetroMap = memo(function MetroMap({
     lastLayoutSnapshotRef.current = snapshot
     onLayoutChange(snapshot)
 
-    if (onCanonicalLayoutChange) {
-      const stationParams: Record<string, CanonicalStationParams> = {}
-      for (const [id, p] of Object.entries(snapshot)) {
-        const gx = Math.round(p.x / EDITOR_GRID_STEP_PX)
-        const gy = Math.round(p.y / EDITOR_GRID_STEP_PX)
-        const params: CanonicalStationParams = { gridPos: { gx, gy } }
-
-        const st = positionedById.get(id)
-        if (st && typeof st.lineId === 'number') {
-          const shape = dragRingShapesByLineIdRef.current.get(st.lineId)
-          if (shape) {
-            params.theta = thetaForRingShape(shape, p.x, p.y)
-            delete params.gridPos
-          }
-        }
-
-        stationParams[id] = params
-      }
-
-      const ringShapes: Record<string, CanonicalRingShape> = {}
-      for (const [lineId, shape] of dragRingShapesByLineIdRef.current.entries()) {
-        ringShapes[String(lineId)] = canonicalRingShapeFromRingShape(shape)
-      }
-
-      const payload = {
-        grid: { stepPx: EDITOR_GRID_STEP_PX },
-        ringShapes,
-        stationParams,
-      }
-      const key = JSON.stringify(payload)
-      if (lastCanonicalSnapshotRef.current !== key) {
-        lastCanonicalSnapshotRef.current = key
-        onCanonicalLayoutChange(payload)
-      }
-    }
-  }, [
-    positionedStations,
-    onLayoutChange,
-    onCanonicalLayoutChange,
-    positionedById,
-    editMode,
-  ])
+  }, [positionedStations, onLayoutChange, editMode])
 
   useEffect(() => {
     if (!editMode) {
@@ -3407,7 +3204,6 @@ export const MetroMap = memo(function MetroMap({
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
-      if (interactionsLocked && !editMode) return
       if (onMapInteraction) onMapInteraction()
       // Жест забирает управление у доводки камеры немедленно: иначе она
       // продолжит тянуть к своей цели и будет спорить с рукой.
@@ -3575,9 +3371,7 @@ export const MetroMap = memo(function MetroMap({
     [
       clampViewport,
       commitViewportFromRef,
-      editMode,
       finishWheelZoom,
-      interactionsLocked,
       minScaleAllowed,
       onMapInteraction,
       stopViewportEase,
@@ -3599,19 +3393,16 @@ export const MetroMap = memo(function MetroMap({
   }, [handleWheel])
 
   const handleZoomIn = () => {
-    if (interactionsLocked && !editMode) return
     if (onMapInteraction) onMapInteraction()
     scheduleZoomHold(1)
   }
 
   const handleZoomOut = () => {
-    if (interactionsLocked && !editMode) return
     if (onMapInteraction) onMapInteraction()
     scheduleZoomHold(-1 as 1 | -1)
   }
 
   const handleMouseDown: React.MouseEventHandler<HTMLCanvasElement> = (event) => {
-    if (interactionsLocked) return
     stopPanInertia()
     panVelocityRef.current = { vx: 0, vy: 0 }
     panLastSampleTimeRef.current = typeof event.timeStamp === 'number' ? event.timeStamp : null
@@ -3713,7 +3504,6 @@ export const MetroMap = memo(function MetroMap({
   }
 
   const handleMouseMove: React.MouseEventHandler<HTMLCanvasElement> = (event) => {
-    if (interactionsLocked && !editMode) return
     if (editMode && dragStationIds && dragStartWorldRef.current) {
       const world = getWorldPointFromMouse(event)
       if (!world) return
@@ -3836,7 +3626,6 @@ export const MetroMap = memo(function MetroMap({
   }
 
   const handleTouchStart: React.TouchEventHandler<HTMLCanvasElement> = (event) => {
-    if (interactionsLocked && !editMode) return
     if (event.touches.length > 1) {
       multiTouchSessionRef.current = true
     }
@@ -3942,7 +3731,6 @@ export const MetroMap = memo(function MetroMap({
   }
 
   const handleTouchMove: React.TouchEventHandler<HTMLCanvasElement> = (event) => {
-    if (interactionsLocked && !editMode) return
     if (event.touches.length === 1 && zoomDragActiveRef.current) {
       const touch = event.touches[0]
       const center = zoomDragCenterClientRef.current
@@ -4464,7 +4252,6 @@ export const MetroMap = memo(function MetroMap({
   }
 
   const handleCanvasKeyDown: React.KeyboardEventHandler<HTMLCanvasElement> = (event) => {
-    if (interactionsLocked && !editMode) return
 
     switch (event.key) {
       case 'ArrowLeft':
@@ -4590,9 +4377,6 @@ export const MetroMap = memo(function MetroMap({
           className="metro-map-zoom-button"
           onClick={(event) => {
             event.preventDefault()
-            if (interactionsLocked && !editMode) {
-              return
-            }
             if (zoomSuppressClickRef.current) {
               // Клик завершает удержание — не делаем дополнительный шаг.
               zoomSuppressClickRef.current = false
@@ -4635,9 +4419,6 @@ export const MetroMap = memo(function MetroMap({
           className="metro-map-zoom-button"
           onClick={(event) => {
             event.preventDefault()
-            if (interactionsLocked && !editMode) {
-              return
-            }
             if (zoomSuppressClickRef.current) {
               zoomSuppressClickRef.current = false
               return
