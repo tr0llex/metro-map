@@ -6,11 +6,9 @@
 по московскому метро. Схема рисуется на канвасе по предрасчитанным координатам, маршрут
 считается на устройстве — приложение целиком работает без сети.
 
-<!-- Плейсхолдеры. Как заменить — screenshots/README.md -->
-
 | Вся схема | Маршрут | Пересадочный узел |
 |---|---|---|
-| ![Вся схема](screenshots/overview.svg) | ![Маршрут](screenshots/route.svg) | ![Пересадочный узел](screenshots/interchange.svg) |
+| ![Вся схема](screenshots/overview.webp) | ![Маршрут](screenshots/route.webp) | ![Пересадочный узел](screenshots/interchange.webp) |
 
 ## Зачем
 

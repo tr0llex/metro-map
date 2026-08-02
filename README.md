@@ -9,11 +9,9 @@ computed on the device, so the whole thing keeps working with no network at all.
 [![CI](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/tr0llex/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/metro-map)
 
-<!-- Плейсхолдеры. Как заменить — docs/screenshots/README.md -->
-
 | Whole network | A route | A merged interchange |
 |---|---|---|
-| ![Whole network](docs/screenshots/overview.svg) | ![A route](docs/screenshots/route.svg) | ![A merged interchange](docs/screenshots/interchange.svg) |
+| ![Whole network](docs/screenshots/overview.webp) | ![A route](docs/screenshots/route.webp) | ![A merged interchange](docs/screenshots/interchange.webp) |
 
 ## Why
 
