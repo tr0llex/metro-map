@@ -434,43 +434,56 @@ export function RouteForm({
           onSelectFromSuggestion,
           fromNoMatches,
         )}
-        {fromSelectedColor && (
-          <span
-            className="bottom-input-line-dot"
-            style={{ backgroundColor: fromSelectedColor }}
-            aria-hidden="true"
+        {/*
+          Обёртка вокруг поля — не украшение разметки.
+
+          Точка цвета линии и крестик очистки позиционируются абсолютно и
+          центрируются по `top: 50%`. Пока они считали проценты от всего
+          `.bottom-field`, любая подсказка под полем растягивала контейнер, и
+          оба уезжали вниз на половину её высоты: точка цвета линии съезжала с
+          поля почти на нижнюю кромку ровно в тот момент, когда появлялось
+          сообщение об ошибке. Теперь отсчёт идёт от коробки самого поля ввода,
+          а подсказка растёт снаружи неё и ничего не двигает.
+        */}
+        <div className="bottom-field-control">
+          {fromSelectedColor && (
+            <span
+              className="bottom-input-line-dot"
+              style={{ backgroundColor: fromSelectedColor }}
+              aria-hidden="true"
+            />
+          )}
+          <input
+            id={fromInputId}
+            className={`bottom-input${fromSelectedColor ? ' bottom-input--with-line-dot' : ''}`}
+            type="text"
+            placeholder="Откуда"
+            value={fromStation}
+            ref={fromInputRef}
+            {...NO_SYSTEM_AUTOCOMPLETE}
+            onChange={(e) => onFromChange(e.target.value)}
+            onKeyDown={onFromKeyDown}
+            onFocus={onFromFocus}
+            onBlur={onFromBlur}
+            role="combobox"
+            aria-label="Станция отправления"
+            aria-autocomplete="list"
+            aria-controls={fromListboxId}
+            aria-expanded={fromListOpen}
+            aria-activedescendant={fromSuggestions.length > 0 ? fromActiveOptionId : undefined}
+            aria-describedby={fromHint ? fromHintId : undefined}
           />
-        )}
-        <input
-          id={fromInputId}
-          className={`bottom-input${fromSelectedColor ? ' bottom-input--with-line-dot' : ''}`}
-          type="text"
-          placeholder="Откуда"
-          value={fromStation}
-          ref={fromInputRef}
-          {...NO_SYSTEM_AUTOCOMPLETE}
-          onChange={(e) => onFromChange(e.target.value)}
-          onKeyDown={onFromKeyDown}
-          onFocus={onFromFocus}
-          onBlur={onFromBlur}
-          role="combobox"
-          aria-label="Станция отправления"
-          aria-autocomplete="list"
-          aria-controls={fromListboxId}
-          aria-expanded={fromListOpen}
-          aria-activedescendant={fromSuggestions.length > 0 ? fromActiveOptionId : undefined}
-          aria-describedby={fromHint ? fromHintId : undefined}
-        />
-        {fromStation && (
-          <button
-            type="button"
-            className="bottom-input-clear"
-            onClick={onClearFrom}
-            aria-label="Очистить поле Откуда"
-          >
-            <IconClose />
-          </button>
-        )}
+          {fromStation && (
+            <button
+              type="button"
+              className="bottom-input-clear"
+              onClick={onClearFrom}
+              aria-label="Очистить поле Откуда"
+            >
+              <IconClose />
+            </button>
+          )}
+        </div>
         {fromHint && renderFieldHint(fromHintId, fromHint)}
       </div>
 
@@ -497,43 +510,46 @@ export function RouteForm({
           onSelectToSuggestion,
           toNoMatches,
         )}
-        {toSelectedColor && (
-          <span
-            className="bottom-input-line-dot"
-            style={{ backgroundColor: toSelectedColor }}
-            aria-hidden="true"
+        {/* Обёртка — см. комментарий у поля «Откуда». */}
+        <div className="bottom-field-control">
+          {toSelectedColor && (
+            <span
+              className="bottom-input-line-dot"
+              style={{ backgroundColor: toSelectedColor }}
+              aria-hidden="true"
+            />
+          )}
+          <input
+            id={toInputId}
+            className={`bottom-input${toSelectedColor ? ' bottom-input--with-line-dot' : ''}`}
+            type="text"
+            placeholder="Куда"
+            value={toStation}
+            ref={toInputRef}
+            {...NO_SYSTEM_AUTOCOMPLETE}
+            onChange={(e) => onToChange(e.target.value)}
+            onKeyDown={onToKeyDown}
+            onFocus={onToFocus}
+            onBlur={onToBlur}
+            role="combobox"
+            aria-label="Станция назначения"
+            aria-autocomplete="list"
+            aria-controls={toListboxId}
+            aria-expanded={toListOpen}
+            aria-activedescendant={toSuggestions.length > 0 ? toActiveOptionId : undefined}
+            aria-describedby={toHint ? toHintId : undefined}
           />
-        )}
-        <input
-          id={toInputId}
-          className={`bottom-input${toSelectedColor ? ' bottom-input--with-line-dot' : ''}`}
-          type="text"
-          placeholder="Куда"
-          value={toStation}
-          ref={toInputRef}
-          {...NO_SYSTEM_AUTOCOMPLETE}
-          onChange={(e) => onToChange(e.target.value)}
-          onKeyDown={onToKeyDown}
-          onFocus={onToFocus}
-          onBlur={onToBlur}
-          role="combobox"
-          aria-label="Станция назначения"
-          aria-autocomplete="list"
-          aria-controls={toListboxId}
-          aria-expanded={toListOpen}
-          aria-activedescendant={toSuggestions.length > 0 ? toActiveOptionId : undefined}
-          aria-describedby={toHint ? toHintId : undefined}
-        />
-        {toStation && (
-          <button
-            type="button"
-            className="bottom-input-clear"
-            onClick={onClearTo}
-            aria-label="Очистить поле Куда"
-          >
-            <IconClose />
-          </button>
-        )}
+          {toStation && (
+            <button
+              type="button"
+              className="bottom-input-clear"
+              onClick={onClearTo}
+              aria-label="Очистить поле Куда"
+            >
+              <IconClose />
+            </button>
+          )}
+        </div>
         {toHint && renderFieldHint(toHintId, toHint)}
       </div>
     </div>
