@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { parseTravelTime } from './travelTime.ts'
 import {
   fullGraphEdges,
   fullGraphLines,
@@ -789,16 +790,17 @@ export function useEditorController(): EditorController {
   )
 
   const handleChangeEdgeMinutes = useCallback(
-    (edge: FullGraphEdge, minutesStr: string) => {
+    (edge: FullGraphEdge, timeStr: string) => {
       setEdgeOverrides((prev) => {
         const key = edgeKey(edge.fromStationId, edge.toStationId)
-        const raw = minutesStr.replace(',', '.').trim()
-        const minutes = raw === '' ? NaN : Number(raw)
         const current = prev[key]
 
         const baseSeconds = edge.medianTravelSeconds
-        const hasValidMinutes = Number.isFinite(minutes) && minutes > 0
-        const newSeconds = hasValidMinutes ? Math.round(minutes * 60) : undefined
+        // Разбор «м:сс» либо голых секунд — см. travelTime.ts о том, почему
+        // минуты как единица здесь не годятся. Ноль допустим: это осмысленное
+        // значение, а не отсутствие ввода.
+        const parsed = parseTravelTime(timeStr)
+        const newSeconds = parsed != null && parsed >= 0 ? parsed : undefined
 
         if (newSeconds === undefined) {
           if (!current) {

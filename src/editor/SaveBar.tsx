@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { fullGraphEdges, fullGraphLines, fullGraphStations } from '../metro/fullGraph.ts'
 import type { EditorSaveResponse } from '../../scripts/editor/editorApiPlugin.ts'
@@ -76,12 +76,36 @@ export function SaveBar({ editor }: { editor: EditorOverlayApi }) {
     }
   }, [built, dirty])
 
+  // Всегда актуальная ссылка на save: нужна для отложенного вызова после blur,
+  // где замыкание обработчика держит уже устаревший патч.
+  const saveRef = useRef(save)
+  useEffect(() => {
+    saveRef.current = save
+  }, [save])
+
   // Ctrl/Cmd+S — привычный жест сохранения; браузерное «сохранить страницу»
   // здесь только мешает.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 's' || !(event.ctrlKey || event.metaKey)) return
       event.preventDefault()
+
+      // Значения полей фиксируются при уходе фокуса. Ctrl+S прямо из поля
+      // ввода сохранял то, что было ДО набора: обработчик висит на window и
+      // срабатывал раньше, чем поле успевало отдать фокус. Уводим фокус сами
+      // и ждём кадр, чтобы blur успел записать правку в состояние.
+      const active = document.activeElement
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+        active.blur()
+        // Через реф, а не через save из замыкания: то замыкание держит патч,
+        // собранный ДО blur, — ровно то устаревшее значение, от которого мы
+        // здесь и уходим.
+        requestAnimationFrame(() => {
+          void saveRef.current()
+        })
+        return
+      }
+
       void save()
     }
     window.addEventListener('keydown', onKeyDown)
