@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatTravelTime } from '../editor/travelTime.ts'
 import type {
   FullGraphStation,
@@ -94,6 +94,18 @@ export function HubEditorPanel({
   })
   const [edgeMinutesDraftByKey, setEdgeMinutesDraftByKey] = useState<Record<string, string>>({})
 
+  /**
+   * Отметка «эту правку отменили Escape».
+   *
+   * Escape чистит черновик и тут же уводит фокус, но обработчик blur читает
+   * ЖИВОЕ значение поля — состояние обновиться не успевает, оно применится
+   * только к следующему рендеру. Без этой отметки отмена записывала ровно то,
+   * от чего человек отказался. Реф, а не состояние: значение нужно прочитать
+   * в том же событии, в котором оно поставлено.
+   */
+  const escapedEdgeKeyRef = useRef<string | null>(null)
+  const escapedTitleRef = useRef(false)
+
   useEffect(() => {
     setStationTitleDraft(stationTitleOverride ?? inspectedStation.title)
   }, [inspectedStation.id, inspectedStation.title, stationTitleOverride])
@@ -171,11 +183,18 @@ export function HubEditorPanel({
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') event.currentTarget.blur()
                     if (event.key === 'Escape') {
+                      escapedTitleRef.current = true
                       setStationTitleDraft(stationTitleOverride ?? inspectedStation.title)
                       event.currentTarget.blur()
                     }
                   }}
-                  onBlur={(event) => onChangeStationTitle(inspectedStation.id, event.target.value)}
+                  onBlur={(event) => {
+                    if (escapedTitleRef.current) {
+                      escapedTitleRef.current = false
+                      return
+                    }
+                    onChangeStationTitle(inspectedStation.id, event.target.value)
+                  }}
                 />
               </div>
               <div className="hub-editor-field">
@@ -428,6 +447,7 @@ export function HubEditorPanel({
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') event.currentTarget.blur()
                           if (event.key === 'Escape') {
+                            escapedEdgeKeyRef.current = key
                             setEdgeMinutesDraftByKey((prev) => {
                               if (!(key in prev)) return prev
                               const next = { ...prev }
@@ -438,6 +458,10 @@ export function HubEditorPanel({
                           }
                         }}
                         onBlur={(event) => {
+                          if (escapedEdgeKeyRef.current === key) {
+                            escapedEdgeKeyRef.current = null
+                            return
+                          }
                           onChangeEdgeMinutes(e, event.target.value)
                           setEdgeMinutesDraftByKey((prev) => {
                             if (!(key in prev)) return prev
