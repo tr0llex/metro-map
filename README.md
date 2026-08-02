@@ -236,7 +236,7 @@ npx tsc -b && npm run lint && npx vitest run && npm run build && npm run check:b
 
 ## 8. Деплой
 
-См. [`docs/DEPLOY.md`](docs/DEPLOY.md): сборка, конфигурация Netlify, правила кэширования
+См. [`docs/DEPLOY.md`](docs/DEPLOY.md): сборка, nginx, правила кэширования
 для своего nginx (хешированные ассеты, service worker, манифест, SPA-фоллбэк).
 
 ---
