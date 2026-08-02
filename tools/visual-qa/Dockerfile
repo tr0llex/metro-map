@@ -1,7 +1,7 @@
 # Стенд визуальной приёмки: настоящий Chromium из официального образа Playwright.
 # Внутри контейнера поднимается статик-сервер над примонтированным ./dist,
 # поэтому наружу (host.docker.internal) ходить не нужно — всё замкнуто в контейнере.
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+FROM mcr.microsoft.com/playwright:v1.62.1-jammy
 
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false \
     NPM_CONFIG_FUND=false \
