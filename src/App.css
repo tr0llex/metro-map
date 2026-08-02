@@ -271,7 +271,7 @@
   display: inline-flex;
   flex-direction: column;
   gap: var(--space-1);
-  padding: var(--space-2) var(--space-2) var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-2);
   border-radius: var(--radius-md);
   background: var(--color-surface-glass-strong);
   border: 1px solid var(--color-border-soft);
@@ -328,8 +328,10 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-width: 10rem;
-  max-width: min(18rem, 72vw);
+  /* Ширину задаёт длина названия станции, а не кнопки: они однострочные и
+     занимают ровно то, что нужно словам «Откуда» и «Куда». */
+  min-width: 8rem;
+  max-width: min(16rem, 72vw);
 }
 
 .station-pick-popover-title {
@@ -376,28 +378,6 @@
     filter 140ms ease-out,
     background-color 140ms ease-out,
     border-color 140ms ease-out;
-}
-
-/* Две строки в кнопке: что произойдёт и что при этом заменится.
-   В разметке между спанами стоит пробел (на случай отсутствия стилей) —
-   `display: block` у нижней строки его схлопывает, дополнительной правки
-   разметки не нужно. Уточнение слабее основной подписи и по кеглю, и по
-   цвету: выбирают по «Откуда/Куда», а «вместо …» только подтверждает. */
-.station-pick-popover-button-label {
-  display: block;
-}
-
-.station-pick-popover-button-sub {
-  display: block;
-  margin-top: 1px;
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-normal);
-  letter-spacing: normal;
-  line-height: 1.25;
-  color: var(--color-text-muted);
-  /* Названия станций бывают длинными («Улица Старокачаловская»), а кнопки
-     делят ширину поповера пополам — переносим по словам, а не рвём макет. */
-  overflow-wrap: anywhere;
 }
 
 .station-pick-popover-button[data-pressed='true'] {

@@ -44,6 +44,12 @@ export function StationPickPopover({
         type="button"
         className="station-pick-popover-button"
         data-pressed={pressed === mode ? 'true' : undefined}
+        /*
+         * «вместо …» осталось только здесь. Глазами это читается и без
+         * пояснения — поле одно, и его содержимое видно в шапке над картой, —
+         * а вот диктор поля не показывает, и без уточнения «Куда» звучало бы
+         * как «добавить ещё одну станцию».
+         */
         aria-label={
           occupied
             ? `Поставить «${data.stationName}» в поле «${label}» вместо «${currentTitle}»`
@@ -54,16 +60,7 @@ export function StationPickPopover({
           onPick(mode)
         }}
       >
-        <span className="station-pick-popover-button-label">{label}</span>
-        {/* Пробел между строками намеренно в разметке: пока `-sub` не получил
-            собственных стилей, подпись читается как «Откуда вместо Крылатское»
-            в одну строку, а не слипается в «Откудавместо». */}
-        {occupied && ' '}
-        {occupied && (
-          <span className="station-pick-popover-button-sub" aria-hidden="true">
-            вместо {currentTitle}
-          </span>
-        )}
+        {label}
       </button>
     )
   }
