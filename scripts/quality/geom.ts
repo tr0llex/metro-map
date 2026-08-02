@@ -1,13 +1,13 @@
 /** Элементарная геометрия. Всё детерминировано, без побочных эффектов. */
 
-export interface Rect {
+interface Rect {
   x1: number
   y1: number
   x2: number
   y2: number
 }
 
-export interface Seg {
+interface Seg {
   ax: number
   ay: number
   bx: number

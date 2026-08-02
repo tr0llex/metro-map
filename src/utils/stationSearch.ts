@@ -22,7 +22,7 @@ export function normalizeStationText(value: string): string {
 }
 
 /** Дополнительно выкидывает пробелы, дефисы и точки — для «свободного» поиска. */
-export function squashStationText(value: string): string {
+function squashStationText(value: string): string {
   return normalizeStationText(value).replace(
     /[\s\-–—.,'’«»"()]/g,
     '',

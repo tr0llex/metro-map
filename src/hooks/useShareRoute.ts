@@ -5,7 +5,7 @@ import { buildRouteShareUrl } from '../utils/deepLink.ts'
 /** Сколько висит подсказка «ссылка скопирована». */
 const SHARE_HINT_DURATION_MS = 2400
 
-export type ShareRouteState = {
+type ShareRouteState = {
   /** Текст всплывающей подсказки под кнопкой «Поделиться» (null — нет). */
   shareHint: string | null
   shareRoute: () => Promise<void>

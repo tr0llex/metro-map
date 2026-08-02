@@ -93,6 +93,9 @@ interface ViewportState {
  * была достижима даже на узком телефоне; фактический предел ещё и считается
  * динамически (см. minScaleFor) — константа задаёт лишь потолок этого предела.
  */
+/** Базовый граф по id — нужен снимку раскладки, чтобы отличить подвинутую станцию от нетронутой. */
+const fullGraphStationById = new Map(fullGraphStations.map((s) => [s.id, s]))
+
 const MIN_SCALE = 0.18
 const MAX_SCALE = 3
 const ROUTE_AUTO_FIT_MAX_SCALE = 1.8
@@ -1072,7 +1075,7 @@ export const MetroMap = memo(function MetroMap({
     for (const e of fullGraphEdges) {
       if (!e.isTransfer) continue
       const kind = e.transferKind
-      if (kind === 'near' || kind === 'ignored') continue
+      if (kind === 'near') continue
       const a = positionedById.get(e.fromStationId)
       const b = positionedById.get(e.toStationId)
       if (!a || !b) continue
@@ -1365,6 +1368,19 @@ export const MetroMap = memo(function MetroMap({
 
   const lastLayoutSnapshotRef = useRef<Record<string, { x: number; y: number }>>({})
 
+  // Включение режима редактора обязано заново отправить снимок раскладки.
+  //
+  // Снимок уходит наверх только когда координаты ИЗМЕНИЛИСЬ, а контроллер
+  // редактора выбрасывает накопленное, пока режим выключен. Из-за этого после
+  // «смонтировались -> включили редактор» наверху не оставалось ничего: снимок
+  // ушёл до включения и был стёрт, а повторно не отправлялся — координаты-то
+  // те же. Кнопка «Скопировать data/layout.json» выдавала файл с нулём станций,
+  // и такой файл останавливает сборку: солвер требует координаты у каждой.
+  // Обнуление ref заставляет эффект ниже увидеть «изменилось» и отправить всё.
+  useEffect(() => {
+    if (editMode) lastLayoutSnapshotRef.current = {}
+  }, [editMode])
+
   useEffect(() => {
     if (!onLayoutChange) return
     // T-10: в продакшене реального потребителя снапшотов нет —
@@ -1376,9 +1392,27 @@ export const MetroMap = memo(function MetroMap({
     // считать это имеет смысл только в dev-сборке.
     if (!import.meta.env.DEV) return
 
+    // Станция, которую не двигали, отдаётся ИСХОДНЫМИ координатами из
+    // data/layout.json (sourceX/sourceY), а не теми, что видны на экране.
+    //
+    // На экране лежит результат солвера: проекция колец и разведение станций
+    // уже применены. Выгружая их обратно в data/layout.json, редактор скармливал
+    // солверу его собственный выход, а проходы итеративные — схема не сходилась,
+    // а расползалась: первое сохранение сдвигало 151 станцию на ~6px, второе
+    // те же станции ещё на 24px. Теперь без правок выгрузка совпадает с файлом
+    // байт в байт, а меняется ровно то, что подвинули руками.
     const snapshot: Record<string, { x: number; y: number }> = {}
     for (const st of positionedStations) {
-      snapshot[st.id] = { x: st.x, y: st.y }
+      const base = fullGraphStationById.get(st.id)
+      const untouched =
+        base != null &&
+        typeof base.sourceX === 'number' &&
+        typeof base.sourceY === 'number' &&
+        base.layoutX === st.x &&
+        base.layoutY === st.y
+      snapshot[st.id] = untouched
+        ? { x: base.sourceX as number, y: base.sourceY as number }
+        : { x: st.x, y: st.y }
     }
 
     const prev = lastLayoutSnapshotRef.current
@@ -1444,6 +1478,7 @@ export const MetroMap = memo(function MetroMap({
     onLayoutChange,
     onCanonicalLayoutChange,
     positionedById,
+    editMode,
   ])
 
   useEffect(() => {

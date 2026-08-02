@@ -9,7 +9,7 @@ const UPDATE_DISMISSED_KEY = 'kitty-metro-update-dismissed'
 /** Не чаще одной проверки обновления в три секунды: фокус/pageshow/visibility приходят пачкой. */
 const SW_UPDATE_CHECK_THROTTLE_MS = 3000
 
-export type PwaUpdateState = {
+type PwaUpdateState = {
   /** Готово новое обновление и человек его ещё не откладывал в этой сессии. */
   isUpdateReady: boolean
   applyUpdate: () => void

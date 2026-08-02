@@ -26,10 +26,10 @@ export const RING_LINE_IDS = new Set<number>([5, 95, 97])
  * В браузере — (t) => ctx.measureText(t).width при уже выставленном ctx.font,
  * в Node — таблица относительных ширин символов.
  */
-export type LabelTextMeasurer = (text: string) => number
+type LabelTextMeasurer = (text: string) => number
 
 /** Минимум, который раскладке нужно знать о станции. */
-export interface LabelLayoutStation {
+interface LabelLayoutStation {
   id: string
   title: string
   lineId: number | null
@@ -39,7 +39,7 @@ export interface LabelLayoutStation {
 }
 
 /** Сегмент линии, инцидентный станции: по ним считается «нормаль к линии». */
-export interface LabelIncidentSegment {
+interface LabelIncidentSegment {
   ax: number
   ay: number
   bx: number
@@ -229,7 +229,7 @@ export const LABEL_W = {
  * screenRadius = min(13, max(8.5, stationRadius * 1.6 * zoom)) плюс кольцо
  * выворотки max(1.2, r * 0.16); при zoom = INITIAL_PREFERRED_SCALE это ≈10.3px.
  */
-export const LABEL_ENDPOINT_BADGE_RADIUS = 10.3
+const LABEL_ENDPOINT_BADGE_RADIUS = 10.3
 
 /** Сколько проходов локального улучшения делать после жадной раскладки. */
 const LABEL_REFINE_PASSES = 2

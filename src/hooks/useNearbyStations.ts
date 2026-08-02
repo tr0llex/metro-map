@@ -22,7 +22,7 @@ const NEARBY_LIMIT = 6
 
 const EARTH_RADIUS_M = 6371000
 
-export type NearbyStationsState = {
+type NearbyStationsState = {
   stations: FullGraphStation[]
   status: 'idle' | 'loading' | 'error'
   error: string | null

@@ -7,7 +7,7 @@ const MAP_READY_FALLBACK_MS = 3500
 // а не загрузочный экран, реальную готовность карты сторожит MAP_READY_FALLBACK_MS.
 const SPLASH_MIN_DURATION_MS = 1200
 
-export type SplashGate = {
+type SplashGate = {
   /** Заставка отработала минимальную длительность. */
   isSplashDone: boolean
   /** Заставка ещё в DOM (доигрывает анимацию исчезновения). */

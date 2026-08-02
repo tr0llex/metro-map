@@ -10,7 +10,7 @@ export type RouteEndpoints = {
   toTitle: string
 }
 
-export type RouteDerivations = {
+type RouteDerivations = {
   /** «Прибытие ~HH:MM»; пересчитывается по границе минуты, пока маршрут на экране. */
   routeArrivalTimeLabel: string | null
   /** Концы активного маршрута — для избранного и «Поделиться». null, если маршрута нет. */
@@ -144,11 +144,7 @@ export function useRouteDerivations(params: {
       if (!step.isTransfer) continue
 
       const kind = step.transferKind
-      const isFarKind =
-        kind === 'far' ||
-        kind === 'out_of_station' ||
-        kind === 'mcc' ||
-        kind === 'mcd'
+      const isFarKind = kind === 'far' || kind === 'out_of_station' || kind === 'mcc'
 
       const isFarByTime = step.travelMinutes >= 6
 
@@ -248,7 +244,6 @@ export function useRouteDerivations(params: {
             kind === 'far' ||
             kind === 'out_of_station' ||
             kind === 'mcc' ||
-            kind === 'mcd' ||
             (!kind && step.travelMinutes >= 6)
 
           const transferSegment: TransferSegment = {

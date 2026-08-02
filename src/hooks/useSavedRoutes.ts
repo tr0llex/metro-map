@@ -16,7 +16,7 @@ export type RouteEndpoints = {
   toTitle: string
 }
 
-export type SavedRoutesState = {
+type SavedRoutesState = {
   favorites: SavedRoute[]
   recents: SavedRoute[]
   /** Есть ли этот маршрут в избранном. */

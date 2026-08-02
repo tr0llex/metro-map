@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export type MapInsets = {
+type MapInsets = {
   top: number
   right: number
   bottom: number

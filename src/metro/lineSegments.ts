@@ -13,7 +13,7 @@
  */
 
 /** Минимум, который нужен от линии: структурный тип, а не привязка к классу. */
-export type LineWithSegments = {
+type LineWithSegments = {
   stationIds: string[]
   segments?: string[][]
 }

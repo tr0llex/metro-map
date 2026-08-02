@@ -27,12 +27,12 @@ import type { FullGraphEdge } from './types'
  */
 export const ROUTING_GRAPH_ASSET_PATH = 'kitty-metro-routing-graph.json'
 
-export const ROUTING_GRAPH_PAYLOAD_VERSION = 1
+const ROUTING_GRAPH_PAYLOAD_VERSION = 1
 
 /** Ребро: [from, to, medianTravelSeconds, isTransfer(0|1), индекс в kinds или -1]. */
-export type EncodedRoutingEdge = [string, string, number, number, number]
+type EncodedRoutingEdge = [string, string, number, number, number]
 
-export interface RoutingGraphPayload {
+interface RoutingGraphPayload {
   v: number
   kinds: string[]
   stationIds: string[]

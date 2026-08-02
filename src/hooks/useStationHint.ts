@@ -4,7 +4,7 @@ import type { StationHint, StationHintKind } from '../components/ThemeStationHin
 /** Сколько держится подсказка «станция назначена в поле». */
 const STATION_HINT_DURATION_MS = 2200
 
-export type StationHintState = {
+type StationHintState = {
   hint: StationHint | null
   show: (kind: StationHintKind, text: string) => void
 }

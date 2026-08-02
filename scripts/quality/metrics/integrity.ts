@@ -77,7 +77,6 @@ export function integrityMetrics(model: RenderModel): MetricResult[] {
   const noHubTransfers: Offender[] = []
   for (const e of graph.edges) {
     if (!e.isTransfer) continue
-    if (e.transferKind === 'ignored') continue
     const a = byId.get(e.fromStationId)
     const b = byId.get(e.toStationId)
     if (!a || !b) continue

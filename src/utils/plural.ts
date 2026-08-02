@@ -5,7 +5,7 @@
  * «Пересадок: 0» в нём выглядят как недоделка. Правило стандартное:
  * 11–14 — всегда родительный множественного, дальше решает последняя цифра.
  */
-export type PluralForms = readonly [one: string, few: string, many: string]
+type PluralForms = readonly [one: string, few: string, many: string]
 
 export function pluralRu(count: number, forms: PluralForms): string {
   const abs = Math.abs(Math.trunc(count))
@@ -18,9 +18,9 @@ export function pluralRu(count: number, forms: PluralForms): string {
   return forms[2]
 }
 
-export const STATION_FORMS: PluralForms = ['станция', 'станции', 'станций']
-export const TRANSFER_FORMS: PluralForms = ['пересадка', 'пересадки', 'пересадок']
-export const VARIANT_FORMS: PluralForms = ['вариант', 'варианта', 'вариантов']
+const STATION_FORMS: PluralForms = ['станция', 'станции', 'станций']
+const TRANSFER_FORMS: PluralForms = ['пересадка', 'пересадки', 'пересадок']
+const VARIANT_FORMS: PluralForms = ['вариант', 'варианта', 'вариантов']
 
 /** «1 станция», «2 станции», «11 станций». */
 export function formatStationsCount(count: number): string {

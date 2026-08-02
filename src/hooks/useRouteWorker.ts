@@ -24,7 +24,7 @@ const ROUTE_LOADING_MIN_VISIBLE_MS = 420
 const MAX_ALTERNATIVES = 6
 
 /** Что мы помним о запросе, пока ждём ответ. */
-export type RouteRequestContext = {
+type RouteRequestContext = {
   fromId: string
   toId: string
   fromTitleEffective: string
@@ -33,7 +33,7 @@ export type RouteRequestContext = {
   isDesktop: boolean
 }
 
-export type RouteWorkerState = {
+type RouteWorkerState = {
   /** Показывать ли индикатор расчёта (не то же самое, что «идёт расчёт»). */
   isRouteLoading: boolean
   /**

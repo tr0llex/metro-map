@@ -29,7 +29,7 @@ export const RING_LINE_IDS = new Set<number>([5, 95, 97])
 
 // --- визуальные константы, скопированные из MetroMap.tsx ---
 export const BASE_LINE_WIDTH = 6.4
-export const STATION_RADIUS_BASE = 5.2
+const STATION_RADIUS_BASE = 5.2
 export const STATION_BORDER_WIDTH = 2
 export const LABEL_BASE_FONT_PX = 16
 export const CORRIDOR_OFFSET_WORLD = 3
@@ -38,10 +38,10 @@ export const CORRIDOR_OFFSET_WORLD = 3
  * Опорный зум для метрик — INITIAL_PREFERRED_SCALE из MetroMap.tsx (стартовый вид).
  * stationScale считается той же формулой, что в drawFrame.
  */
-export const REFERENCE_ZOOM = 1.1
+const REFERENCE_ZOOM = 1.1
 const clampedZoom = Math.min(Math.max(REFERENCE_ZOOM, 0.7), 2.2)
 const zoomT = (clampedZoom - 0.7) / (2.2 - 0.7)
-export const STATION_SCALE = 0.95 + zoomT * 0.45
+const STATION_SCALE = 0.95 + zoomT * 0.45
 
 /** Радиус кружка обычной станции в мировых координатах. */
 export const STATION_RADIUS = STATION_RADIUS_BASE * STATION_SCALE
@@ -52,7 +52,7 @@ export const HUB_PIE_RADIUS = STATION_RADIUS * 1.7
 /** Полуширина линии. */
 export const LINE_HALF_WIDTH = BASE_LINE_WIDTH / 2
 
-export interface RenderedStation {
+interface RenderedStation {
   id: string
   title: string
   lineId: number

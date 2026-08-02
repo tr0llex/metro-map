@@ -1,7 +1,7 @@
 import type { RefObject } from 'react'
 import type { StationPickPopoverData } from '../hooks/useStationPickPopover.ts'
 
-export type StationPickPopoverProps = {
+type StationPickPopoverProps = {
   data: StationPickPopoverData
   isClosing: boolean
   /** Кнопка, по которой только что нажали — для мгновенной подсветки. */

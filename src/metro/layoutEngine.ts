@@ -17,14 +17,14 @@ export interface PositionedStation extends LayoutStation {
 // - кольцевые линии (Кольцевая, БКЛ, МЦК) рисуются по окружностям
 // - остальные линии расходятся радиально от центра
 
-export interface LayoutParams {
+interface LayoutParams {
   innerRingRadius: number
   ringGap: number
   radialStartRadius: number
   radialStep: number
 }
 
-export const defaultLayoutParams: LayoutParams = {
+const defaultLayoutParams: LayoutParams = {
   innerRingRadius: 170,
   ringGap: 40,
   radialStartRadius: 40,

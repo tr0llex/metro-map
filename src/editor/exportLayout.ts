@@ -1,6 +1,6 @@
 import type { LayoutRingShape } from '../metro/types.ts'
 
-export type BuildLayoutFileInput = {
+type BuildLayoutFileInput = {
   /** Координаты станций в текущем состоянии редактора. */
   layout: Record<string, { x: number; y: number }>
   /** Формы кольцевых линий, как их сейчас видит рантайм. */
@@ -12,15 +12,16 @@ export type BuildLayoutFileInput = {
   includeRingShapes?: boolean
 }
 
-export type LayoutFile = {
+type LayoutFile = {
   $readme: string[]
   stations: Record<string, [number, number]>
   rings: Record<string, LayoutRingShape>
 }
 
 const README = [
-  'Координаты станций на схеме: "id": [x, y]. Правится редактором',
-  '(npm run dev:editor -> «Скопировать раскладку»), руками — только точечно.',
+  'Координаты станций на схеме: "id": [x, y]. Правится редактором:',
+  'npm run dev:editor -> карандаш -> перетащить станции -> кнопка OVR',
+  'копирует этот файл целиком в буфер обмена. Руками — только точечно.',
   '`rings` пустой — формы кольцевых линий подбираются автоматически по',
   'координатам станций; заполненный ключ ЖЁСТКО задаёт форму.',
 ]
@@ -69,7 +70,7 @@ export function buildLayoutFile(input: BuildLayoutFileInput): LayoutFile {
  * и на суррогатных парах расходится с Go. Для нынешних ASCII-идентификаторов
  * разницы нет, но порядок обязан совпадать с Go по построению, а не по удаче.
  */
-export function compareByCodePoints(a: string, b: string): number {
+function compareByCodePoints(a: string, b: string): number {
   const ac = Array.from(a)
   const bc = Array.from(b)
   const n = Math.min(ac.length, bc.length)
