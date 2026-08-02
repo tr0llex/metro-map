@@ -135,6 +135,28 @@ export function useBottomSheet(options: BottomSheetOptions): BottomSheetState {
     [isDesktop, bottomSheetRef],
   )
 
+  /**
+   * Снять инлайновые height и transform, которыми управляется нижняя шторка.
+   *
+   * Оба ставятся из JS и переживают смену раскладки, а боковая панель ими
+   * управляться не должна: она прибита к краю экрана размерами из CSS.
+   * Поворот телефона в альбомную ориентацию посреди сессии оставлял панели
+   * height от нижней шторки и её же сдвиг — панель уезжала вниз на высоту
+   * прежнего свёрнутого состояния и получала чужую высоту. То же самое на
+   * десктопе при сужении и обратном расширении окна.
+   */
+  const clearSheetInlineGeometry = useCallback(() => {
+    const el = bottomSheetRef.current
+    if (!el) return
+    el.style.removeProperty('height')
+    el.style.removeProperty('transform')
+  }, [bottomSheetRef])
+
+  useEffect(() => {
+    if (!isDesktop) return
+    clearSheetInlineGeometry()
+  }, [isDesktop, clearSheetInlineGeometry])
+
   const recomputeSheetMaxOffsetPx = useCallback(() => {
     if (typeof window === 'undefined') return
     if (isDesktop) return
