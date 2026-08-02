@@ -17,8 +17,8 @@ import {
   type StationLabelPlacement,
 } from './MetroMapLabelLayout'
 import {
-  FIT_EDGE_GUTTER_PX,
   MIN_SCALE,
+  computeInitialFitRect,
   computeWorldBounds,
   fitScaleFor,
 } from './MetroMapViewportFit'
@@ -1875,48 +1875,12 @@ export const MetroMap = memo(function MetroMap({
     const worldWidth = worldBounds.width
     const worldHeight = worldBounds.height
 
-    // Свободная зона между шапкой и нижней шторкой/панелью. На широком экране
-    // (≥1024px) вместо шторки сбоку висит панель, и резервировать треть высоты
-    // под неё не нужно — раньше из-за этого схема на десктопе сжималась зря.
-    //
-    // На широком макете верх и низ над картой свободны ЦЕЛИКОМ: и шапка
-    // (.app-header), и панель маршрута (.bottom-sheet) лежат в одной левой
-    // колонке шириной ~420px и по вертикали карту не перекрывают — это же
-    // видно и по измеренным инсетам, где visibleInsets.top на десктопе равен
-    // нулю. Прежний глухой резерв 96px сверху и 56px снизу был данью
-    // телефонной раскладке: он съедал 17% высоты 900px-окна, а подгонка на
-    // десктопе упирается именно в высоту — схема оставалась маленькой
-    // картинкой в пустом поле. Оставляем только поле по краям, чтобы схема
-    // не касалась кромки экрана.
-    const isWidePanelLayout = displayWidth >= 1024
-    const insetTop = isWidePanelLayout
-      ? Math.max(visibleInsets?.top ?? 0, FIT_EDGE_GUTTER_PX)
-      : Math.min(96, displayHeight * 0.12)
-    const insetBottom = isWidePanelLayout
-      ? FIT_EDGE_GUTTER_PX
-      : Math.min(210, displayHeight * 0.25)
-
-    // На десктопе панель маршрута висит СЛЕВА поверх карты, а кнопки зума —
-    // справа. Фит по всему вьюпорту (insetLeft = insetRight = 0) уводил левый
-    // край схемы под панель: схема «влезала целиком» только формально.
-    // Считаем по свободному прямоугольнику между панелью и кнопками.
-    //
-    // Измеренные инсеты приходят из App (visibleInsets) и на первом кадре могут
-    // быть ещё нулевыми — эффект отрабатывает один раз и переспросить будет
-    // некому. Поэтому на широком макете есть запасная оценка по CSS-геометрии
-    // панели (.bottom-sheet: left 1.75rem + width clamp(340px, 30vw, 420px)).
-    const measuredLeft = visibleInsets?.left ?? 0
-    const measuredRight = visibleInsets?.right ?? 0
-    const desktopPanelInset = 28 + Math.min(420, Math.max(340, displayWidth * 0.3))
-    const insetLeft = isWidePanelLayout
-      ? measuredLeft > 0
-        ? measuredLeft
-        : desktopPanelInset
-      : measuredLeft
-    const insetRight = measuredRight
-
-    const visibleWidth = Math.max(50, displayWidth - insetLeft - insetRight)
-    const visibleHeight = Math.max(50, displayHeight - insetTop - insetBottom)
+    const {
+      left: insetLeft,
+      top: insetTop,
+      width: visibleWidth,
+      height: visibleHeight,
+    } = computeInitialFitRect(displayWidth, displayHeight, visibleInsets)
 
     // Стартуем с «вся схема в кадре»: раньше здесь стоял
     // max(baseScale, INITIAL_PREFERRED_SCALE), из-за чего фит всегда

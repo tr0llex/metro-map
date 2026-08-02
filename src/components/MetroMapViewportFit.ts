@@ -72,6 +72,81 @@ export const fitScaleFor = (
   return Math.min(width / w, height / h)
 }
 
+/** Отступы, занятые интерфейсом поверх карты (см. useMapVisibleInsets). */
+export interface MapInsets {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
+/** Прямоугольник экрана, в который вписывается схема на стартовом виде. */
+export interface FitRect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+/** Ширина холста, с которой панель маршрута переезжает сбоку вместо шторки снизу. */
+const WIDE_PANEL_LAYOUT_MIN_WIDTH = 1024
+
+/**
+ * Свободный прямоугольник под схему на стартовом виде.
+ *
+ * Слева на десктопе висит панель маршрута, справа — кнопки зума; фит по
+ * всему холсту уводил левый край схемы под панель, то есть «влезала целиком»
+ * она только формально.
+ *
+ * Верх и низ. На широком макете и шапка (.app-header), и панель
+ * (.bottom-sheet) лежат в ОДНОЙ левой колонке и карту по вертикали не
+ * перекрывают — измеренный visibleInsets.top на десктопе так и приходит
+ * нулевым. Прежний глухой резерв 96px сверху и 56px снизу был данью
+ * телефонной раскладке: на окне 900px он съедал 17% высоты, а подгонка на
+ * десктопе упирается именно в высоту — схема оставалась маленькой картинкой
+ * в пустом поле. Остаётся только поле по краям, чтобы схема не касалась
+ * кромки экрана. На узком макете шторка снизу реальна, и резерв под неё
+ * сохранён как был.
+ *
+ * Измеренные инсеты приходят из App и на первом кадре могут быть ещё
+ * нулевыми, а эффект автофита отрабатывает один раз и переспросить будет
+ * некому. Поэтому на широком макете есть запасная оценка левой панели по её
+ * CSS-геометрии (.bottom-sheet: left 1.75rem + width clamp(340px, 30vw, 420px)).
+ */
+export const computeInitialFitRect = (
+  displayWidth: number,
+  displayHeight: number,
+  visibleInsets?: Partial<MapInsets>,
+): FitRect => {
+  const isWidePanelLayout = displayWidth >= WIDE_PANEL_LAYOUT_MIN_WIDTH
+
+  const measuredTop = visibleInsets?.top ?? 0
+  const measuredLeft = visibleInsets?.left ?? 0
+  const measuredRight = visibleInsets?.right ?? 0
+
+  const insetTop = isWidePanelLayout
+    ? Math.max(measuredTop, FIT_EDGE_GUTTER_PX)
+    : Math.min(96, displayHeight * 0.12)
+  const insetBottom = isWidePanelLayout
+    ? FIT_EDGE_GUTTER_PX
+    : Math.min(210, displayHeight * 0.25)
+
+  const desktopPanelInset = 28 + Math.min(420, Math.max(340, displayWidth * 0.3))
+  const insetLeft = isWidePanelLayout
+    ? measuredLeft > 0
+      ? measuredLeft
+      : desktopPanelInset
+    : measuredLeft
+  const insetRight = measuredRight
+
+  return {
+    left: insetLeft,
+    top: insetTop,
+    width: Math.max(50, displayWidth - insetLeft - insetRight),
+    height: Math.max(50, displayHeight - insetTop - insetBottom),
+  }
+}
+
 export interface WorldBounds {
   minX: number
   maxX: number
