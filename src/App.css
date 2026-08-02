@@ -2036,6 +2036,17 @@
   color: var(--color-text-heading);
 }
 
+/* Выбор типа пересадки стоит в строке связи, а не отдельным полем на всю
+   ширину: он переиспользует оформление `.hub-editor-line-select`, но в отличие
+   от него живёт среди других контролов строки. Без ужатия по содержимому
+   строка расползалась и время с кнопками уезжало за край панели. */
+.hub-editor-connection-kind {
+  width: auto;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 9rem;
+}
+
 .hub-editor-hub-meta-row {
   display: flex;
   align-items: center;
