@@ -195,7 +195,7 @@ src/                приложение (React + Canvas) и модуль мет
 public/             иконки, favicon, легаси sw.js
 tools/visual-qa/    стенд визуальной приёмки (Docker + Chromium)
 deploy/nginx/       боевой конфиг nginx под версионным контролем
-docs/               DEPLOY.md, QUALITY.md, VISUAL_QA.md, LICENSING.md, REVIEW_*.md
+docs/               DEPLOY.md, QUALITY.md, VISUAL_QA.md, LICENSING.md; archive/ — датированные отчёты
 docs/visual-qa/     зафиксированные скриншоты приёмки
 .github/workflows/  CI и ручной деплой
 ```
