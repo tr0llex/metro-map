@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { parseTravelTime } from './travelTime.ts'
-import { DEFAULT_TRANSFER_KIND, type TransferKind } from './transferKinds.ts'
+import type { TransferKind } from './transferKinds.ts'
 import {
   fullGraphEdges,
   fullGraphLines,
@@ -14,26 +13,13 @@ import type {
 import type {
   EditorController,
   EditorFocusCommand,
-  EditorHistoryState,
   EditorSnapshot,
   StationOverride,
 } from './editorTypes.ts'
-
-const MAX_EDITOR_HISTORY = 100
-
-function areEditorSnapshotsShallowEqual(
-  a: EditorSnapshot | undefined,
-  b: EditorSnapshot | undefined,
-) {
-  if (!a || !b) return false
-  return (
-    a.stationOverrides === b.stationOverrides &&
-    a.edgeOverrides === b.edgeOverrides &&
-    a.edgeTransferKinds === b.edgeTransferKinds &&
-    a.manualEdges === b.manualEdges &&
-    a.lastLayoutOverrides === b.lastLayoutOverrides
-  )
-}
+import { useEditorHistory } from './useEditorHistory.ts'
+import { fetchStationGeoFromOSM } from './osmGeo.ts'
+import * as stationEdits from './stationEdits.ts'
+import * as edgeEdits from './edgeEdits.ts'
 
 /**
  * Всё состояние и вся логика редактора схемы в одном месте.
@@ -65,7 +51,6 @@ export function useEditorController(): EditorController {
   const pendingLayoutOverridesRef = useRef<Record<string, { x: number; y: number }> | null>(null)
 
   const [editorFocusCommand, setEditorFocusCommand] = useState<EditorFocusCommand | null>(null)
-  const [editorHistory, setEditorHistory] = useState<EditorHistoryState>({ items: [], index: -1 })
 
   const editorFocusTokenRef = useRef(0)
 
@@ -111,39 +96,6 @@ export function useEditorController(): EditorController {
     lastLayoutOverrides,
   ])
 
-  /**
-   * История читается из рефа, а не из аргумента функции-апдейтера.
-   *
-   * Раньше undo/redo вызывали `applyEditorSnapshot` (десяток `setState`) ПРЯМО
-   * ВНУТРИ апдейтера `setEditorHistory`. React считает апдейтер чистым и в
-   * StrictMode вызывает его дважды — снапшот применялся два раза и дважды
-   * поднимался `editorLayoutApplyToken`. Теперь апдейтеров нет вовсе: реф —
-   * единственный источник правды, `commitEditorHistory` синхронно обновляет
-   * и его, и состояние для рендера.
-   */
-  const editorHistoryRef = useRef<EditorHistoryState>({ items: [], index: -1 })
-
-  const commitEditorHistory = useCallback((next: EditorHistoryState) => {
-    editorHistoryRef.current = next
-    setEditorHistory(next)
-  }, [])
-
-  const pushEditorHistory = useCallback(() => {
-    const prev = editorHistoryRef.current
-    const snapshot = makeEditorSnapshot()
-
-    if (prev.index >= 0 && areEditorSnapshotsShallowEqual(prev.items[prev.index], snapshot)) {
-      return
-    }
-
-    let items = prev.items.slice(0, prev.index + 1)
-    items.push(snapshot)
-    if (items.length > MAX_EDITOR_HISTORY) {
-      items = items.slice(items.length - MAX_EDITOR_HISTORY)
-    }
-    commitEditorHistory({ items, index: items.length - 1 })
-  }, [makeEditorSnapshot, commitEditorHistory])
-
   const applyEditorSnapshot = useCallback((snapshot: EditorSnapshot) => {
     setStationOverrides(snapshot.stationOverrides)
     setEdgeOverrides(snapshot.edgeOverrides)
@@ -158,25 +110,16 @@ export function useEditorController(): EditorController {
     // onCanonicalLayoutChange (см. комментарий к EditorSnapshot).
   }, [])
 
-  const handleEditorUndo = useCallback(() => {
-    const prev = editorHistoryRef.current
-    if (prev.index <= 0) return
-    const nextIndex = prev.index - 1
-    commitEditorHistory({ ...prev, index: nextIndex })
-    applyEditorSnapshot(prev.items[nextIndex])
-  }, [applyEditorSnapshot, commitEditorHistory])
-
-  const handleEditorRedo = useCallback(() => {
-    const prev = editorHistoryRef.current
-    if (prev.index < 0 || prev.index >= prev.items.length - 1) return
-    const nextIndex = prev.index + 1
-    commitEditorHistory({ ...prev, index: nextIndex })
-    applyEditorSnapshot(prev.items[nextIndex])
-  }, [applyEditorSnapshot, commitEditorHistory])
-
-  const canEditorUndo = editorHistory.index > 0
-  const canEditorRedo =
-    editorHistory.index >= 0 && editorHistory.index < editorHistory.items.length - 1
+  const {
+    canUndo: canEditorUndo,
+    canRedo: canEditorRedo,
+    undo: handleEditorUndo,
+    redo: handleEditorRedo,
+  } = useEditorHistory({
+    editMode,
+    snapshot: makeEditorSnapshot,
+    apply: applyEditorSnapshot,
+  })
 
   const handleLayoutChange = useCallback((overrides: Record<string, { x: number; y: number }>) => {
     pendingLayoutOverridesRef.current = overrides
@@ -239,55 +182,6 @@ export function useEditorController(): EditorController {
       window.clearInterval(interval)
     }
   }, [editMode])
-
-  // Запись в историю на каждое изменение редактируемого состояния.
-  // `makeEditorSnapshot` меняет ссылку ровно тогда, когда меняется любое из
-  // полей снапшота, поэтому отдельного перечисления состояний не нужно.
-  useEffect(() => {
-    if (!editMode) return
-    pushEditorHistory()
-  }, [editMode, makeEditorSnapshot, pushEditorHistory])
-
-  useEffect(() => {
-    if (editMode) return
-    commitEditorHistory({ items: [], index: -1 })
-  }, [editMode, commitEditorHistory])
-
-  useEffect(() => {
-    if (!editMode) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-      const tag = target?.tagName
-      const isEditableElement =
-        tag === 'INPUT' || tag === 'TEXTAREA' || (target as HTMLElement).isContentEditable
-      if (isEditableElement) return
-
-      const isMac =
-        typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
-      const ctrlOrMeta = isMac ? event.metaKey : event.ctrlKey
-      if (!ctrlOrMeta) return
-
-      if (event.key === 'z' || event.key === 'Z') {
-        if (event.shiftKey) {
-          if (canEditorRedo) {
-            event.preventDefault()
-            handleEditorRedo()
-          }
-        } else {
-          if (canEditorUndo) {
-            event.preventDefault()
-            handleEditorUndo()
-          }
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [editMode, canEditorUndo, canEditorRedo, handleEditorUndo, handleEditorRedo])
 
   // Ctrl+E — вкл/выкл редактор, Escape — закрыть панель/режим, Ctrl+D — отладка коллизий.
   useEffect(() => {
@@ -439,42 +333,12 @@ export function useEditorController(): EditorController {
 
   // --- обработчики ----------------------------------------------------------
 
-  /**
-   * Перегон <-> пересадка, и ничего больше.
-   *
-   * Прежде это была карусель из трёх положений: перегон -> «близкая» ->
-   * «дальняя» -> перегон, — и каждый щелчок ПЕРЕПИСЫВАЛ время, потому что
-   * «близкая» и «дальняя» ничем, кроме времени, не различались: тип пересадки
-   * в патч всегда уходил базовый. Теперь тип выбирается явно
-   * (`changeEdgeTransferKind`), а время трогает только тот, кто его правит.
-   */
+  // Как именно правка меняет таблицу оверрайдов — в edgeEdits.ts; здесь
+  // остаётся только ключ ребра и вызов setState.
   const handleToggleEdgeTransfer = useCallback(
     (edge: FullGraphEdge) => {
       const key = edgeKey(edge.fromStationId, edge.toStationId)
-      const baseIsTransfer = !!edge.isTransfer
-
-      setEdgeOverrides((prev: Record<string, EdgeOverride>) => {
-        const current = prev[key]
-        const effectiveIsTransfer =
-          current && current.isTransfer !== undefined ? current.isTransfer : baseIsTransfer
-
-        const nextOverride: EdgeOverride = { ...(current ?? {}), isTransfer: !effectiveIsTransfer }
-
-        const isSameAsBase =
-          (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-          nextOverride.isTransfer === baseIsTransfer &&
-          (nextOverride.medianTravelSeconds === undefined ||
-            nextOverride.medianTravelSeconds === edge.medianTravelSeconds)
-
-        if (isSameAsBase) {
-          if (!(key in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[key]
-          return cloned
-        }
-
-        return { ...prev, [key]: nextOverride }
-      })
+      setEdgeOverrides((prev) => edgeEdits.toggleTransfer(prev, key, edge))
     },
     [edgeKey],
   )
@@ -482,120 +346,23 @@ export function useEditorController(): EditorController {
   const handleChangeEdgeTransferKind = useCallback(
     (edge: FullGraphEdge, kind: TransferKind) => {
       const key = edgeKey(edge.fromStationId, edge.toStationId)
-      const baseKind = edge.transferKind ?? DEFAULT_TRANSFER_KIND
-
-      setEdgeTransferKinds((prev) => {
-        if (kind === baseKind) {
-          if (!(key in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[key]
-          return cloned
-        }
-        if (prev[key] === kind) return prev
-        return { ...prev, [key]: kind }
-      })
+      setEdgeTransferKinds((prev) => edgeEdits.setTransferKind(prev, key, edge, kind))
     },
     [edgeKey],
   )
 
   const handleToggleEdgeDisabled = useCallback(
     (edge: FullGraphEdge) => {
-      setEdgeOverrides((prev) => {
-        const key = edgeKey(edge.fromStationId, edge.toStationId)
-        const current = prev[key]
-
-        const effectiveDisabled = current?.disabled ?? false
-        const nextDisabled = !effectiveDisabled
-
-        const nextOverride: EdgeOverride = {
-          ...(current ?? {}),
-          disabled: nextDisabled,
-        }
-
-        const baseIsTransfer = !!edge.isTransfer
-        const baseSeconds = edge.medianTravelSeconds
-
-        const isSameAsBase =
-          (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-          (nextOverride.isTransfer === undefined || nextOverride.isTransfer === baseIsTransfer) &&
-          (nextOverride.medianTravelSeconds === undefined ||
-            nextOverride.medianTravelSeconds === baseSeconds)
-
-        if (isSameAsBase) {
-          if (!(key in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[key]
-          return cloned
-        }
-
-        return { ...prev, [key]: nextOverride }
-      })
+      const key = edgeKey(edge.fromStationId, edge.toStationId)
+      setEdgeOverrides((prev) => edgeEdits.toggleDisabled(prev, key, edge))
     },
     [edgeKey],
   )
 
   const handleChangeEdgeMinutes = useCallback(
     (edge: FullGraphEdge, timeStr: string) => {
-      setEdgeOverrides((prev) => {
-        const key = edgeKey(edge.fromStationId, edge.toStationId)
-        const current = prev[key]
-
-        const baseSeconds = edge.medianTravelSeconds
-        // Разбор «м:сс» либо голых секунд — см. travelTime.ts о том, почему
-        // минуты как единица здесь не годятся. Ноль допустим: это осмысленное
-        // значение, а не отсутствие ввода.
-        const parsed = parseTravelTime(timeStr)
-        const newSeconds = parsed != null && parsed >= 0 ? parsed : undefined
-
-        if (newSeconds === undefined) {
-          if (!current) {
-            if (!(key in prev)) return prev
-            const cloned = { ...prev }
-            delete cloned[key]
-            return cloned
-          }
-
-          const nextOverride: EdgeOverride = {}
-          if (current.isTransfer !== undefined) {
-            nextOverride.isTransfer = current.isTransfer
-          }
-          if (current.disabled !== undefined) {
-            nextOverride.disabled = current.disabled
-          }
-
-          const isSameAsBase =
-            (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-            (nextOverride.isTransfer === undefined || nextOverride.isTransfer === !!edge.isTransfer)
-
-          if (isSameAsBase) {
-            if (!(key in prev)) return prev
-            const cloned = { ...prev }
-            delete cloned[key]
-            return cloned
-          }
-
-          return { ...prev, [key]: nextOverride }
-        }
-
-        const nextOverride: EdgeOverride = {
-          ...(current ?? {}),
-          medianTravelSeconds: newSeconds,
-        }
-
-        const isSameAsBase =
-          (nextOverride.disabled === undefined || nextOverride.disabled === false) &&
-          (nextOverride.isTransfer === undefined || nextOverride.isTransfer === !!edge.isTransfer) &&
-          nextOverride.medianTravelSeconds === baseSeconds
-
-        if (isSameAsBase) {
-          if (!(key in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[key]
-          return cloned
-        }
-
-        return { ...prev, [key]: nextOverride }
-      })
+      const key = edgeKey(edge.fromStationId, edge.toStationId)
+      setEdgeOverrides((prev) => edgeEdits.setTravelTime(prev, key, edge, timeStr))
     },
     [edgeKey],
   )
@@ -619,105 +386,9 @@ export function useEditorController(): EditorController {
       }
 
       const title = stationOverrides[stationId]?.title?.trim() || base.title
+      const { lat, lon } = await fetchStationGeoFromOSM(title)
 
-      // Запрос был «станция метро {название}, Москва» и не находил НИЧЕГО.
-      // В OSM объект называется просто «Боровицкая»; слова «станция метро» в
-      // имени нет, а свободный поиск Nominatim не разбирает их как категорию —
-      // он честно ищет эту фразу целиком. Ломалось для любой станции, в чьём
-      // названии нет слова «метро», то есть практически для всех.
-      //
-      // Ищем по имени, а принадлежность к метро проверяем по классу объекта в
-      // ответе. Берём пять кандидатов, а не один: по названию станции первым
-      // может прийти одноимённая улица или площадь.
-      const query = `${title}, Москва`
-      const url =
-        'https://nominatim.openstreetmap.org/search' +
-        `?format=jsonv2&limit=5&countrycodes=ru&accept-language=ru&q=${encodeURIComponent(query)}`
-
-      const resp = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-      })
-
-      if (resp.status === 429 || resp.status === 403) {
-        // Nominatim ограничивает до одного запроса в секунду. Без этой ветки
-        // отказ выглядел как «координаты не найдены», и станцию искали в OSM
-        // руками, хотя она там есть.
-        throw new Error('OSM: слишком часто, подожди секунду и повтори')
-      }
-
-      if (!resp.ok) {
-        throw new Error(`OSM API error: ${resp.status}`)
-      }
-
-      const data = (await resp.json()) as Array<{
-        lat?: string
-        lon?: string
-        category?: string
-        class?: string
-        type?: string
-      }>
-
-      const isRailway = (item: (typeof data)[number]) =>
-        item.category === 'railway' || item.class === 'railway'
-
-      const first = data.find(isRailway) ?? data[0]
-      const lat = first?.lat != null ? Number(first.lat) : NaN
-      const lon = first?.lon != null ? Number(first.lon) : NaN
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-        throw new Error('OSM: координаты не найдены')
-      }
-
-      setStationOverrides((prev) => {
-        const baseLat = base.lat
-        const baseLon = base.lon
-        const current = prev[stationId]
-        const next: StationOverride = { ...(current ?? {}) }
-
-        if (baseLat !== undefined && lat === baseLat) {
-          delete next.lat
-        } else {
-          next.lat = lat
-        }
-
-        if (baseLon !== undefined && lon === baseLon) {
-          delete next.lon
-        } else {
-          next.lon = lon
-        }
-
-        if (
-          next.title === undefined &&
-          next.lineNumericId === undefined &&
-          next.lat === undefined &&
-          next.lon === undefined
-        ) {
-          if (!(stationId in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[stationId]
-          return cloned
-        }
-
-        // Сравнение «ничего не изменилось» смотрело только title и
-        // lineNumericId — то есть ровно те два поля, которых эта операция не
-        // касается. У станции с любым оверрайдом (например, переименованной)
-        // полученные координаты молча выбрасывались, а тост «lat/lon обновлены»
-        // всё равно показывался: снаружи это выглядело как успешная запись.
-        if (
-          current &&
-          current.title === next.title &&
-          current.lineNumericId === next.lineNumericId &&
-          current.lat === next.lat &&
-          current.lon === next.lon
-        ) {
-          return prev
-        }
-
-        return { ...prev, [stationId]: next }
-      })
-
+      setStationOverrides((prev) => stationEdits.setGeo(prev, base, lat, lon))
       showEditorToast('lat/lon обновлены (OSM)')
     },
     [stationById, stationOverrides, showEditorToast],
@@ -728,35 +399,7 @@ export function useEditorController(): EditorController {
       setStationOverrides((prev) => {
         const base = stationById.get(stationId)
         if (!base) return prev
-
-        const trimmed = nextTitle.trim()
-        const baseTitle = base.title
-        const current = prev[stationId]
-        const next: StationOverride = { ...(current ?? {}) }
-
-        if (!trimmed || trimmed === baseTitle) {
-          delete next.title
-        } else {
-          next.title = trimmed
-        }
-
-        if (
-          next.title === undefined &&
-          next.lineNumericId === undefined &&
-          next.lat === undefined &&
-          next.lon === undefined
-        ) {
-          if (!(stationId in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[stationId]
-          return cloned
-        }
-
-        if (current && current.title === next.title && current.lineNumericId === next.lineNumericId) {
-          return prev
-        }
-
-        return { ...prev, [stationId]: next }
+        return stationEdits.setTitle(prev, base, nextTitle)
       })
     },
     [stationById],
@@ -767,50 +410,7 @@ export function useEditorController(): EditorController {
       setStationOverrides((prev) => {
         const base = stationById.get(stationId)
         if (!base) return prev
-
-        const baseLine = base.lineNumericId ?? null
-        const current = prev[stationId]
-        const next: StationOverride = { ...(current ?? {}) }
-
-        const raw = lineIdStr.trim()
-        let newLine: number | null
-        if (raw === '') {
-          newLine = null
-        } else {
-          const parsed = Number(raw)
-          if (!Number.isFinite(parsed)) {
-            return prev
-          }
-          newLine = parsed
-        }
-
-        if (newLine === baseLine) {
-          delete next.lineNumericId
-        } else {
-          next.lineNumericId = newLine
-        }
-
-        // Пустым оверрайд считается только когда пусты ВСЕ его поля.
-        // Раньше здесь смотрели title и lineNumericId, а lat/lon — нет:
-        // у станции, которой только что подтянули координаты из OSM, они
-        // молча пропадали, стоило вернуть линию к исходной.
-        if (
-          next.title === undefined &&
-          next.lineNumericId === undefined &&
-          next.lat === undefined &&
-          next.lon === undefined
-        ) {
-          if (!(stationId in prev)) return prev
-          const cloned = { ...prev }
-          delete cloned[stationId]
-          return cloned
-        }
-
-        if (current && current.title === next.title && current.lineNumericId === next.lineNumericId) {
-          return prev
-        }
-
-        return { ...prev, [stationId]: next }
+        return stationEdits.setLine(prev, base, lineIdStr)
       })
     },
     [stationById],
@@ -818,12 +418,7 @@ export function useEditorController(): EditorController {
 
   const handleResetStationEdits = useCallback(
     (stationId: string) => {
-      setStationOverrides((prev) => {
-        if (!(stationId in prev)) return prev
-        const next = { ...prev }
-        delete next[stationId]
-        return next
-      })
+      setStationOverrides((prev) => stationEdits.forgetStation(prev, stationId))
 
       const base = stationById.get(stationId)
       const baseX = base && typeof base.layoutX === 'number' ? base.layoutX : undefined
@@ -848,26 +443,9 @@ export function useEditorController(): EditorController {
       const key = edgeKey(edge.fromStationId, edge.toStationId)
       const manualKey = `manual:${key}`
 
-      setEdgeOverrides((prev) => {
-        if (!(key in prev)) return prev
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
-
-      setEdgeTransferKinds((prev) => {
-        if (!(key in prev)) return prev
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
-
-      setManualEdges((prev) => {
-        if (!(manualKey in prev)) return prev
-        const next = { ...prev }
-        delete next[manualKey]
-        return next
-      })
+      setEdgeOverrides((prev) => edgeEdits.forgetEdge(prev, key))
+      setEdgeTransferKinds((prev) => edgeEdits.forgetEdge(prev, key))
+      setManualEdges((prev) => edgeEdits.forgetEdge(prev, manualKey))
 
       showEditorToast('Изменения ребра сброшены')
     },
