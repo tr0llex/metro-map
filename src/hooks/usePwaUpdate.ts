@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { recordError } from '../utils/errorLog.ts'
 
 /** Признак того, что ожидающее обновление уже применялось в этой вкладке — защита от петли перезагрузок. */
 const SW_COLD_START_APPLIED_KEY = 'metro-map-sw-cold-start-applied'
@@ -32,6 +33,15 @@ type PwaUpdateState = {
  * пользователя вечно.
  */
 const CURRENT_SW_FILE = '/metro-map-sw.js'
+
+/**
+ * Префикс имён кэшей, которыми управляет Workbox (`workbox-precache-v2-…`).
+ *
+ * Их держит действующий воркер, и трогать их из приложения нельзя: устаревшие
+ * версии он подчищает сам (`cleanupOutdatedCaches` в vite.config.ts). Всё
+ * остальное на origin — кэши воркеров прежних поколений, писавших их руками.
+ */
+const WORKBOX_CACHE_PREFIX = 'workbox-'
 
 export function usePwaUpdate(): PwaUpdateState {
   // Dev: service worker только мешает — он отдаёт закэшированные модули поверх
@@ -92,7 +102,9 @@ export function usePwaUpdate(): PwaUpdateState {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
     onRegistered(swRegistration: ServiceWorkerRegistration | undefined) {
       swRegistrationRef.current = swRegistration
-      console.log('SW registered', swRegistration)
+      if (import.meta.env.DEV) {
+        console.log('SW registered', swRegistration)
+      }
       checkForSwUpdate()
 
       // Самолечение на холодном старте.
@@ -118,11 +130,18 @@ export function usePwaUpdate(): PwaUpdateState {
       } catch {
         return
       }
-      console.log('SW: применяю ожидающее обновление на холодном старте')
+      if (import.meta.env.DEV) {
+        console.log('SW: применяю ожидающее обновление на холодном старте')
+      }
       void updateServiceWorker(true)
     },
     onRegisterError(error: unknown) {
-      console.log('SW registration error', error)
+      // В проде отказ регистрации нужен в журнале ошибок, а не в консоли:
+      // консоль у пользователя никто не читает, а журнал он умеет отправить.
+      recordError('error', error, { source: 'service-worker-register' })
+      if (import.meta.env.DEV) {
+        console.log('SW registration error', error)
+      }
     },
   })
 
@@ -203,9 +222,20 @@ export function usePwaUpdate(): PwaUpdateState {
         return
       }
 
+      // Кэши легаси-воркеров сносим, кэши текущего — нет.
+      //
+      // Раньше здесь удалялись ВСЕ кэши origin, и вместе с наследием улетал
+      // действующий precache Workbox: оболочка приложения, граф маршрутизации и
+      // данные схемы. Человек оставался с установленным PWA без офлайна до
+      // следующей установки воркера — а маршрут, построенный в этот промежуток
+      // без сети, падал на загрузке графа.
       try {
         const keys = await caches.keys()
-        await Promise.all(keys.map((k) => caches.delete(k)))
+        await Promise.all(
+          keys
+            .filter((key) => !key.startsWith(WORKBOX_CACHE_PREFIX))
+            .map((key) => caches.delete(key)),
+        )
       } catch {
         // ignore
       }
