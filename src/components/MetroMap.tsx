@@ -609,6 +609,8 @@ export const MetroMap = memo(function MetroMap({
   const routeBuildRef = useRef<{ startedAt: number; routeKey: string } | null>(null)
   const clickPulseRef = useRef<{ stationId: string; startedAt: number } | null>(null)
   const animationRafRef = useRef<number | null>(null)
+  /** Компонент ещё жив: заградитель от кадра, доехавшего после размонтирования. */
+  const isMountedRef = useRef(true)
   const [animationTick, setAnimationTick] = useState(0)
 
   const clickPulsePerfRef = useRef<
@@ -697,7 +699,9 @@ export const MetroMap = memo(function MetroMap({
   }, [])
 
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
+      isMountedRef.current = false
       if (animationRafRef.current != null) {
         cancelAnimationFrame(animationRafRef.current)
         animationRafRef.current = null
@@ -722,6 +726,9 @@ export const MetroMap = memo(function MetroMap({
   }, [])
 
   const ensureAnimationLoop = useCallback(() => {
+    // Заводить цикл на размонтированном компоненте нельзя: он крутил бы кадры
+    // до конца пульсации, ни на что не влияя.
+    if (!isMountedRef.current) return
     if (animationRafRef.current != null) return
 
     const loop = (now: number) => {
@@ -840,23 +847,27 @@ export const MetroMap = memo(function MetroMap({
   }, [])
 
   useEffect(() => {
-    if (routeEdgeKeys && routeEdgeKeys.length > 0) {
-      if (typeof window !== 'undefined') {
-        window.requestAnimationFrame((ts) => {
-          routePulseRef.current = { startedAt: ts }
-
-          const routeKey = `${routeEdgeKeys.join(',')}|${routeStationIds?.join(',') ?? ''}`
-          if (!routeBuildRef.current || routeBuildRef.current.routeKey !== routeKey) {
-            routeBuildRef.current = { startedAt: ts + ROUTE_BUILD_DELAY_MS, routeKey }
-          }
-
-          ensureAnimationLoop()
-        })
-      }
-    } else {
+    if (!routeEdgeKeys || routeEdgeKeys.length === 0) {
       routePulseRef.current = null
       routeBuildRef.current = null
+      return
     }
+    if (typeof window === 'undefined') return
+
+    // Кадр обязателен к отмене: без неё он доезжал уже после уборки и заново
+    // заводил цикл анимации на размонтированном компоненте.
+    const rafId = window.requestAnimationFrame((ts) => {
+      routePulseRef.current = { startedAt: ts }
+
+      const routeKey = `${routeEdgeKeys.join(',')}|${routeStationIds?.join(',') ?? ''}`
+      if (!routeBuildRef.current || routeBuildRef.current.routeKey !== routeKey) {
+        routeBuildRef.current = { startedAt: ts + ROUTE_BUILD_DELAY_MS, routeKey }
+      }
+
+      ensureAnimationLoop()
+    })
+
+    return () => window.cancelAnimationFrame(rafId)
   }, [routeEdgeKeys, routeStationIds, ensureAnimationLoop])
 
   /**
@@ -1797,13 +1808,17 @@ export const MetroMap = memo(function MetroMap({
       return clampViewport({ scale: nextScale, offsetX, offsetY })
     })
 
-    if (typeof window !== 'undefined') {
-      window.requestAnimationFrame((ts) => {
-        clickPulseRef.current = { stationId, startedAt: ts }
-        ensureAnimationLoop()
-      })
-    }
     ensureAnimationLoop()
+
+    if (typeof window === 'undefined') return
+
+    // См. эффект пульсации маршрута: незаписанный кадр оживал после уборки.
+    const rafId = window.requestAnimationFrame((ts) => {
+      clickPulseRef.current = { stationId, startedAt: ts }
+      ensureAnimationLoop()
+    })
+
+    return () => window.cancelAnimationFrame(rafId)
   }, [
     editMode,
     editorFocusCommand,
