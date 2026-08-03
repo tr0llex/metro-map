@@ -1,5 +1,7 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 
+import type { StationSelectOutcome } from '../components/MetroMap.tsx'
+
 // --- Тап по станции ---------------------------------------------------------
 // Пока хоть одно поле пустое, тап заполняет его сразу: первый — «Откуда»,
 // второй — «Куда» (стандарт Яндекс.Метро и Google Maps). Когда оба поля заняты,
@@ -36,7 +38,7 @@ type StationPickPopoverState = {
     id: string,
     name: string,
     clientPoint?: { x: number; y: number; t?: number },
-  ) => void
+  ) => StationSelectOutcome
   closeAnimated: (options?: { delayMs?: number }) => void
 }
 
@@ -52,14 +54,15 @@ type StationPickPopoverState = {
 export function useStationPickPopover(params: {
   /**
    * Короткий тап по станции. Вызывается всегда со свежим замыканием.
-   * Возвращает 'handled', если сам всё сделал, и 'ask', если решение о поле
-   * должен принять пользователь — тогда открывается поповер.
+   * Возвращает поле, в которое станция уехала ('from'/'to'), 'noop', если
+   * менять было нечего, и 'ask', если решение о поле должен принять
+   * пользователь — тогда открывается поповер.
    */
   onStationTap: (
     stationId: string,
     stationName: string,
     clientPoint: { x: number; y: number },
-  ) => 'handled' | 'ask'
+  ) => StationSelectOutcome
   /** Любой выбор станции — повод убрать подсказку первого запуска. */
   onBeforeSelect: () => void
   /**
@@ -103,8 +106,20 @@ export function useStationPickPopover(params: {
       }
     }
 
+    // Выбор с клавиатуры долгим нажатием не является. Забываем последний
+    // pointerdown: без этого давний клик мимо станции считался «удержанием» и
+    // Enter открывал поповер вместо того, чтобы заполнить пустое поле.
+    // Слушаем в фазе перехвата — обработчик MetroMap висит выше по дереву.
+    const onKeyDown = () => {
+      pointerDownRef.current = null
+    }
+
     window.addEventListener('pointerdown', onPointerDown, true)
-    return () => window.removeEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
   }, [])
 
   const closeStationPickPopoverImmediate = useCallback(() => {
@@ -141,11 +156,17 @@ export function useStationPickPopover(params: {
     id: string,
     name: string,
     clientPoint?: { x: number; y: number; t?: number },
-  ) => {
-    if (!clientPoint) {
-      return
-    }
+  ): StationSelectOutcome => {
     onBeforeSelect()
+
+    // Точка нужна поповеру и подсказке: они встают у станции, а не под шапкой.
+    // MetroMap отдаёт её и для клавиатурного выбора, но если источник её всё же
+    // не знает — берём центр экрана. Раньше на этом месте стоял молчаливый
+    // выход, и выбор станции с клавиатуры не делал вообще ничего.
+    const point: { x: number; y: number; t?: number } = clientPoint ?? {
+      x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
+      y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
+    }
 
     // Долгое нажатие = «хочу выбрать поле сам» → прежний поповер.
     // Длительность считаем сами: MetroMap отдаёт только момент отпускания.
@@ -154,8 +175,8 @@ export function useStationPickPopover(params: {
     let isLongPress = false
     if (down) {
       const heldMs = (typeof performance !== 'undefined' ? performance.now() : 0) - down.at
-      const dx = clientPoint.x - down.x
-      const dy = clientPoint.y - down.y
+      const dx = point.x - down.x
+      const dy = point.y - down.y
       isLongPress =
         heldMs >= LONG_PRESS_MS &&
         heldMs < 10_000 &&
@@ -165,15 +186,15 @@ export function useStationPickPopover(params: {
     if (!isLongPress) {
       // Короткий тап сначала пробует заполнить пустое поле. 'ask' означает,
       // что оба поля заняты и выбор за пользователем — падаем в поповер.
-      // Координаты тапа нужны подсказке: она встаёт у станции, а не под шапкой.
-      if (onStationTapRef.current(id, name, { x: clientPoint.x, y: clientPoint.y }) !== 'ask') {
-        return
+      const outcome = onStationTapRef.current(id, name, { x: point.x, y: point.y })
+      if (outcome !== 'ask') {
+        return outcome
       }
     }
 
     if (import.meta.env.DEV) {
-      stationPickPopoverPerfRef.current = { openedAt: performance.now(), tapAt: clientPoint.t }
-      console.log(`[perf][popover] open station=${id} tapAt=${clientPoint.t != null ? clientPoint.t.toFixed(1) : 'n/a'}`)
+      stationPickPopoverPerfRef.current = { openedAt: performance.now(), tapAt: point.t }
+      console.log(`[perf][popover] open station=${id} tapAt=${point.t != null ? point.t.toFixed(1) : 'n/a'}`)
     }
     if (stationPickPopoverCloseTimeoutRef.current != null) {
       window.clearTimeout(stationPickPopoverCloseTimeoutRef.current)
@@ -182,8 +203,9 @@ export function useStationPickPopover(params: {
     startTransition(() => {
       setStationPickPopoverClosing(false)
       setStationPickPopoverPressed(null)
-      setStationPickPopover({ stationId: id, stationName: name, clientPoint })
+      setStationPickPopover({ stationId: id, stationName: name, clientPoint: point })
     })
+    return 'ask'
   }, [onBeforeSelect])
 
   useEffect(() => {
