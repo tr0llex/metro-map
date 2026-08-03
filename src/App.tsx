@@ -26,6 +26,7 @@ import { IconClock, IconClose, IconHistory, IconPin, IconStar } from './componen
 import { fullGraphLines } from './metro/fullGraph.ts'
 import type { RouteResult, FullGraphStation } from './metro/types.ts'
 import { MetroMap } from './components/MetroMap.tsx'
+import type { StationSelectOutcome } from './components/MetroMap.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { ThemeToggle } from './components/ThemeToggle.tsx'
 import { ThemeStationHint } from './components/ThemeStationHint.tsx'
@@ -763,7 +764,7 @@ function App() {
     stationId: string,
     stationName: string,
     clientPoint: { x: number; y: number },
-  ): 'handled' | 'ask' => {
+  ): StationSelectOutcome => {
     const fromId = fromStationId
     const toId = toStationId
     // Подсказка встаёт у станции и красится цветом её линии — так же, как
@@ -774,12 +775,12 @@ function App() {
     // поповер тут ничего полезного не предложит.
     if (fromId && stationId === fromId) {
       showStationHint('info', `${stationName} уже выбрана как «Откуда»`, at)
-      return 'handled'
+      return 'noop'
     }
 
     if (toId && stationId === toId) {
       showStationHint('info', `${stationName} уже выбрана как «Куда»`, at)
-      return 'handled'
+      return 'noop'
     }
 
     // Подтверждения успеха здесь нет — по той же причине, что и в поповере
@@ -788,12 +789,12 @@ function App() {
     // которой только что попали. Всплывашка остаётся только на ОТКАЗ.
     if (!fromId) {
       applyStationToField('from', stationId, stationName)
-      return 'handled'
+      return 'from'
     }
 
     if (!toId) {
       applyStationToField('to', stationId, stationName)
-      return 'handled'
+      return 'to'
     }
 
     return 'ask'

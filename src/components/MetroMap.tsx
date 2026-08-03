@@ -23,13 +23,23 @@ import {
   fitScaleFor,
 } from './MetroMapViewportFit'
 
+/**
+ * Чем закончился выбор станции на схеме.
+ *
+ * Нужен клавиатурному пути: он обязан сказать скринридеру, что именно
+ * произошло, а решение принимает не карта, а владелец полей маршрута.
+ * `'from'`/`'to'` — станция уехала в это поле, `'ask'` — открыт поповер выбора
+ * поля, `'noop'` — ничего не изменилось (например, станция уже выбрана).
+ */
+export type StationSelectOutcome = 'from' | 'to' | 'ask' | 'noop'
+
 interface MetroMapProps {
   selectionMode: 'from' | 'to'
   onSelectStation: (
     stationId: string,
     stationName: string,
     clientPoint?: { x: number; y: number; t?: number },
-  ) => void
+  ) => StationSelectOutcome | void
   fromStationName?: string
   toStationName?: string
   fromStationId?: string
@@ -609,6 +619,8 @@ export const MetroMap = memo(function MetroMap({
   const routeBuildRef = useRef<{ startedAt: number; routeKey: string } | null>(null)
   const clickPulseRef = useRef<{ stationId: string; startedAt: number } | null>(null)
   const animationRafRef = useRef<number | null>(null)
+  /** Компонент ещё жив: заградитель от кадра, доехавшего после размонтирования. */
+  const isMountedRef = useRef(true)
   const [animationTick, setAnimationTick] = useState(0)
 
   const clickPulsePerfRef = useRef<
@@ -697,7 +709,9 @@ export const MetroMap = memo(function MetroMap({
   }, [])
 
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
+      isMountedRef.current = false
       if (animationRafRef.current != null) {
         cancelAnimationFrame(animationRafRef.current)
         animationRafRef.current = null
@@ -722,6 +736,9 @@ export const MetroMap = memo(function MetroMap({
   }, [])
 
   const ensureAnimationLoop = useCallback(() => {
+    // Заводить цикл на размонтированном компоненте нельзя: он крутил бы кадры
+    // до конца пульсации, ни на что не влияя.
+    if (!isMountedRef.current) return
     if (animationRafRef.current != null) return
 
     const loop = (now: number) => {
@@ -840,23 +857,27 @@ export const MetroMap = memo(function MetroMap({
   }, [])
 
   useEffect(() => {
-    if (routeEdgeKeys && routeEdgeKeys.length > 0) {
-      if (typeof window !== 'undefined') {
-        window.requestAnimationFrame((ts) => {
-          routePulseRef.current = { startedAt: ts }
-
-          const routeKey = `${routeEdgeKeys.join(',')}|${routeStationIds?.join(',') ?? ''}`
-          if (!routeBuildRef.current || routeBuildRef.current.routeKey !== routeKey) {
-            routeBuildRef.current = { startedAt: ts + ROUTE_BUILD_DELAY_MS, routeKey }
-          }
-
-          ensureAnimationLoop()
-        })
-      }
-    } else {
+    if (!routeEdgeKeys || routeEdgeKeys.length === 0) {
       routePulseRef.current = null
       routeBuildRef.current = null
+      return
     }
+    if (typeof window === 'undefined') return
+
+    // Кадр обязателен к отмене: без неё он доезжал уже после уборки и заново
+    // заводил цикл анимации на размонтированном компоненте.
+    const rafId = window.requestAnimationFrame((ts) => {
+      routePulseRef.current = { startedAt: ts }
+
+      const routeKey = `${routeEdgeKeys.join(',')}|${routeStationIds?.join(',') ?? ''}`
+      if (!routeBuildRef.current || routeBuildRef.current.routeKey !== routeKey) {
+        routeBuildRef.current = { startedAt: ts + ROUTE_BUILD_DELAY_MS, routeKey }
+      }
+
+      ensureAnimationLoop()
+    })
+
+    return () => window.cancelAnimationFrame(rafId)
   }, [routeEdgeKeys, routeStationIds, ensureAnimationLoop])
 
   /**
@@ -1797,13 +1818,17 @@ export const MetroMap = memo(function MetroMap({
       return clampViewport({ scale: nextScale, offsetX, offsetY })
     })
 
-    if (typeof window !== 'undefined') {
-      window.requestAnimationFrame((ts) => {
-        clickPulseRef.current = { stationId, startedAt: ts }
-        ensureAnimationLoop()
-      })
-    }
     ensureAnimationLoop()
+
+    if (typeof window === 'undefined') return
+
+    // См. эффект пульсации маршрута: незаписанный кадр оживал после уборки.
+    const rafId = window.requestAnimationFrame((ts) => {
+      clickPulseRef.current = { stationId, startedAt: ts }
+      ensureAnimationLoop()
+    })
+
+    return () => window.cancelAnimationFrame(rafId)
   }, [
     editMode,
     editorFocusCommand,
@@ -4060,7 +4085,10 @@ export const MetroMap = memo(function MetroMap({
     }
   }
 
-  const handleStationClick = (st: PositionedStation, clientPoint?: { x: number; y: number; t?: number }) => {
+  const handleStationClick = (
+    st: PositionedStation,
+    clientPoint?: { x: number; y: number; t?: number },
+  ): StationSelectOutcome | void => {
     const startedAt = clientPoint?.t
     clickPulseRef.current = { stationId: st.id, startedAt: typeof startedAt === 'number' ? startedAt : (animationTick || 0) }
     ensureAnimationLoop()
@@ -4071,9 +4099,9 @@ export const MetroMap = memo(function MetroMap({
     }
     if (editMode && onEditStationInspect) {
       onEditStationInspect(st.id)
-    } else {
-      onSelectStation(st.id, st.title, clientPoint)
+      return
     }
+    return onSelectStation(st.id, st.title, clientPoint)
   }
 
   const handleClick: React.MouseEventHandler<HTMLCanvasElement> = (event) => {
@@ -4114,6 +4142,32 @@ export const MetroMap = memo(function MetroMap({
     return `${st.title}${lineName}`
   }
 
+  /** Текст для aria-live по фактическому исходу клавиатурного выбора. */
+  const describeKeyboardSelectOutcome = (
+    st: PositionedStation,
+    outcome: StationSelectOutcome | void,
+  ): string => {
+    const name = describeStation(st)
+    switch (outcome) {
+      case 'from':
+        return `${name} — выбрана как «Откуда»`
+      case 'to':
+        return `${name} — выбрана как «Куда»`
+      case 'ask':
+        return `${name}: оба поля заняты, выберите «Откуда» или «Куда» в открывшейся подсказке`
+      case 'noop':
+        if (fromStationId && st.id === fromStationId) {
+          return `${name} уже выбрана как «Откуда»`
+        }
+        if (toStationId && st.id === toStationId) {
+          return `${name} уже выбрана как «Куда»`
+        }
+        return `${name} — ничего не изменилось`
+      default:
+        return name
+    }
+  }
+
   const ensureStationVisible = (st: PositionedStation) => {
     const width = canvasSize.width
     const height = canvasSize.height
@@ -4141,6 +4195,26 @@ export const MetroMap = memo(function MetroMap({
     easeViewportTo(
       clampViewport({ ...vp, offsetX: vp.offsetX + dx, offsetY: vp.offsetY + dy }),
     )
+  }
+
+  /**
+   * Экранные координаты станции — обратная операция к getWorldPointFromMouse.
+   *
+   * Клавиатурный выбор обязан отдать точку так же, как тап: к ней привязаны и
+   * поповер выбора поля, и всплывающая подсказка. Без точки выбор просто
+   * терялся по дороге.
+   */
+  const getStationClientPoint = (
+    st: PositionedStation,
+  ): { x: number; y: number } | undefined => {
+    const canvas = canvasRef.current
+    if (!canvas) return undefined
+    const rect = canvasRectRef.current ?? canvas.getBoundingClientRect()
+    const vp = viewportRef.current
+    return {
+      x: rect.left + rect.width / 2 + vp.offsetX + st.x * vp.scale,
+      y: rect.top + rect.height / 2 + vp.offsetY + st.y * vp.scale,
+    }
   }
 
   const focusStationForKeyboard = (st: PositionedStation) => {
@@ -4240,10 +4314,21 @@ export const MetroMap = memo(function MetroMap({
         const st = keyboardFocusStationId ? positionedById.get(keyboardFocusStationId) : null
         if (!st) return
         event.preventDefault()
-        handleStationClick(st)
-        setMapAnnouncement(
-          `${describeStation(st)} — выбрана как «${selectionMode === 'from' ? 'Откуда' : 'Куда'}»`,
+
+        const point = getStationClientPoint(st)
+        const outcome = handleStationClick(
+          st,
+          point
+            ? {
+                ...point,
+                t: typeof event.timeStamp === 'number' ? event.timeStamp : undefined,
+              }
+            : undefined,
         )
+
+        // Объявляем то, что случилось на самом деле. Раньше здесь безусловно
+        // сообщался успех — даже когда выбор вообще не доходил до полей.
+        setMapAnnouncement(describeKeyboardSelectOutcome(st, outcome))
         return
       }
       case '+':
