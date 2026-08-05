@@ -40,7 +40,14 @@ export function RouteHeader({
         то, для чего шапка нужна.
       */}
       {isDesktop ? (
-        <div className="app-header-brand">Метро Москвы</div>
+        <div className="app-header-brand">
+          <span className="app-header-brand-name">Метро Москвы</span>
+          {/* Вторая строка — не украшение: в шапке шириной 420px одно слово
+              оставляло две трети пустоты, и заголовок читался как случайно
+              уехавший влево текст. Подпись говорит, что это за экран, ровно
+              там, где взгляд ищет заголовок карточки. */}
+          <span className="app-header-brand-sub">Схема и маршруты</span>
+        </div>
       ) : (
         <button type="button" className={headerChipClassName} onClick={onChipClick}>
           <span className="app-header-chip-title">{headerTitle}</span>

@@ -422,7 +422,6 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
   pointer-events: auto;
   padding: calc(env(safe-area-inset-top, 0) + var(--space-1)) var(--space-2) var(--space-1);
@@ -461,25 +460,13 @@
   }
 }
 
-.app-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: transparent;
-  opacity: 0;
-  z-index: -1;
-}
-
 .app-header-left {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-}
-
-.app-header-left {
   margin-right: var(--space-1);
 }
+
 .app-header-logo {
   position: relative;
   display: flex;
@@ -564,6 +551,42 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Название продукта вместо чипа, повторявшего поля ввода (см. RouteHeader).
+   Показывается только при боковой панели, но описано без медиазапроса: разметка
+   и так решает, что рисовать, а стиль, спрятанный в @media, оставлял бы текст
+   голым в те миллисекунды, пока флаг раскладки уточняется эффектом. */
+.app-header-brand {
+  /* Занимает всю ширину после логотипа: иначе название прижималось к правому
+     краю шапки, а между ним и знаком зияла дыра в две трети ширины. Чип на
+     мобиле стоит на этом же месте и тоже растянут (`flex: 1`). */
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.app-header-brand-name {
+  font-size: var(--font-size-md);
+  line-height: 1.25;
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: -0.01em;
+  color: var(--color-text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-header-brand-sub {
+  font-size: var(--font-size-xs);
+  line-height: 1.2;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .app-main {
   flex: 1;
   padding: 3.5rem 1rem 5.25rem;
@@ -2919,8 +2942,25 @@
 }
 
 @media (min-width: 1024px), (max-height: 500px) {
+  /* Геометрия боковой панели живёт в переменных, а не в четырёх числах,
+     разбросанных по файлу. Раньше высота шапки (3.375rem) была вписана в её
+     правило, а её же сумма с верхним отступом — отдельными константами в `top`
+     и `max-height` шторки и ещё раз в блоке альбомной ориентации. Любая правка
+     шапки требовала пересчитать три числа в двух местах — и, пока их не
+     пересчитали, панель наезжала на шапку или отходила от неё на пиксели.
+     Теперь число одно, а альбомной раскладке достаточно переопределить
+     переменные (см. блок max-height: 500px ниже). */
   .app-root {
     max-width: 100%;
+    --panel-inset: 1.75rem;
+    --panel-top: 1.5rem;
+    --panel-bottom: 1.75rem;
+    --panel-width: clamp(340px, 30vw, 420px);
+    /* Та же высота, что и у мобильной шапки. */
+    --panel-header-h: 3.375rem;
+    /* Горизонтальные поля карточки. Шапка берёт их же — иначе её содержимое
+       не встаёт на одну вертикаль с полями «Откуда/Куда» под ней. */
+    --panel-pad-x: var(--space-4);
   }
 
   /* Шапка и карточка поиска были двумя стеклянными плашками в четырёх пикселях
@@ -2939,10 +2979,10 @@
      применялись, а рамка со скруглением — нет, и стык оставался прочерченным.
      `.app-root` добавляет ровно один класс и возвращает правилу приоритет. */
   .app-root .app-header {
-    left: 1.75rem;
-    top: 1.5rem;
+    left: var(--panel-inset);
+    top: var(--panel-top);
     transform: none;
-    width: clamp(340px, 30vw, 420px);
+    width: var(--panel-width);
     max-width: none;
     /* Карточка под шапкой — border-box, шапка была content-box: при одинаковом
        width её padding и рамка добавлялись сверху, и она вылезала на 18px
@@ -2950,9 +2990,14 @@
     box-sizing: border-box;
     /* Высота задана, а не выведена из содержимого: под шапкой встык стоит
        карточка, и её `top` — константа. Плавающая высота шапки рассинхронила
-       бы стык при любой правке содержимого. 3.375rem — та же высота, что и
-       у мобильной шапки. */
-    height: 3.375rem;
+       бы стык при любой правке содержимого. */
+    height: var(--panel-header-h);
+    /* Поля общие с карточкой. Было `4px 8px` из базового правила: знак стоял
+       в 9px от кромки, а поля «Откуда/Куда» под ним — в 17px. Восемь пикселей
+       расхождения на единственной вертикали, которую видно насквозь через обе
+       половины панели, — от этого вся сборка и читалась косой. */
+    padding: 0 var(--panel-pad-x);
+    gap: var(--space-3);
     border-bottom: none;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
@@ -2964,43 +3009,68 @@
     background: var(--color-surface-solid-gradient);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    /* Тень только наружу: снизу она легла бы на стык и прочертила бы ту самую
-       границу, которую мы убираем. */
-    box-shadow: 0 -2px 24px rgba(var(--rgb-shadow-cool), 0.18);
+    /* Тень только наружу и той же силы, что у карточки (--shadow-soft): снизу
+       она легла бы на стык и прочертила бы ту самую границу, которую мы
+       убираем, а более слабая — оставляла бы верх сборки «плоским» там, где
+       низ отбрасывает тень. */
+    box-shadow: 0 -6px 18px rgba(var(--rgb-shadow-cool), 0.18);
+    /* Появление у шапки и у карточки разное — и на стыке это видно: шапка
+       проявлялась отдельно от неподвижной панели, будто отклеиваясь. */
+    animation: none;
   }
 
-  /* Название продукта вместо чипа, повторявшего поля ввода (см. RouteHeader). */
-  .app-header-brand {
-    /* Занимает всю ширину после логотипа. Без этого при
-       `justify-content: space-between` у шапки название прижималось к правому
-       краю, а между ним и логотипом зияла дыра в две трети ширины шапки —
-       читалось как случайно уехавший текст, а не как заголовок. Чип на мобиле
-       стоит на этом же месте и тоже растянут (`flex: 1`), так что поведение у
-       обоих состояний шапки теперь одно. */
-    flex: 1;
-    min-width: 0;
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold, 600);
-    letter-spacing: -0.01em;
-    color: var(--color-text-heading);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  /* Разделитель вместо невидимого стыка.
+     Поверхность остаётся непрерывной — линия не доходит до боковых кромок и
+     проходит по внутренним полям, ровно как разделяют заголовок карточки и её
+     содержимое. Без неё название продукта и поля ввода стояли в одной высокой
+     плашке без всякой структуры: сборка выглядела не «шапка + панель», а как
+     случайно разъехавшийся кусок панели. */
+  .app-root .app-header::after {
+    content: '';
+    position: absolute;
+    left: var(--panel-pad-x);
+    right: var(--panel-pad-x);
+    bottom: 0;
+    height: 1px;
+    background: rgba(var(--rgb-border-hair), 0.55);
+    pointer-events: none;
+  }
+
+  /* Знак сам по себе круглый, с белой обводкой по краю. Подложка-кружок с
+     тенью и кольцом рисовала вокруг него ВТОРУЮ окружность шириной в три
+     пикселя — на плоской панели это читалось как ореол вокруг кнопки, которой
+     здесь нет. Оставляем один круг: сам знак. */
+  .app-header-logo {
+    width: 2.25rem;
+    height: 2.25rem;
+    background: none;
+    box-shadow: none;
+  }
+
+  .app-header-logo-img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .app-header-left {
+    margin-right: 0;
   }
 
   .bottom-sheet {
-    /* Вплотную под шапкой: 1.5rem отступа сверху + 3.375rem её высоты.
-       Было 5.1rem — это оставляло зазор в 4px и превращало одну поверхность
-       в две отдельные плашки. */
-    top: 4.875rem;
-    bottom: 1.75rem;
-    left: 1.75rem;
+    /* Вплотную под шапкой: её верхний отступ плюс её высота. Было 5.1rem —
+       это оставляло зазор в 4px и превращало одну поверхность в две
+       отдельные плашки. */
+    top: calc(var(--panel-top) + var(--panel-header-h));
+    bottom: var(--panel-bottom);
+    left: var(--panel-inset);
     right: auto;
     transform: none;
     /* На десктопе ширина шторки адаптивна: от компактной на узких окнах
        до более широкой на больших, но не больше 420px. */
-    width: clamp(340px, 30vw, 420px);
-    max-height: calc(100vh - 4.875rem - 1.75rem);
+    width: var(--panel-width);
+    max-height: calc(
+      100vh - var(--panel-top) - var(--panel-header-h) - var(--panel-bottom)
+    );
     /* Шторка сама не скроллится по вертикали, скролл только внутри контента. */
     overflow-y: visible;
     overflow-x: visible;
@@ -3029,7 +3099,9 @@
     width: 100%;
     box-sizing: border-box;
     gap: var(--space-3);
-    padding: var(--space-3) var(--space-4) var(--space-4);
+    /* Горизонтальные поля общие с шапкой (см. --panel-pad-x): содержимое обеих
+       половин панели стоит на одной вертикали. */
+    padding: var(--space-3) var(--panel-pad-x) var(--space-4);
     /* Верхние углы распрямлены: сверху вплотную стоит шапка, и скругление
        здесь прочертило бы шов там, где должна быть одна поверхность. */
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
@@ -3659,28 +3731,20 @@
    побеждает то, что ниже в файле.
    ───────────────────────────────────────────────────────────────────────── */
 @media (max-height: 500px) {
-  /* Ширина общая с панелью, иначе шов между ними разъезжается — см. блок
-     десктопной раскладки выше. Класс-предок там же и по той же причине. */
-  .app-root .app-header {
-    top: var(--space-2);
-    left: var(--space-3);
-    width: clamp(300px, 40vw, 360px);
-    max-width: none;
-  }
-
-  .bottom-sheet {
-    /* Вплотную под шапкой: 0.5rem отступа сверху + 3.375rem её высоты. Было
-       3.6rem — панель наезжала на шапку на четыре пикселя. */
-    top: 3.875rem;
-    bottom: var(--space-2);
-    left: var(--space-3);
-    width: clamp(300px, 40vw, 360px);
-    max-height: calc(100vh - 3.875rem - var(--space-2));
+  /* Ужимать здесь нечего, кроме переменных: и шапка, и панель считают свою
+     геометрию от них (см. блок десктопной раскладки выше), поэтому стык между
+     ними сходится сам и повторять его арифметику не нужно. */
+  .app-root {
+    --panel-inset: var(--space-3);
+    --panel-top: var(--space-2);
+    --panel-bottom: var(--space-2);
+    --panel-width: clamp(300px, 40vw, 360px);
+    --panel-pad-x: var(--space-3);
   }
 
   .bottom-sheet-inner {
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-3) var(--space-3);
+    padding: var(--space-2) var(--panel-pad-x) var(--space-3);
     /* Панель ниже своего содержимого — прокрутку берёт на себя она сама.
        На десктопе это делает внутренний блок деталей, но там хватает высоты
        и без прокрутки внешнего контейнера. */
