@@ -1210,14 +1210,35 @@ function App() {
                   />
                 )}
 
+                {/* Без маршрута шторка бывает в двух разных состояниях, и ручка
+                    в них значит разное.
+
+                    Раскрытой без маршрута шторка бывает ровно из-за панели
+                    быстрых маршрутов: она поднимает isRouteSheetOpen сама
+                    (см. useBottomSheet). Тогда ручка — рабочий переключатель,
+                    и это второй способ закрыть панель, в том числе с клавиатуры.
+
+                    Свёрнутой раскрывать нечего буквально: детали маршрута
+                    рендерятся только при routeResult, а форма и так видна во
+                    всегда видимой части — ход шторки нулевой. Кнопка здесь
+                    обещала «Раскрыть шторку», ничего не делала по нажатию и
+                    занимала шаг в обходе по Tab. Поэтому в этом состоянии
+                    остаётся только полоска-захват: класс тот же, геометрия та
+                    же (её offsetHeight входит в измерение высоты шторки), а
+                    перетаскивание её не касается — оно ищет .bottom-sheet-handle
+                    по классу, а не по тегу. */}
                 {!routeResult && !isDesktop && (
-                  <button
-                    type="button"
-                    className="bottom-sheet-handle"
-                    aria-expanded={isRouteSheetOpen}
-                    aria-label={isRouteSheetOpen ? 'Свернуть шторку' : 'Раскрыть шторку'}
-                    onClick={() => setRouteSheetOpenState(!isRouteSheetOpen)}
-                  />
+                  isRouteSheetOpen ? (
+                    <button
+                      type="button"
+                      className="bottom-sheet-handle"
+                      aria-expanded
+                      aria-label="Свернуть шторку"
+                      onClick={() => setRouteSheetOpenState(false)}
+                    />
+                  ) : (
+                    <div className="bottom-sheet-handle" aria-hidden="true" />
+                  )
                 )}
 
                 {showOnboardingHint && (
