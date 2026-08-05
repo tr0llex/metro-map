@@ -69,14 +69,26 @@ async function sheetProgress(page: Page): Promise<number> {
   });
 }
 
+/**
+ * Ручка построенного маршрута.
+ *
+ * Ждать `.bottom-sheet-handle` было нельзя: полоска с этим классом стоит в
+ * шторке с загрузки страницы, ещё до всякого маршрута. Ожидание проходило
+ * мгновенно и не ждало ничего — тесты шли мерить шторку, пока маршрут ещё
+ * считался в воркере, и держались на том, что расчёт успевает раньше.
+ *
+ * Отличает состояние не класс, а роль с именем: кнопкой ручка становится
+ * ровно тогда, когда есть что раскрывать. Детали маршрута для ожидания не
+ * годятся — у свёрнутой шторки они скрыты (visibility: hidden), и toBeVisible
+ * на них не дождётся никогда.
+ */
+const routeHandle = (page: Page) => page.getByRole('button', { name: /детали маршрута/ });
+
 async function buildRoute(page: Page): Promise<void> {
   await page.goto('/');
   await pickStation(page, 'Станция отправления', 'Юго-Западная');
   await pickStation(page, 'Станция назначения', 'Медведково');
-  // Ждём ручку, а не карточку маршрута: у свёрнутой шторки детали скрыты
-  // (visibility: hidden), и toBeVisible на них не дождётся никогда. Ручка же
-  // появляется ровно тогда, когда маршрут построен.
-  await expect(page.locator('.bottom-sheet-handle')).toBeVisible();
+  await expect(routeHandle(page)).toBeVisible();
 }
 
 test.describe('шторка маршрута тянется пальцем', () => {
@@ -111,7 +123,7 @@ test.describe('шторка маршрута тянется пальцем', () 
     const cdp = (await context.newCDPSession(page)) as unknown as Cdp;
     await buildRoute(page);
 
-    await page.locator('.bottom-sheet-handle').click();
+    await routeHandle(page).click();
     await expect.poll(() => sheetProgress(page), { timeout: 5000 }).toBeGreaterThan(0.9);
 
     const box = (await page.locator('.bottom-sheet').boundingBox())!;
@@ -138,7 +150,7 @@ test.describe('шторка маршрута тянется пальцем', () 
   /** Ручка работала и до правки — следим, чтобы не сломалась заодно. */
   test('ручка по-прежнему открывает шторку нажатием', async ({ page }) => {
     await buildRoute(page);
-    await page.locator('.bottom-sheet-handle').click();
+    await routeHandle(page).click();
     await expect.poll(() => sheetProgress(page), { timeout: 5000 }).toBeGreaterThan(0.9);
   });
 });

@@ -22,7 +22,7 @@
   "bugs": "https://github.com/tr0llex/metro-map/issues",
   "author": "Alexey Samoylov <alex@samoy.love>",
   "license": "MIT",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
