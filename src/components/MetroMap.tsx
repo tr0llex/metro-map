@@ -17,8 +17,8 @@ import {
   type StationLabelPlacement,
 } from './MetroMapLabelLayout'
 import {
+  INITIAL_ZOOM_BOOST,
   MIN_SCALE,
-  MOBILE_FILL_ZOOM,
   WIDE_PANEL_LAYOUT_MIN_WIDTH,
   computeWorldBounds,
   coverScaleFor,
@@ -93,11 +93,6 @@ const ROUTE_AUTO_FIT_MAX_SCALE = 1.8
  * маршрут зумился до предела и терял всякий географический контекст.
  */
 const ROUTE_MIN_CONTEXT_WORLD_SPAN = 560
-/**
- * Потолок стартового зума: на большом экране схема влезает целиком с запасом,
- * и растягивать её до бесконечности не нужно.
- */
-const INITIAL_PREFERRED_SCALE = 1.1
 const PAN_CLAMP_VIEWPORT_FRACTION = 0.01
 
 /**
@@ -1101,11 +1096,16 @@ export const MetroMap = memo(function MetroMap({
     return out
   }, [positionedById])
 
-  const teatralnayaWorld = useMemo(() => {
+  /** Геометрический центр схемы неудобен как точка старта: линии расходятся
+   * от него неравномерно, и «центр bbox» на глаз не читается как «центр
+   * города». Охотный Ряд — фактический центр сети (пересечение с Театральной
+   * и Площадью Революции), поэтому стартовый вид держим на нём всегда, а не
+   * только когда схема не влезает целиком. */
+  const okhotnyRyadWorld = useMemo(() => {
     if (positionedStations.length === 0) return null
-    const byId = positionedStations.find((st) => st.id === '2/teatralnaya')
+    const byId = positionedStations.find((st) => st.id === '1/okhotnyy-ryad')
     if (byId) return { x: byId.x, y: byId.y }
-    const byTitle = positionedStations.find((st) => st.title === 'Театральная')
+    const byTitle = positionedStations.find((st) => st.title === 'Охотный Ряд')
     if (byTitle) return { x: byTitle.x, y: byTitle.y }
     return null
   }, [positionedStations])
@@ -1917,30 +1917,22 @@ export const MetroMap = memo(function MetroMap({
     const worldHeight = worldBounds.height
     const isWidePanelLayout = displayWidth >= WIDE_PANEL_LAYOUT_MIN_WIDTH
 
-    // Стартуем с «вся схема в кадре»: раньше здесь стоял
-    // max(baseScale, INITIAL_PREFERRED_SCALE), из-за чего фит всегда
-    // проигрывал 1.1 и приложение открывалось в куске центра (VQA-3).
-    const fitScale = fitScaleFor(worldWidth, worldHeight, displayWidth, displayHeight)
-    if (!Number.isFinite(fitScale) || fitScale <= 0) return
+    // Естественный фит — точка отсчёта, а не итоговый зум: на широком
+    // макете это «вся схема целиком» (fitScaleFor), на узком — «экран
+    // заполнен целиком» (coverScaleFor). Поверх него всегда небольшое
+    // приближение (INITIAL_ZOOM_BOOST), иначе стартовый вид на вебе
+    // выглядит мелкой картинкой посреди пустого поля.
+    const baseScale = isWidePanelLayout
+      ? fitScaleFor(worldWidth, worldHeight, displayWidth, displayHeight)
+      : coverScaleFor(worldWidth, worldHeight, displayWidth, displayHeight)
+    if (!Number.isFinite(baseScale) || baseScale <= 0) return
 
-    // На широком макете (веб) — схема целиком, вписанная по центру экрана.
-    // На узком (мобильный) — экран заполняется целиком, с лёгким
-    // приближением, а не «вся схема с полями», иначе схема выглядит мелкой
-    // картинкой посреди пустого поля.
-    const initialScale = isWidePanelLayout
-      ? Math.min(MAX_SCALE, INITIAL_PREFERRED_SCALE, fitScale)
-      : Math.min(
-          MAX_SCALE,
-          coverScaleFor(worldWidth, worldHeight, displayWidth, displayHeight) * MOBILE_FILL_ZOOM,
-        )
+    const initialScale = Math.min(MAX_SCALE, baseScale * INITIAL_ZOOM_BOOST)
 
-    // Если схема влезла целиком — центрируем её саму. Если экран так велик,
-    // что фит упёрся в потолок зума, показываем центр города.
-    const showsWholeMap = isWidePanelLayout && initialScale >= fitScale - 1e-6
-    const centerWorldX =
-      showsWholeMap || !teatralnayaWorld ? worldBounds.centerX : teatralnayaWorld.x
-    const centerWorldY =
-      showsWholeMap || !teatralnayaWorld ? worldBounds.centerY : teatralnayaWorld.y
+    // Центр — Охотный Ряд, а не геометрический центр bbox схемы: и на вебе,
+    // и на мобильном стартовый вид держим на фактическом центре города.
+    const centerWorldX = okhotnyRyadWorld?.x ?? worldBounds.centerX
+    const centerWorldY = okhotnyRyadWorld?.y ?? worldBounds.centerY
 
     // offsetX/offsetY уже отсчитываются от центра экрана (см. clampViewport
     // ниже по файлу: offsetX = -centerWorldX * scale), поэтому без
@@ -1965,7 +1957,7 @@ export const MetroMap = memo(function MetroMap({
     canvasSize,
     hasInitialViewport,
     clampViewport,
-    teatralnayaWorld,
+    okhotnyRyadWorld,
     onInitialViewportReady,
   ])
 
