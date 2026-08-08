@@ -58,7 +58,9 @@ jobs:
   build:
     name: Typecheck, lint, test, build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Было 30: после #52 (шардирование сверок раскладки) реальное время —
+    # 8-16 минут. 18 оставляет запас, но перестаёт ждать полчаса зависший шаг.
+    timeout-minutes: 18
 
     steps:
       - uses: actions/checkout@v7
