@@ -45,7 +45,7 @@ afterEach(cleanup)
 const FROM = { id: '1/chistye-prudy', title: 'Чистые пруды' }
 const TO = { id: '1/frunzenskaya', title: 'Фрунзенская' }
 
-const SPLASH_MIN_MS = 1200
+const SPLASH_MIN_MS = 1500
 const MAP_READY_FALLBACK_MS = 3500
 
 /** Маршрут, который «считает» подставной воркер. */
