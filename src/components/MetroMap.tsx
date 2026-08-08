@@ -18,8 +18,10 @@ import {
 } from './MetroMapLabelLayout'
 import {
   MIN_SCALE,
-  computeInitialFitRect,
+  MOBILE_FILL_ZOOM,
+  WIDE_PANEL_LAYOUT_MIN_WIDTH,
   computeWorldBounds,
+  coverScaleFor,
   fitScaleFor,
 } from './MetroMapViewportFit'
 
@@ -953,6 +955,19 @@ export const MetroMap = memo(function MetroMap({
   const dragStartWorldRef = useRef<{ x: number; y: number } | null>(null)
   const dragInitialPositionsRef = useRef<Record<string, { x: number; y: number }>>({})
   const dragRingShapesByLineIdRef = useRef<Map<number, RingShape>>(new Map())
+  /**
+   * Батчинг перетаскивания станций до кадра анимации.
+   *
+   * mousemove/touchmove прилетают чаще, чем экран успевает перерисоваться
+   * (пример: 240 Гц мышь на 60 Гц дисплее — до четырёх событий на кадр).
+   * setStationOverrides раньше вызывался на каждое событие, а от него зависят
+   * positionedStations и вся тяжёлая раскладка (hubGroups, farTransferSegments,
+   * подписи) — на каждое лишнее срабатывание пересчитывалась схема целиком,
+   * поэтому перетаскивание узла ощущалось «лагучим». Теперь событие только
+   * запоминает дельту, а коммит в state идёт не чаще одного раза за кадр.
+   */
+  const dragRafRef = useRef<number | null>(null)
+  const dragPendingDeltaRef = useRef<{ dxWorld: number; dyWorld: number } | null>(null)
 
   const positionedStations = useMemo(() => {
     const usedStationIds = new Set<string>()
@@ -1888,8 +1903,9 @@ export const MetroMap = memo(function MetroMap({
     return closest
   }
 
-  // Подгоняем схему под доступный размер Canvas один раз при инициализации:
-  // центрируем и масштабируем так, чтобы вся сеть влезла в экран с небольшим отступом.
+  // Подгоняем схему под размер Canvas один раз при инициализации. Панель
+  // маршрута и шторка — это интерфейс поверх карты, а не часть кадра: схема
+  // центрируется по экрану целиком, а не по свободному от них остатку.
   useEffect(() => {
     if (!worldBounds) return
 
@@ -1899,37 +1915,38 @@ export const MetroMap = memo(function MetroMap({
 
     const worldWidth = worldBounds.width
     const worldHeight = worldBounds.height
-
-    const {
-      left: insetLeft,
-      top: insetTop,
-      width: visibleWidth,
-      height: visibleHeight,
-    } = computeInitialFitRect(displayWidth, displayHeight, visibleInsets)
+    const isWidePanelLayout = displayWidth >= WIDE_PANEL_LAYOUT_MIN_WIDTH
 
     // Стартуем с «вся схема в кадре»: раньше здесь стоял
     // max(baseScale, INITIAL_PREFERRED_SCALE), из-за чего фит всегда
     // проигрывал 1.1 и приложение открывалось в куске центра (VQA-3).
-    const fitScale = fitScaleFor(worldWidth, worldHeight, visibleWidth, visibleHeight)
+    const fitScale = fitScaleFor(worldWidth, worldHeight, displayWidth, displayHeight)
     if (!Number.isFinite(fitScale) || fitScale <= 0) return
 
-    const initialScale = Math.min(MAX_SCALE, INITIAL_PREFERRED_SCALE, fitScale)
-
-    const screenCenterX = displayWidth / 2
-    const screenCenterY = displayHeight / 2
-    const visibleCenterX = insetLeft + visibleWidth / 2
-    const visibleCenterY = insetTop + visibleHeight / 2
+    // На широком макете (веб) — схема целиком, вписанная по центру экрана.
+    // На узком (мобильный) — экран заполняется целиком, с лёгким
+    // приближением, а не «вся схема с полями», иначе схема выглядит мелкой
+    // картинкой посреди пустого поля.
+    const initialScale = isWidePanelLayout
+      ? Math.min(MAX_SCALE, INITIAL_PREFERRED_SCALE, fitScale)
+      : Math.min(
+          MAX_SCALE,
+          coverScaleFor(worldWidth, worldHeight, displayWidth, displayHeight) * MOBILE_FILL_ZOOM,
+        )
 
     // Если схема влезла целиком — центрируем её саму. Если экран так велик,
     // что фит упёрся в потолок зума, показываем центр города.
-    const showsWholeMap = initialScale >= fitScale - 1e-6
+    const showsWholeMap = isWidePanelLayout && initialScale >= fitScale - 1e-6
     const centerWorldX =
       showsWholeMap || !teatralnayaWorld ? worldBounds.centerX : teatralnayaWorld.x
     const centerWorldY =
       showsWholeMap || !teatralnayaWorld ? worldBounds.centerY : teatralnayaWorld.y
 
-    const offsetX = visibleCenterX - screenCenterX - centerWorldX * initialScale
-    const offsetY = visibleCenterY - screenCenterY - centerWorldY * initialScale
+    // offsetX/offsetY уже отсчитываются от центра экрана (см. clampViewport
+    // ниже по файлу: offsetX = -centerWorldX * scale), поэтому без
+    // добавочного screenCenterX-члена — иначе clampViewport его отбросит.
+    const offsetX = -centerWorldX * initialScale
+    const offsetY = -centerWorldY * initialScale
 
     setViewport(
       clampViewport({
@@ -1950,7 +1967,6 @@ export const MetroMap = memo(function MetroMap({
     clampViewport,
     teatralnayaWorld,
     onInitialViewportReady,
-    visibleInsets,
   ])
 
   // Перерисовка схемы при изменении вьюпорта или подсветки
@@ -3437,8 +3453,13 @@ export const MetroMap = memo(function MetroMap({
             }
           } else {
             nextSelection.clear()
+            // Alt отвязывает станцию от узла: обычно перетаскивание берёт
+            // весь узел разом (удобно для физически близкого пересадочного
+            // комплекса), но у пересадок с далеко разнесёнными станциями это
+            // не даёт их сблизить — вторая станция едет тем же курсом следом
+            // за первой, и расстояние между ними никогда не меняется.
             const idsForHit: string[] =
-              hit.hubId != null
+              !event.altKey && hit.hubId != null
                 ? positionedStations.filter((st) => st.hubId === hit.hubId).map((st) => st.id)
                 : [hit.id]
             for (const id of idsForHit) {
@@ -3492,6 +3513,82 @@ export const MetroMap = memo(function MetroMap({
     setHasDragged(false)
   }
 
+  /**
+   * Коммит station-overrides не чаще раза за кадр (см. dragRafRef выше):
+   * mousemove/touchmove лишь обновляют dragPendingDeltaRef, а этот колбэк
+   * читает последнюю дельту и один раз пересчитывает overrides. `snap` —
+   * привязка к сетке редактора, раньше была только у мыши (у тача её и не
+   * было — поведение сохранено как было).
+   */
+  const commitDragOverrides = useCallback(
+    (snap: boolean) => {
+      dragRafRef.current = null
+      const pending = dragPendingDeltaRef.current
+      if (!pending || !dragStationIds) return
+      const { dxWorld, dyWorld } = pending
+
+      // Снимок рефов ДО setStationOverrides, а не внутри его колбэка: рефы —
+      // обычные мутации, они меняются сразу, а колбэк-апдейтер setState React
+      // выполняет позже, при коммите. handleMouseUp/handleTouchEnd чистят эти
+      // рефы сразу за flushDragCommit — опоздавший апдейтер увидел бы уже
+      // пустые рефы и не сдвинул бы ни одной станции.
+      const initial = dragInitialPositionsRef.current
+      const ringShapesByLineId = dragRingShapesByLineIdRef.current
+
+      setStationOverrides((prev) => {
+        const next = { ...prev }
+        for (const id of dragStationIds) {
+          const base = initial[id]
+          if (!base) continue
+
+          const st = positionedById.get(id)
+          if (st && typeof st.lineId === 'number') {
+            const shape = ringShapesByLineId.get(st.lineId)
+            if (shape) {
+              const p = projectPointToRingShape(shape, base.x + dxWorld, base.y + dyWorld)
+              next[id] = { x: p.x, y: p.y }
+              continue
+            }
+          }
+
+          const x = base.x + dxWorld
+          const y = base.y + dyWorld
+          if (!snap) {
+            next[id] = { x, y }
+            continue
+          }
+          const sx = Math.round(x / EDITOR_GRID_STEP_PX) * EDITOR_GRID_STEP_PX
+          const sy = Math.round(y / EDITOR_GRID_STEP_PX) * EDITOR_GRID_STEP_PX
+          next[id] = { x: sx, y: sy }
+        }
+        return next
+      })
+    },
+    [dragStationIds, positionedById],
+  )
+
+  const scheduleDragCommit = useCallback(
+    (snap: boolean) => {
+      if (dragRafRef.current != null) return
+      dragRafRef.current = requestAnimationFrame(() => commitDragOverrides(snap))
+    },
+    [commitDragOverrides],
+  )
+
+  /** Досрочно применить отложенную дельту — иначе последний кадр жеста мог
+   * потеряться: rAF мог не успеть сработать до mouseup/touchend/leave. */
+  const flushDragCommit = useCallback(
+    (snap: boolean) => {
+      if (dragRafRef.current != null) {
+        cancelAnimationFrame(dragRafRef.current)
+        dragRafRef.current = null
+      }
+      commitDragOverrides(snap)
+      dragPendingDeltaRef.current = null
+    },
+    [commitDragOverrides],
+  )
+
   const handleMouseMove: React.MouseEventHandler<HTMLCanvasElement> = (event) => {
     if (editMode && dragStationIds && dragStartWorldRef.current) {
       const world = getWorldPointFromMouse(event)
@@ -3507,31 +3604,8 @@ export const MetroMap = memo(function MetroMap({
         }
       }
 
-      setStationOverrides((prev) => {
-        const next = { ...prev }
-        const initial = dragInitialPositionsRef.current
-        for (const id of dragStationIds) {
-          const base = initial[id]
-          if (!base) continue
-
-          const st = positionedById.get(id)
-          if (st && typeof st.lineId === 'number') {
-            const shape = dragRingShapesByLineIdRef.current.get(st.lineId)
-            if (shape) {
-              const p = projectPointToRingShape(shape, base.x + dxWorld, base.y + dyWorld)
-              next[id] = { x: p.x, y: p.y }
-              continue
-            }
-          }
-
-          const x = base.x + dxWorld
-          const y = base.y + dyWorld
-          const sx = Math.round(x / EDITOR_GRID_STEP_PX) * EDITOR_GRID_STEP_PX
-          const sy = Math.round(y / EDITOR_GRID_STEP_PX) * EDITOR_GRID_STEP_PX
-          next[id] = { x: sx, y: sy }
-        }
-        return next
-      })
+      dragPendingDeltaRef.current = { dxWorld, dyWorld }
+      scheduleDragCommit(true)
       return
     }
 
@@ -3577,6 +3651,7 @@ export const MetroMap = memo(function MetroMap({
   const handleMouseUp: React.MouseEventHandler<HTMLCanvasElement> = () => {
     const hadDrag = hasDragged
     if (editMode && dragStationIds) {
+      flushDragCommit(true)
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
@@ -3591,6 +3666,7 @@ export const MetroMap = memo(function MetroMap({
 
   const handleMouseLeave: React.MouseEventHandler<HTMLCanvasElement> = () => {
     if (editMode && dragStationIds) {
+      flushDragCommit(true)
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
@@ -3786,27 +3862,8 @@ export const MetroMap = memo(function MetroMap({
         }
       }
 
-      setStationOverrides((prev) => {
-        const next = { ...prev }
-        const initial = dragInitialPositionsRef.current
-        for (const id of dragStationIds) {
-          const base = initial[id]
-          if (!base) continue
-
-          const st = positionedById.get(id)
-          if (st && typeof st.lineId === 'number') {
-            const shape = dragRingShapesByLineIdRef.current.get(st.lineId)
-            if (shape) {
-              const p = projectPointToRingShape(shape, base.x + dxWorld, base.y + dyWorld)
-              next[id] = { x: p.x, y: p.y }
-              continue
-            }
-          }
-
-          next[id] = { x: base.x + dxWorld, y: base.y + dyWorld }
-        }
-        return next
-      })
+      dragPendingDeltaRef.current = { dxWorld, dyWorld }
+      scheduleDragCommit(false)
     } else if (event.touches.length === 1 && isPanning && lastPointRef.current) {
       const p = getTouchPoint(event)
       const dx = p.x - lastPointRef.current.x
@@ -3907,6 +3964,7 @@ export const MetroMap = memo(function MetroMap({
   const handleTouchEnd: React.TouchEventHandler<HTMLCanvasElement> = (event) => {
     const hadDrag = hasDragged
     if (editMode && dragStationIds) {
+      flushDragCommit(false)
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
@@ -4053,6 +4111,13 @@ export const MetroMap = memo(function MetroMap({
    */
   const handleTouchCancel: React.TouchEventHandler<HTMLCanvasElement> = (event) => {
     if (editMode && dragStationIds) {
+      // Жест отменён системой — досрочно применённая дельта здесь не нужна,
+      // только гасим то, что могло быть уже запланировано на кадр.
+      if (dragRafRef.current != null) {
+        cancelAnimationFrame(dragRafRef.current)
+        dragRafRef.current = null
+      }
+      dragPendingDeltaRef.current = null
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}

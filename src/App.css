@@ -172,57 +172,73 @@
 .app-splash-node--1 {
   top: 15%;
   left: 14%;
-  animation: app-splash-node-drift 11s ease-in-out infinite alternate;
-  animation-delay: 0ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 11s ease-in-out infinite alternate;
+  animation-delay: 0ms, 0ms;
 }
 
 .app-splash-node--2 {
   top: 70%;
   left: 18%;
-  animation: app-splash-node-drift 12s ease-in-out infinite alternate;
-  animation-delay: 120ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 12s ease-in-out infinite alternate;
+  animation-delay: 120ms, 120ms;
 }
 
 .app-splash-node--3 {
   top: 24%;
   right: 12%;
-  animation: app-splash-node-drift 13s ease-in-out infinite alternate;
-  animation-delay: 240ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 13s ease-in-out infinite alternate;
+  animation-delay: 240ms, 240ms;
 }
 
 .app-splash-node--4 {
   top: 44%;
   left: 9%;
-  animation: app-splash-node-drift 12s ease-in-out infinite alternate;
-  animation-delay: 360ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 12s ease-in-out infinite alternate;
+  animation-delay: 360ms, 360ms;
 }
 
 .app-splash-node--5 {
   top: 58%;
   right: 16%;
-  animation: app-splash-node-drift 13s ease-in-out infinite alternate;
-  animation-delay: 480ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 13s ease-in-out infinite alternate;
+  animation-delay: 480ms, 480ms;
 }
 
 .app-splash-node--6 {
   top: 8%;
   left: 46%;
-  animation: app-splash-node-drift 14s ease-in-out infinite alternate;
-  animation-delay: 600ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 14s ease-in-out infinite alternate;
+  animation-delay: 600ms, 600ms;
 }
 
 .app-splash-node--7 {
   top: 84%;
   right: 22%;
-  animation: app-splash-node-drift 15s ease-in-out infinite alternate;
-  animation-delay: 720ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 15s ease-in-out infinite alternate;
+  animation-delay: 720ms, 720ms;
 }
 
 .app-splash-node--8 {
   top: 88%;
   left: 40%;
-  animation: app-splash-node-drift 16s ease-in-out infinite alternate;
-  animation-delay: 840ms;
+  animation:
+    app-splash-node-fade-in 420ms ease-out forwards,
+    app-splash-node-drift 16s ease-in-out infinite alternate;
+  animation-delay: 840ms, 840ms;
 }
 
 .app-splash-title {
@@ -1337,6 +1353,21 @@
   }
 }
 
+/* Появление мотива-«узла»: заставка живёт всего ~1.2с (SPLASH_MIN_DURATION_MS
+   в useSplashGate), а исходный дрейф был рассчитан на цикл 11-16с и раньше
+   сам отвечал за opacity — узлы едва успевали доиграть фейд-ин к 8% своего
+   цикла и тут же обрезались исчезновением заставки, что выглядело как
+   мигание. Появление вынесено в отдельную короткую анимацию, дрейф ниже
+   больше не трогает opacity. */
+@keyframes app-splash-node-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Дрейф мотива-«узла» на заставке. Пришёл на смену app-splash-node-float
    вместе с самим мотивом (Дизайн-1); прочие анимации прежней заставки
    (orbit-spin, rays-spin, backdrop-intro, orbit-intro, card-breathe,
@@ -1344,18 +1375,12 @@
 @keyframes app-splash-node-drift {
   0% {
     transform: translate3d(0, 6px, 0);
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
   }
   50% {
     transform: translate3d(0, -6px, 0);
-    opacity: 1;
   }
   100% {
     transform: translate3d(0, 4px, 0);
-    opacity: 0.85;
   }
 }
 
