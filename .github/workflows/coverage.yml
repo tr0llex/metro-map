@@ -37,7 +37,9 @@ jobs:
   coverage:
     name: Покрытие main в Codecov
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Здесь только install и test:unit, без линта, сборки и e2e — легче job'а
+    # build из ci.yml, поэтому и запас ниже.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
