@@ -18,8 +18,10 @@ import {
 } from './MetroMapLabelLayout'
 import {
   MIN_SCALE,
-  computeInitialFitRect,
+  MOBILE_FILL_ZOOM,
+  WIDE_PANEL_LAYOUT_MIN_WIDTH,
   computeWorldBounds,
+  coverScaleFor,
   fitScaleFor,
 } from './MetroMapViewportFit'
 
@@ -1888,8 +1890,9 @@ export const MetroMap = memo(function MetroMap({
     return closest
   }
 
-  // Подгоняем схему под доступный размер Canvas один раз при инициализации:
-  // центрируем и масштабируем так, чтобы вся сеть влезла в экран с небольшим отступом.
+  // Подгоняем схему под размер Canvas один раз при инициализации. Панель
+  // маршрута и шторка — это интерфейс поверх карты, а не часть кадра: схема
+  // центрируется по экрану целиком, а не по свободному от них остатку.
   useEffect(() => {
     if (!worldBounds) return
 
@@ -1899,37 +1902,38 @@ export const MetroMap = memo(function MetroMap({
 
     const worldWidth = worldBounds.width
     const worldHeight = worldBounds.height
-
-    const {
-      left: insetLeft,
-      top: insetTop,
-      width: visibleWidth,
-      height: visibleHeight,
-    } = computeInitialFitRect(displayWidth, displayHeight, visibleInsets)
+    const isWidePanelLayout = displayWidth >= WIDE_PANEL_LAYOUT_MIN_WIDTH
 
     // Стартуем с «вся схема в кадре»: раньше здесь стоял
     // max(baseScale, INITIAL_PREFERRED_SCALE), из-за чего фит всегда
     // проигрывал 1.1 и приложение открывалось в куске центра (VQA-3).
-    const fitScale = fitScaleFor(worldWidth, worldHeight, visibleWidth, visibleHeight)
+    const fitScale = fitScaleFor(worldWidth, worldHeight, displayWidth, displayHeight)
     if (!Number.isFinite(fitScale) || fitScale <= 0) return
 
-    const initialScale = Math.min(MAX_SCALE, INITIAL_PREFERRED_SCALE, fitScale)
-
-    const screenCenterX = displayWidth / 2
-    const screenCenterY = displayHeight / 2
-    const visibleCenterX = insetLeft + visibleWidth / 2
-    const visibleCenterY = insetTop + visibleHeight / 2
+    // На широком макете (веб) — схема целиком, вписанная по центру экрана.
+    // На узком (мобильный) — экран заполняется целиком, с лёгким
+    // приближением, а не «вся схема с полями», иначе схема выглядит мелкой
+    // картинкой посреди пустого поля.
+    const initialScale = isWidePanelLayout
+      ? Math.min(MAX_SCALE, INITIAL_PREFERRED_SCALE, fitScale)
+      : Math.min(
+          MAX_SCALE,
+          coverScaleFor(worldWidth, worldHeight, displayWidth, displayHeight) * MOBILE_FILL_ZOOM,
+        )
 
     // Если схема влезла целиком — центрируем её саму. Если экран так велик,
     // что фит упёрся в потолок зума, показываем центр города.
-    const showsWholeMap = initialScale >= fitScale - 1e-6
+    const showsWholeMap = isWidePanelLayout && initialScale >= fitScale - 1e-6
     const centerWorldX =
       showsWholeMap || !teatralnayaWorld ? worldBounds.centerX : teatralnayaWorld.x
     const centerWorldY =
       showsWholeMap || !teatralnayaWorld ? worldBounds.centerY : teatralnayaWorld.y
 
-    const offsetX = visibleCenterX - screenCenterX - centerWorldX * initialScale
-    const offsetY = visibleCenterY - screenCenterY - centerWorldY * initialScale
+    // offsetX/offsetY уже отсчитываются от центра экрана (см. clampViewport
+    // ниже по файлу: offsetX = -centerWorldX * scale), поэтому без
+    // добавочного screenCenterX-члена — иначе clampViewport его отбросит.
+    const offsetX = -centerWorldX * initialScale
+    const offsetY = -centerWorldY * initialScale
 
     setViewport(
       clampViewport({
@@ -1950,7 +1954,6 @@ export const MetroMap = memo(function MetroMap({
     clampViewport,
     teatralnayaWorld,
     onInitialViewportReady,
-    visibleInsets,
   ])
 
   // Перерисовка схемы при изменении вьюпорта или подсветки

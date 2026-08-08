@@ -72,6 +72,33 @@ export const fitScaleFor = (
   return Math.min(width / w, height / h)
 }
 
+/**
+ * Зум, при котором схема с полями под подписи заполняет прямоугольник
+ * width×height целиком (кадр «обрезает» схему по короткой стороне), в
+ * отличие от fitScaleFor, который вписывает схему целиком (кадр остаётся
+ * с полями по длинной стороне).
+ *
+ * Нужен для мобильного стартового вида: там просьба — не «вся схема с
+ * полями по краям», а «экран заполнен целиком, с небольшим приближением».
+ */
+export const coverScaleFor = (
+  worldWidth: number,
+  worldHeight: number,
+  width: number,
+  height: number,
+): number => {
+  const w = worldWidth + WORLD_LABEL_MARGIN_X * 2
+  const h = worldHeight + WORLD_LABEL_MARGIN_Y * 2
+  if (w <= 0 || h <= 0 || width <= 0 || height <= 0) return MIN_SCALE
+  return Math.max(width / w, height / h)
+}
+
+/**
+ * Множитель поверх «заполнить экран» на стартовом мобильном виде — лёгкое
+ * приближение, чтобы схема не казалась вписанной впритык.
+ */
+export const MOBILE_FILL_ZOOM = 1.15
+
 /** Отступы, занятые интерфейсом поверх карты (см. useMapVisibleInsets). */
 export interface MapInsets {
   top: number
@@ -89,7 +116,7 @@ export interface FitRect {
 }
 
 /** Ширина холста, с которой панель маршрута переезжает сбоку вместо шторки снизу. */
-const WIDE_PANEL_LAYOUT_MIN_WIDTH = 1024
+export const WIDE_PANEL_LAYOUT_MIN_WIDTH = 1024
 
 /**
  * Свободный прямоугольник под схему на стартовом виде.
