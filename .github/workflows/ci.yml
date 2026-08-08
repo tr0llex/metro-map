@@ -31,6 +31,7 @@ jobs:
   commits:
     name: Коммиты без упоминаний ИИ
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,6 +58,7 @@ jobs:
   build:
     name: Typecheck, lint, test, build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v7
@@ -123,6 +125,7 @@ jobs:
   e2e:
     name: Сквозные тесты (путь пользователя)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     # Юниты проверяют функции, а проверка после выкатки — код ответа и версию.
     # Между ними остаётся дыра: схема не отрисовалась, маршрут не построился,
@@ -177,6 +180,7 @@ jobs:
   quality:
     name: Metro map quality (no drift from baseline)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     # Раньше здесь стоял `continue-on-error: true` и `npm run quality:check`.
     # quality:check возвращает 1 всегда, пока хоть одна метрика в FAIL, а она в
