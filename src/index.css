@@ -7,6 +7,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Без этого мобильные браузеры (в первую очередь Android Chrome) сами
+     решают, где «раздуть» текст для читаемости в узких колонках — разные
+     блоки соседних размеров получают непропорционально разный буст, и шрифт
+     на глаз выглядит рассинхронизированным. Явные 100% отключают эвристику,
+     оставляя ровно те размеры, что заданы в CSS. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   --motion-fast: 140ms;
   --motion-base: 200ms;
   --motion-medium: 260ms;

@@ -2428,9 +2428,12 @@
   position: absolute;
   right: 0.22rem;
   top: 50%;
-  transform: translateY(calc(-50% - 2px));
-  width: 1.2rem;
-  height: 1.2rem;
+  /* Центр строго по полю: раньше здесь была ручная поправка на -2px,
+     подобранная под старый бокс 1.2rem. Более поздний блок «тач-таргеты»
+     ниже по файлу увеличивал width/height до 1.5rem, transform не трогал —
+     крестик оставался центрирован на бокс, которого уже не было, и стоял
+     криво. */
+  transform: translateY(-50%);
   border-radius: var(--radius-pill);
   border: none;
   padding: 0;
@@ -2439,7 +2442,6 @@
   justify-content: center;
   background: transparent;
   color: var(--color-text-placeholder);
-  font-size: 0.95rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -2450,7 +2452,7 @@
 }
 
 .bottom-input-clear:active {
-  transform: translateY(calc(-50% - 3px)) scale(0.96);
+  transform: translateY(-50%) scale(0.96);
   background-color: var(--color-accent-soft);
 }
 
