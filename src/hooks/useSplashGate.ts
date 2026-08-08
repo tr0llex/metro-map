@@ -5,7 +5,7 @@ const MAP_READY_FALLBACK_MS = 3500
 
 // Минимальная длительность заставки. Держим её короткой: заставка — это «привет»,
 // а не загрузочный экран, реальную готовность карты сторожит MAP_READY_FALLBACK_MS.
-const SPLASH_MIN_DURATION_MS = 1200
+const SPLASH_MIN_DURATION_MS = 1500
 
 type SplashGate = {
   /** Заставка отработала минимальную длительность. */

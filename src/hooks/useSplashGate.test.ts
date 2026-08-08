@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSplashGate } from './useSplashGate.ts'
 
 const MAP_READY_FALLBACK_MS = 3500
-const SPLASH_MIN_DURATION_MS = 1200
+const SPLASH_MIN_DURATION_MS = 1500
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -33,7 +33,7 @@ describe('на старте', () => {
 
 describe('минимальная длительность заставки', () => {
   /** Заставка — это «привет», а не загрузочный экран: держим её короткой. */
-  it('отрабатывает сама через 1200 мс', () => {
+  it('отрабатывает сама через 1500 мс', () => {
     const { result } = renderHook(() => useSplashGate())
 
     tick(SPLASH_MIN_DURATION_MS - 1)
