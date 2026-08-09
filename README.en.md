@@ -131,8 +131,8 @@ from the `manifest` section of `vite.config.ts` — there is no `.webmanifest` i
 
 ## Tests
 
-475 unit tests in 31 files (Vitest) plus 8 end-to-end tests in Playwright, and 2
-more that run against production by hand.
+About 1250 unit tests in 78 files (Vitest) plus 12 end-to-end tests in
+Playwright, and 2 more that run against production by hand.
 
 ```bash
 npx tsc -b && npm run lint && npx vitest run
