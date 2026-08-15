@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -63,9 +63,9 @@ jobs:
     timeout-minutes: 18
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm
@@ -133,9 +133,9 @@ jobs:
     # Между ними остаётся дыра: схема не отрисовалась, маршрут не построился,
     # service worker не встал — приложение при этом честно отдаёт 200.
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm
@@ -149,7 +149,7 @@ jobs:
         id: pw
         run: echo "v=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: pw-cache
         with:
           path: ~/.cache/ms-playwright
@@ -170,7 +170,7 @@ jobs:
       - name: End-to-end tests
         run: npm run e2e
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: playwright-report
@@ -200,9 +200,9 @@ jobs:
     # Пороги FAIL/WARN при этом остаются как есть и продолжают печататься в
     # отчёте — они описывают цель, а не текущее состояние.
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm
@@ -222,3 +222,57 @@ jobs:
             exit 1
           fi
           echo "Отчёт совпал с базовой линией — дрейфа нет."
+
+  # Переименование или слияние задачи CI не красит сам прогон в красный — им
+  # тут же становится защита ветки main, и не сразу: required_status_checks
+  # хранит СТАРОЕ имя задачи, ждёт его вечно, а следующий PR просто не может
+  # смержиться без единого красного шага, объясняющего причину. Правится
+  # руками в Settings → Branches, и руками же забывается.
+  #
+  # Эта задача сверяет фактические имена задач текущего прогона (через Jobs
+  # API — это то же самое, что видит защита ветки, а не то, что написано в
+  # workflow-файле) со списком required_status_checks.contexts ветки main и
+  # падает при расхождении в любую сторону: пропавшая обязательная проверка
+  # и новая незащищённая — одинаково стоит заметить.
+  protection-sync:
+    name: Защита ветки соответствует задачам CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # needs — не про очерёдность результата, а про то, что видит Jobs API.
+    # GitHub регистрирует задачу с зависимостями в API прогона только когда
+    # её needs выполнены и она реально стартовала — без needs эта задача
+    # финиширует за секунды и застаёт API в момент, когда остальные задачи
+    # ещё не созданы, а не пропущены. Итог — те же ложные "пропала проверка",
+    # от которых задача должна защищать.
+    needs:
+      - commits
+      - build
+      - e2e
+      - quality
+    if: always()
+    env:
+      # У GITHUB_TOKEN нет scope "administration" — читать защиту ветки
+      # им нельзя. Нужен fine-grained PAT (Administration: Read-only +
+      # Actions: Read-only), заводится вручную в secrets.
+      GH_TOKEN: ${{ secrets.PROTECTION_READ_TOKEN }}
+    steps:
+      # Секреты репозитория не отдаются прогонам dependabot и форков — там
+      # PAT приходит пустым. Сверять нечего: задача проверяет настройку
+      # репозитория, а не содержимое PR, и на своих ветках отработает та же
+      # проверка. Падать здесь — значит красить чужие PR за то, чего они не
+      # ломали, поэтому пропускаем явно и вслух.
+      - name: Пропустить сверку без доступа к защите ветки
+        if: env.GH_TOKEN == ''
+        run: |
+          echo "::notice::PAT недоступен (dependabot или форк) — сверка защиты ветки пропущена"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.GH_TOKEN != ''
+
+      - name: Сверить задачи с обязательными проверками main
+        if: env.GH_TOKEN != ''
+        env:
+          # Задача не может требовать защиты самой себя на первом прогоне —
+          # main её ещё не видел.
+          SELF_JOB_NAME: Защита ветки соответствует задачам CI
+        run: bash ci/branch-protection-check.sh
