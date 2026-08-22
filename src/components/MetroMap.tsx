@@ -452,6 +452,14 @@ export const MetroMap = memo(function MetroMap({
   >(null)
   const wheelRafRef = useRef<number | null>(null)
   const isWheelZoomingRef = useRef(false)
+  /** Тот же «лёгкий режим», что и у wheel-zoom, но для перетаскивания станции
+   * в редакторе: полная раскладка подписей (computeStationLabelPlacements) —
+   * дорогой комбинаторный проход по ~300 станциям, а positionedStations меняет
+   * ссылку на каждый кадр драга. Без этого флага она пересчитывалась заново
+   * на каждый коммит позиции и блокировала поток на ~1с (см. console.log из
+   * репорта пользователя) — драг «не двигался на лету», а прыгал после
+   * отпускания, когда очередь mousemove наконец успевала разобраться. */
+  const isDraggingStationsRef = useRef(false)
   const wheelStopTimeoutRef = useRef<number | null>(null)
   const wheelZoomRafRef = useRef<number | null>(null)
   /** Цель зума в логарифме масштаба; null — жеста нет. */
@@ -2735,13 +2743,15 @@ export const MetroMap = memo(function MetroMap({
       labelCtx.shadowBlur = 0
 
       // Раскладка подписей зависит только от положения станций и размера шрифта
-      // в мировых координатах и не пересчитывается при зуме.
+      // в мировых координатах и не пересчитывается при зуме и при перетаскивании
+      // станции в редакторе — см. isDraggingStationsRef выше.
       const isWheelZooming = isWheelZoomingRef.current
+      const isDraggingStations = isDraggingStationsRef.current
       const shouldRecomputeLabelsBase =
         !labelPlacementsRef.current.stationsRef ||
         labelPlacementsRef.current.stationsRef !== positionedStations
 
-      const shouldRecomputeLabels = !isWheelZooming && shouldRecomputeLabelsBase
+      const shouldRecomputeLabels = !isWheelZooming && !isDraggingStations && shouldRecomputeLabelsBase
 
       if (shouldRecomputeLabels) {
         labelPlacementsRef.current.placements = computeStationLabelPlacements(
@@ -3477,6 +3487,7 @@ export const MetroMap = memo(function MetroMap({
           }
 
           setDragStationIds(idsToDrag)
+          isDraggingStationsRef.current = true
           dragInitialPositionsRef.current = initialPositions
           dragStartWorldRef.current = world
 
@@ -3644,6 +3655,7 @@ export const MetroMap = memo(function MetroMap({
     const hadDrag = hasDragged
     if (editMode && dragStationIds) {
       flushDragCommit(true)
+      isDraggingStationsRef.current = false
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
@@ -3659,6 +3671,7 @@ export const MetroMap = memo(function MetroMap({
   const handleMouseLeave: React.MouseEventHandler<HTMLCanvasElement> = () => {
     if (editMode && dragStationIds) {
       flushDragCommit(true)
+      isDraggingStationsRef.current = false
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
@@ -3743,6 +3756,7 @@ export const MetroMap = memo(function MetroMap({
           }
 
           setDragStationIds(idsToDrag)
+          isDraggingStationsRef.current = true
           dragInitialPositionsRef.current = initialPositions
           dragStartWorldRef.current = world
 
@@ -3957,6 +3971,7 @@ export const MetroMap = memo(function MetroMap({
     const hadDrag = hasDragged
     if (editMode && dragStationIds) {
       flushDragCommit(false)
+      isDraggingStationsRef.current = false
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
@@ -4110,6 +4125,7 @@ export const MetroMap = memo(function MetroMap({
         dragRafRef.current = null
       }
       dragPendingDeltaRef.current = null
+      isDraggingStationsRef.current = false
       setDragStationIds(null)
       dragStartWorldRef.current = null
       dragInitialPositionsRef.current = {}
