@@ -72,7 +72,7 @@ permissions:
 
 jobs:
   deploy:
-    uses: tr0llex/deploy-kit/.github/workflows/static-site.yml@main
+    uses: Samoy-love/deploy-kit/.github/workflows/static-site.yml@main
     with:
       config: .deploy-kit/prod.env
       # nginx-conf не передаём: этот вход ждёт путь в ЭТОМ репозитории, а
