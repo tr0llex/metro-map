@@ -2,8 +2,8 @@
 
 [Русский](README.md) · English
 
-[![CI](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/tr0llex/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/metro-map)
+[![CI](https://github.com/samoy-love/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/samoy-love/metro-map/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/samoy-love/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/samoy-love/metro-map)
 [![prod](https://img.shields.io/website?url=https%3A%2F%2Fmetro.samoy.love&up_message=online&up_color=2ea043&down_message=offline&label=metro.samoy.love)](https://metro.samoy.love)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -78,7 +78,7 @@ data/  →  go-layout-solver  →  normalized/fullGraph.json  →  app
 ```
 
 **Production** — static files behind the system nginx, released through
-[deploy-kit](https://github.com/tr0llex/deploy-kit).
+[deploy-kit](https://github.com/samoy-love/deploy-kit).
 
 ## Quick start
 
@@ -162,7 +162,7 @@ dk rollback metro
 The build is unpacked next to the current release, the symlink is switched
 atomically and the version is verified afterwards. The target description is
 `.deploy-kit/prod.env`; the nginx configuration and the release scripts live in
-[deploy-kit](https://github.com/tr0llex/deploy-kit). Deployment stays a
+[deploy-kit](https://github.com/samoy-love/deploy-kit). Deployment stays a
 deliberate manual step: for an installed PWA a release reaches users on the
 service worker's terms, not the pipeline's.
 
@@ -173,15 +173,15 @@ release pipeline, one status page.
 
 | Service | What it is | Repository |
 | --- | --- | --- |
-| [samoy.love](https://samoy.love) | Personal page and project showcase | [tr0llex/samoy.love](https://github.com/tr0llex/samoy.love) |
-| [metro.samoy.love](https://metro.samoy.love) | This app | [tr0llex/metro-map](https://github.com/tr0llex/metro-map) |
-| [snakes.samoy.love](https://snakes.samoy.love) | Multiplayer territory capture in the browser | [tr0llex/snakes](https://github.com/tr0llex/snakes) |
-| [launcher.samoy.love](https://launcher.samoy.love) | ChillHub, a game launcher for Windows | [tr0llex/chillhub](https://github.com/tr0llex/chillhub) |
-| [status.samoy.love](https://status.samoy.love) | Uptime, versions, incidents | [tr0llex/status.samoy.love](https://github.com/tr0llex/status.samoy.love) |
-| Monitoring | Prometheus, Grafana, traffic from nginx logs | [tr0llex/metrics.samoy.love](https://github.com/tr0llex/metrics.samoy.love) |
+| [samoy.love](https://samoy.love) | Personal page and project showcase | [samoy-love/samoy.love](https://github.com/samoy-love/samoy.love) |
+| [metro.samoy.love](https://metro.samoy.love) | This app | [samoy-love/metro-map](https://github.com/samoy-love/metro-map) |
+| [snakes.samoy.love](https://snakes.samoy.love) | Multiplayer territory capture in the browser | [samoy-love/snakes](https://github.com/samoy-love/snakes) |
+| [launcher.samoy.love](https://launcher.samoy.love) | ChillHub, a game launcher for Windows | [samoy-love/chillhub](https://github.com/samoy-love/chillhub) |
+| [status.samoy.love](https://status.samoy.love) | Uptime, versions, incidents | [samoy-love/status.samoy.love](https://github.com/samoy-love/status.samoy.love) |
+| Monitoring | Prometheus, Grafana, traffic from nginx logs | [samoy-love/metrics.samoy.love](https://github.com/samoy-love/metrics.samoy.love) |
 
 They all ship through one tool,
-[deploy-kit](https://github.com/tr0llex/deploy-kit): one target description in
+[deploy-kit](https://github.com/samoy-love/deploy-kit): one target description in
 the repository, one `release.sh` on the server, one nginx configuration for
 everything.
 
@@ -189,7 +189,7 @@ everything.
 
 Alexey Samoylov — <alex@samoy.love>, [t.me/tr0llex](https://t.me/tr0llex),
 [github.com/tr0llex](https://github.com/tr0llex). Tasks live in
-[issues](https://github.com/tr0llex/metro-map/issues).
+[issues](https://github.com/samoy-love/metro-map/issues).
 
 The code is MIT, see [LICENSE](LICENSE). Station names, line composition and
 interchange times follow the official Moscow Metro scheme; the geometry is not

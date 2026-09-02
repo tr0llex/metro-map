@@ -2,8 +2,8 @@
 
 Русский · [English](README.en.md)
 
-[![CI](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/tr0llex/metro-map/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/tr0llex/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/tr0llex/metro-map)
+[![CI](https://github.com/samoy-love/metro-map/actions/workflows/ci.yml/badge.svg)](https://github.com/samoy-love/metro-map/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/samoy-love/metro-map/branch/main/graph/badge.svg)](https://codecov.io/gh/samoy-love/metro-map)
 [![прод](https://img.shields.io/website?url=https%3A%2F%2Fmetro.samoy.love&up_message=online&up_color=2ea043&down_message=offline&label=metro.samoy.love)](https://metro.samoy.love)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -79,7 +79,7 @@ data/  →  go-layout-solver  →  normalized/fullGraph.json  →  прилож�
 ```
 
 **Прод** — статика за системным nginx, релизы через
-[deploy-kit](https://github.com/tr0llex/deploy-kit).
+[deploy-kit](https://github.com/samoy-love/deploy-kit).
 
 ## Быстрый старт
 
@@ -162,7 +162,7 @@ dk rollback metro
 Сборка раскладывается рядом с текущим релизом, симлинк переключается атомарно,
 версия сверяется после переключения. Описание цели — `.deploy-kit/prod.env`;
 конфигурация nginx и скрипты релиза — в
-[deploy-kit](https://github.com/tr0llex/deploy-kit). Выкатка намеренно остаётся
+[deploy-kit](https://github.com/samoy-love/deploy-kit). Выкатка намеренно остаётся
 ручным шагом: у установленного PWA релиз доходит до пользователей по правилам
 service worker, а не пайплайна.
 
@@ -173,22 +173,22 @@ service worker, а не пайплайна.
 
 | Сервис | Что это | Репозиторий |
 | --- | --- | --- |
-| [samoy.love](https://samoy.love) | Личная страница и витрина проектов | [tr0llex/samoy.love](https://github.com/tr0llex/samoy.love) |
-| [metro.samoy.love](https://metro.samoy.love) | Это приложение | [tr0llex/metro-map](https://github.com/tr0llex/metro-map) |
-| [snakes.samoy.love](https://snakes.samoy.love) | Захват территории в браузере | [tr0llex/snakes](https://github.com/tr0llex/snakes) |
-| [launcher.samoy.love](https://launcher.samoy.love) | ChillHub, лаунчер игр для Windows | [tr0llex/chillhub](https://github.com/tr0llex/chillhub) |
-| [status.samoy.love](https://status.samoy.love) | Аптайм, версии, инциденты | [tr0llex/status.samoy.love](https://github.com/tr0llex/status.samoy.love) |
-| Мониторинг | Prometheus, Grafana, посещаемость из логов nginx | [tr0llex/metrics.samoy.love](https://github.com/tr0llex/metrics.samoy.love) |
+| [samoy.love](https://samoy.love) | Личная страница и витрина проектов | [samoy-love/samoy.love](https://github.com/samoy-love/samoy.love) |
+| [metro.samoy.love](https://metro.samoy.love) | Это приложение | [samoy-love/metro-map](https://github.com/samoy-love/metro-map) |
+| [snakes.samoy.love](https://snakes.samoy.love) | Захват территории в браузере | [samoy-love/snakes](https://github.com/samoy-love/snakes) |
+| [launcher.samoy.love](https://launcher.samoy.love) | ChillHub, лаунчер игр для Windows | [samoy-love/chillhub](https://github.com/samoy-love/chillhub) |
+| [status.samoy.love](https://status.samoy.love) | Аптайм, версии, инциденты | [samoy-love/status.samoy.love](https://github.com/samoy-love/status.samoy.love) |
+| Мониторинг | Prometheus, Grafana, посещаемость из логов nginx | [samoy-love/metrics.samoy.love](https://github.com/samoy-love/metrics.samoy.love) |
 
 Все они едут одним инструментом,
-[deploy-kit](https://github.com/tr0llex/deploy-kit): одно описание цели в
+[deploy-kit](https://github.com/samoy-love/deploy-kit): одно описание цели в
 репозитории, один `release.sh` на сервере, одна конфигурация nginx на всех.
 
 ## Контакты и лицензия
 
 Алексей Самойлов — <alex@samoy.love>, [t.me/tr0llex](https://t.me/tr0llex),
 [github.com/tr0llex](https://github.com/tr0llex). Задачи —
-в [issues](https://github.com/tr0llex/metro-map/issues).
+в [issues](https://github.com/samoy-love/metro-map/issues).
 
 Код — MIT, см. [LICENSE](LICENSE). Названия станций, состав линий и времена
 пересадок соответствуют официальной схеме московского метро; геометрия с неё не

@@ -17,9 +17,9 @@
   "homepage": "https://metro.samoy.love",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tr0llex/metro-map.git"
+    "url": "git+https://github.com/samoy-love/metro-map.git"
   },
-  "bugs": "https://github.com/tr0llex/metro-map/issues",
+  "bugs": "https://github.com/samoy-love/metro-map/issues",
   "author": "Alexey Samoylov <alex@samoy.love>",
   "license": "MIT",
   "version": "1.0.6",
