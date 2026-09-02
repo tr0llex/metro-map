@@ -30,7 +30,11 @@ jobs:
   # клоне отсутствует — здесь страховка.
   commits:
     name: Коммиты без упоминаний ИИ
-    runs-on: ubuntu-latest
+    # Свои ветки идут на собственный раннер: у него 6 ядер против 4 у
+    # GitHub-hosted и тёплые кэши Go, npm и тулчейнов на отдельном разделе.
+    # Форк-PR остаются на ubuntu-latest — метки home у GitHub-hosted нет,
+    # поэтому чужой код до наших машин не доедет даже при ошибочном одобрении.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -57,7 +61,11 @@ jobs:
 
   build:
     name: Typecheck, lint, test, build
-    runs-on: ubuntu-latest
+    # Свои ветки идут на собственный раннер: у него 6 ядер против 4 у
+    # GitHub-hosted и тёплые кэши Go, npm и тулчейнов на отдельном разделе.
+    # Форк-PR остаются на ubuntu-latest — метки home у GitHub-hosted нет,
+    # поэтому чужой код до наших машин не доедет даже при ошибочном одобрении.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home' }}
     # Было 30: после #52 (шардирование сверок раскладки) реальное время —
     # 8-16 минут. 18 оставляет запас, но перестаёт ждать полчаса зависший шаг.
     timeout-minutes: 18
@@ -126,7 +134,11 @@ jobs:
 
   e2e:
     name: Сквозные тесты (путь пользователя)
-    runs-on: ubuntu-latest
+    # Свои ветки идут на собственный раннер: у него 6 ядер против 4 у
+    # GitHub-hosted и тёплые кэши Go, npm и тулчейнов на отдельном разделе.
+    # Форк-PR остаются на ubuntu-latest — метки home у GitHub-hosted нет,
+    # поэтому чужой код до наших машин не доедет даже при ошибочном одобрении.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home' }}
     timeout-minutes: 20
 
     # Юниты проверяют функции, а проверка после выкатки — код ответа и версию.
@@ -181,7 +193,11 @@ jobs:
 
   quality:
     name: Metro map quality (no drift from baseline)
-    runs-on: ubuntu-latest
+    # Свои ветки идут на собственный раннер: у него 6 ядер против 4 у
+    # GitHub-hosted и тёплые кэши Go, npm и тулчейнов на отдельном разделе.
+    # Форк-PR остаются на ubuntu-latest — метки home у GitHub-hosted нет,
+    # поэтому чужой код до наших машин не доедет даже при ошибочном одобрении.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'home' }}
     timeout-minutes: 10
 
     # Раньше здесь стоял `continue-on-error: true` и `npm run quality:check`.
