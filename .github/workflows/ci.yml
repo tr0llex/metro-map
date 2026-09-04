@@ -30,7 +30,7 @@ jobs:
   # клоне отсутствует — здесь страховка.
   commits:
     name: Коммиты без упоминаний ИИ
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, home]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -57,7 +57,7 @@ jobs:
 
   build:
     name: Typecheck, lint, test, build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, home]
     # Было 30: после #52 (шардирование сверок раскладки) реальное время —
     # 8-16 минут. 18 оставляет запас, но перестаёт ждать полчаса зависший шаг.
     timeout-minutes: 18
@@ -126,7 +126,7 @@ jobs:
 
   e2e:
     name: Сквозные тесты (путь пользователя)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, home]
     timeout-minutes: 20
 
     # Юниты проверяют функции, а проверка после выкатки — код ответа и версию.
@@ -181,7 +181,7 @@ jobs:
 
   quality:
     name: Metro map quality (no drift from baseline)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, home]
     timeout-minutes: 10
 
     # Раньше здесь стоял `continue-on-error: true` и `npm run quality:check`.
@@ -236,7 +236,7 @@ jobs:
   # и новая незащищённая — одинаково стоит заметить.
   protection-sync:
     name: Защита ветки соответствует задачам CI
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, home]
     timeout-minutes: 5
     # needs — не про очерёдность результата, а про то, что видит Jobs API.
     # GitHub регистрирует задачу с зависимостями в API прогона только когда
